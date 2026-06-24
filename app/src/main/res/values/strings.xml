@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">7Ticks</string>
+    <string name="splash_tagline">Smart Vocabulary Learning with FSRS Algorithm</string>
+    <string name="button_continue">Continue</string>
+    <string name="button_back">Back</string>
+    <string name="settings_title">Settings</string>
+    <string name="learning_overview">Learning Overview</string>
+    <string name="cognitive_analysis">Cognitive Retention Analysis</string>
+    <string name="activity_profile">Weekly Activity Profile</string>
 </resources>

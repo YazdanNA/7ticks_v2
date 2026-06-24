@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">7Ticks</string>
+    <string name="splash_tagline">Apprentissage intelligent du vocabulaire avec l\'algorithme FSRS</string>
+    <string name="button_continue">Continuer</string>
+    <string name="button_back">Retour</string>
+    <string name="settings_title">Paramètres</string>
+    <string name="learning_overview">Aperçu de l\'apprentissage</string>
+    <string name="cognitive_analysis">Analyse de rétention cognitive</string>
+    <string name="activity_profile">Profil d\'activité hebdomadaire</string>
+</resources>
