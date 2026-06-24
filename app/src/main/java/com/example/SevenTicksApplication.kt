@@ -5,6 +5,9 @@ import com.example.core.database.PreferencesManager
 import com.example.core.database.UserDatabase
 import com.example.core.database.UserRepository
 import com.example.core.database.VocabularyDatabaseManager
+import com.example.core.database.BoxRepository
+import com.example.core.database.DictionaryRepository
+import com.example.core.database.SearchRepository
 
 class SevenTicksApplication : Application() {
 
@@ -20,6 +23,15 @@ class SevenTicksApplication : Application() {
     lateinit var userRepository: UserRepository
         private set
 
+    lateinit var boxRepository: BoxRepository
+        private set
+
+    lateinit var dictionaryRepository: DictionaryRepository
+        private set
+
+    lateinit var searchRepository: SearchRepository
+        private set
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -28,6 +40,9 @@ class SevenTicksApplication : Application() {
         vocabDatabaseManager = VocabularyDatabaseManager(this)
         userDatabase = UserDatabase.getDatabase(this)
         userRepository = UserRepository(this, userDatabase.userDao(), vocabDatabaseManager, preferencesManager)
+        boxRepository = BoxRepository(userDatabase.userDao())
+        dictionaryRepository = DictionaryRepository(this)
+        searchRepository = SearchRepository(this)
     }
 
     companion object {

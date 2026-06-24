@@ -78,6 +78,12 @@ interface UserDao {
     @Delete
     suspend fun deleteCustomBox(box: CustomBoxEntity)
 
+    @Update
+    suspend fun updateCustomBox(box: CustomBoxEntity)
+
+    @Query("SELECT * FROM custom_boxes WHERE id = :id")
+    suspend fun getCustomBoxById(id: Int): CustomBoxEntity?
+
     @Query("UPDATE custom_boxes SET name = :newName WHERE id = :id")
     suspend fun updateCustomBoxName(id: Int, newName: String)
 
@@ -85,14 +91,58 @@ interface UserDao {
     @Query("SELECT * FROM box_words WHERE boxId = :boxId ORDER BY addedAt DESC")
     fun getWordsInCustomBox(boxId: Int): Flow<List<BoxWordEntity>>
 
+    @Query("SELECT * FROM box_words WHERE boxId = :boxId ORDER BY addedAt DESC")
+    suspend fun getWordsInCustomBoxOnce(boxId: Int): List<BoxWordEntity>
+
+    @Query("SELECT * FROM box_words WHERE id = :id")
+    suspend fun getBoxWordById(id: Int): BoxWordEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBoxWord(boxWord: BoxWordEntity)
+
+    @Update
+    suspend fun updateBoxWord(boxWord: BoxWordEntity)
 
     @Query("DELETE FROM box_words WHERE boxId = :boxId AND wordId = :wordId")
     suspend fun deleteBoxWord(boxId: Int, wordId: Int)
 
+    @Query("DELETE FROM box_words WHERE id = :id")
+    suspend fun deleteBoxWordById(id: Int)
+
     @Query("DELETE FROM box_words WHERE boxId = :boxId")
     suspend fun deleteAllWordsInCustomBox(boxId: Int)
+
+    // 5.5. Favorite Words (favorite_words)
+    @Query("SELECT * FROM favorite_words ORDER BY addedAt DESC")
+    fun getFavoriteWords(): Flow<List<FavoriteWordEntity>>
+
+    @Query("SELECT * FROM favorite_words ORDER BY addedAt DESC")
+    suspend fun getFavoriteWordsOnce(): List<FavoriteWordEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavoriteWord(favorite: FavoriteWordEntity)
+
+    @Query("DELETE FROM favorite_words WHERE word = :word")
+    suspend fun deleteFavoriteWord(word: String)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_words WHERE word = :word)")
+    fun isFavoriteWordFlow(word: String): Flow<Boolean>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_words WHERE word = :word)")
+    suspend fun isFavoriteWord(word: String): Boolean
+
+    // 5.6. Recent Searches (recent_searches)
+    @Query("SELECT * FROM recent_searches ORDER BY timestamp DESC LIMIT :limit")
+    fun getRecentSearches(limit: Int): Flow<List<RecentSearchEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecentSearch(search: RecentSearchEntity)
+
+    @Query("DELETE FROM recent_searches WHERE `query` = :query")
+    suspend fun deleteRecentSearch(query: String)
+
+    @Query("DELETE FROM recent_searches")
+    suspend fun clearRecentSearches()
 
     // 6. Achievements (achievements)
     @Query("SELECT * FROM achievements")
@@ -140,4 +190,33 @@ interface UserDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSetting(setting: SettingEntity)
+
+    // 11. Reward History (reward_history)
+    @Query("SELECT * FROM reward_history ORDER BY timestamp DESC")
+    fun getRewardHistory(): Flow<List<RewardHistoryEntity>>
+
+    @Query("SELECT * FROM reward_history ORDER BY timestamp DESC")
+    suspend fun getRewardHistoryOnce(): List<RewardHistoryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRewardLog(reward: RewardHistoryEntity)
+
+    @Query("DELETE FROM reward_history WHERE id = :id")
+    suspend fun deleteRewardLog(id: Int)
+
+    @Query("DELETE FROM reward_history")
+    suspend fun clearRewardHistory()
+
+    // 12. Additional Challenge and Achievement once-queries
+    @Query("SELECT * FROM challenges")
+    suspend fun getChallengesOnce(): List<ChallengeEntity>
+
+    @Query("SELECT * FROM challenges WHERE id = :id")
+    suspend fun getChallengeById(id: String): ChallengeEntity?
+
+    @Query("SELECT * FROM achievements")
+    suspend fun getAchievementsOnce(): List<AchievementEntity>
+
+    @Query("SELECT * FROM achievements WHERE id = :id")
+    suspend fun getAchievementById(id: String): AchievementEntity?
 }

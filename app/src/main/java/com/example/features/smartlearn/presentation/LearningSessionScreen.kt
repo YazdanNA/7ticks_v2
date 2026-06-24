@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -123,6 +125,7 @@ fun LearningSessionScreen(navController: NavController) {
     val sessionState by repo.sessionState.collectAsState(initial = null)
     val userProgress by repo.userProgress.collectAsState(initial = null)
     val reviewLogs by repo.reviewHistory.collectAsState(initial = emptyList())
+    val rewardHistory by repo.rewardHistory.collectAsState(initial = emptyList())
 
     var currentCardIndex by remember { mutableStateOf(0) }
     var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
@@ -134,6 +137,8 @@ fun LearningSessionScreen(navController: NavController) {
     var xpEarnedInSession by remember { mutableStateOf(0) }
     var isSessionCompleted by remember { mutableStateOf(false) }
     var showLeveledUpDialog by remember { mutableStateOf(false) }
+    var totalAnswersInSession by remember { mutableStateOf(0) }
+    var correctAnswersInSession by remember { mutableStateOf(0) }
 
     // Tiki reaction state
     var tikiReactionMessage by remember { mutableStateOf("Tiki is watching! Recall correctly to impress me!") }
@@ -192,6 +197,10 @@ fun LearningSessionScreen(navController: NavController) {
     }
 
     // Load active session card list
+    LaunchedEffect(Unit) {
+        repo.updateStreakOnActivity()
+    }
+
     LaunchedEffect(sessionState) {
         val state = sessionState
         if (state != null && state.active && state.cardIds.isNotEmpty()) {
@@ -292,103 +301,267 @@ fun LearningSessionScreen(navController: NavController) {
     }
 
     if (isSessionCompleted) {
-        // --- SESSION COMPLETION SCREEN ---
+        // --- SESSION COMPLETION SCREEN & REWARD OVERLAY ---
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(animatedBgBrush)
-                .padding(24.dp),
+                .background(animatedBgBrush),
             contentAlignment = Alignment.Center
         ) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 28.dp
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(24.dp)
+            // Background Confetti Effect
+            ConfettiEffect()
+
+            if (rewardHistory.isNotEmpty()) {
+                val reward = rewardHistory.first()
+                
+                // --- PREMIUM GLASS REWARD OVERLAY ---
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .scale(1.02f),
+                    cornerRadius = 28.dp
                 ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = Color(0xFF00E676),
-                        modifier = Modifier.size(72.dp)
-                    )
-                    Text(
-                        text = "Session Complete! 🎉",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "You've successfully finished all planned words for this session using smart Leitner algorithms.",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp
-                    )
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "+$xpEarnedInSession",
-                                color = Color(0xFFFFD600),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "XP Earned",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 11.sp
-                            )
+                        // Glowing Icon depending on reward type
+                        val iconColor = when (reward.type) {
+                            "LEVEL_UP" -> Color(0xFFFFD600)
+                            "CHALLENGE_COMPLETE" -> Color(0xFF00C2FF)
+                            "ACHIEVEMENT_UNLOCK" -> Color(0xFFE040FB)
+                            "STREAK_MILESTONE" -> Color(0xFFFF5722)
+                            else -> Color(0xFF00FFD2)
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = reward.type,
+                            tint = iconColor,
+                            modifier = Modifier.size(80.dp)
+                        )
+
+                        Text(
+                            text = when (reward.type) {
+                                "LEVEL_UP" -> "🌟 LEVEL UP! 🌟"
+                                "CHALLENGE_COMPLETE" -> "🏆 QUEST CLEAR! 🏆"
+                                "ACHIEVEMENT_UNLOCK" -> "🏅 ACHIEVEMENT UNLOCKED! 🏅"
+                                "STREAK_MILESTONE" -> "🔥 STREAK MILESTONE! 🔥"
+                                else -> "✨ REWARD EARNED! ✨"
+                            },
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            text = reward.title,
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // XP Bonus Badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(iconColor.copy(alpha = 0.2f))
+                                .border(1.dp, iconColor, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                        ) {
                             Text(
-                                text = "${loadedCards.size}",
+                                text = "+${reward.rewardXp} XP Boost",
                                 color = Color(0xFF00FFD2),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Words Practiced",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 11.sp
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Lvl ${userProgress?.level ?: 1}",
-                                color = Color(0xFF9D00FF),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Current Level",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 11.sp
-                            )
+
+                        // Tiki Mascot custom feedback message
+                        val tikiMsg = when (reward.type) {
+                            "LEVEL_UP" -> "Tiki is celebrating your cognitive growth! Let's do a happy island dance! 🌴💃"
+                            "CHALLENGE_COMPLETE" -> "Tiki is proud of your persistence! Double high-five! 🐾✋"
+                            "ACHIEVEMENT_UNLOCK" -> "Tiki is amazed by your dedication! That is a rare badge! 🏆✨"
+                            "STREAK_MILESTONE" -> "Your burning passion is inspiring! Tiki says keep the flame alive! 🔥🦖"
+                            else -> "Tiki is cheering for you! Keep up the incredible work!"
                         }
+
+                        TikiPlaceholder(
+                            message = tikiMsg,
+                            sizeDp = 50,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        PremiumGlassButton(
+                            text = "Claim Reward",
+                            onClick = {
+                                coroutineScope.launch {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    repo.dismissReward(reward.id)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
+                }
+            } else {
+                // --- COMPREHENSIVE SESSION COMPLETION CARD ---
+                val calculatedAccuracy = if (totalAnswersInSession > 0) {
+                    (correctAnswersInSession.toFloat() / totalAnswersInSession.toFloat() * 100).toInt()
+                } else {
+                    100
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                val currentStreak = userProgress?.streak ?: 1
 
-                    PremiumGlassButton(
-                        text = "Continue",
-                        onClick = {
-                            coroutineScope.launch {
-                                repo.updateSessionState(active = false, cardIds = emptyList(), currentIndex = 0)
-                                navController.popBackStack()
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    cornerRadius = 28.dp
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = Color(0xFF00E676),
+                            modifier = Modifier.size(72.dp)
+                        )
+                        Text(
+                            text = "Session Complete! 🎉",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "You've successfully processed all assigned words for this adaptive smart session.",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
+
+                        // Detailed stats row (including Streak & Accuracy!)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "+$xpEarnedInSession",
+                                    color = Color(0xFFFFD600),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "XP Earned",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 11.sp
+                                )
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${loadedCards.size}",
+                                    color = Color(0xFF00FFD2),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Reviewed",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "$calculatedAccuracy%",
+                                    color = Color(0xFF00E676),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Accuracy",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "$currentStreak🔥",
+                                    color = Color(0xFFFF7043),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Streak",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
+
+                        // Level progress bar
+                        val levelNum = userProgress?.level ?: 1
+                        val levelXp = userProgress?.xp ?: 0
+                        val targetXpNeeded = levelNum * 500
+                        val percentage = if (targetXpNeeded > 0) levelXp.toFloat() / targetXpNeeded.toFloat() else 0f
+
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Level $levelNum Progress",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "$levelXp / $targetXpNeeded XP",
+                                    color = Color(0xFF00FFD2),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { percentage },
+                                color = Color(0xFF9D00FF),
+                                trackColor = Color(0x1AFFFFFF),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        PremiumGlassButton(
+                            text = "Continue",
+                            onClick = {
+                                coroutineScope.launch {
+                                    repo.updateSessionState(active = false, cardIds = emptyList(), currentIndex = 0)
+                                    navController.popBackStack()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -428,8 +601,10 @@ fun LearningSessionScreen(navController: NavController) {
     // Handle button action click and transition logic
     fun handleRating(rating: ReviewRatingModel) {
         coroutineScope.launch {
+            totalAnswersInSession++
             // Trigger haptic & sound hooks
             if (rating == ReviewRatingModel.GOOD || rating == ReviewRatingModel.EASY) {
+                correctAnswersInSession++
                 onCorrectAnswer()
                 currentStreakCount++
                 consecutiveMistakesCount = 0
@@ -488,7 +663,7 @@ fun LearningSessionScreen(navController: NavController) {
                 ReviewRatingModel.EASY -> 20
             }
             xpEarnedInSession += xpAmount
-            val leveledUp = repo.awardXp(xpAmount)
+            val leveledUp = repo.awardXp(xpAmount, "review")
             if (leveledUp) {
                 showLeveledUpDialog = true
             }
@@ -1118,6 +1293,82 @@ fun ActionButton(
                 color = Color.White.copy(alpha = 0.45f),
                 fontSize = 10.sp
             )
+        }
+    }
+}
+
+data class ConfettiParticle(
+    val x: Float,
+    val y: Float,
+    val speedY: Float,
+    val speedX: Float,
+    val color: Color,
+    val size: Float,
+    val rotation: Float,
+    val rotSpeed: Float
+)
+
+@Composable
+fun ConfettiEffect(modifier: Modifier = Modifier) {
+    val particles = remember {
+        List(60) {
+            mutableStateOf(
+                ConfettiParticle(
+                    x = (0..1000).random().toFloat() / 1000f,
+                    y = -(0..500).random().toFloat() / 500f,
+                    speedY = (8..24).random().toFloat() / 1000f,
+                    speedX = (-8..8).random().toFloat() / 1000f,
+                    color = Color(
+                        red = (120..255).random() / 255f,
+                        green = (120..255).random() / 255f,
+                        blue = (120..255).random() / 255f,
+                        alpha = 1f
+                    ),
+                    size = (6..16).random().toFloat(),
+                    rotation = (0..360).random().toFloat(),
+                    rotSpeed = (-6..6).random().toFloat()
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(16)
+            for (pState in particles) {
+                val p = pState.value
+                var newY = p.y + p.speedY
+                var newX = p.x + p.speedX
+                var newRot = p.rotation + p.rotSpeed
+                if (newY > 1.1f) {
+                    newY = -0.1f
+                    newX = (0..1000).random().toFloat() / 1000f
+                }
+                if (newX < -0.1f) newX = 1.1f
+                if (newX > 1.1f) newX = -0.1f
+                pState.value = p.copy(y = newY, x = newX, rotation = newRot)
+            }
+        }
+    }
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        for (pState in particles) {
+            val p = pState.value
+            val px = p.x * w
+            val py = p.y * h
+            if (py in -100f..h + 100f) {
+                drawContext.canvas.save()
+                drawContext.canvas.translate(px, py)
+                drawContext.canvas.rotate(p.rotation)
+                drawRect(
+                    color = p.color,
+                    topLeft = Offset(-p.size / 2, -p.size / 2),
+                    size = Size(p.size, p.size)
+                )
+                drawContext.canvas.restore()
+            }
         }
     }
 }

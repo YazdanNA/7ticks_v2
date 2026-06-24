@@ -36,6 +36,7 @@ fun SmartLearnScreen(navController: NavController) {
     val userProgress by repo.userProgress.collectAsState(initial = null)
     val allCards by repo.allCards.collectAsState(initial = emptyList())
     val sessionState by repo.sessionState.collectAsState(initial = null)
+    val challengesList by repo.challenges.collectAsState(initial = emptyList())
 
     var searchQuery by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
@@ -321,43 +322,85 @@ fun SmartLearnScreen(navController: NavController) {
             }
         }
 
-        // 6. Challenge Card
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 20.dp
-        ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "⚡ Daily Challenge",
-                        color = Color(0xFF00C2FF),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0x3300C2FF))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
+        // 6. Real dynamic challenges
+        if (challengesList.isNotEmpty()) {
+            Text(
+                text = "⚡ Active Quests & Challenges",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            challengesList.forEach { challenge ->
+                val progress = if (challenge.target > 0) challenge.current.toFloat() / challenge.target.toFloat() else 0f
+                val isDaily = challenge.id.startsWith("daily")
+                
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (challenge.completed) Icons.Default.Check else Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = challenge.title,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (challenge.completed) Color(0x3300E676) else Color(0x339D00FF))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = if (isDaily) "+150 XP" else "+250 XP",
+                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        
                         Text(
-                            text = "+150 XP",
-                            color = Color(0xFF00FFD2),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
+                            text = challenge.description,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp
                         )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                trackColor = Color(0x1AFFFFFF),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                            )
+                            Text(
+                                text = "${challenge.current}/${challenge.target}",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Review all words in Leitner boxes to secure your flawless learning streak boost!",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 13.sp
-                )
             }
         }
 

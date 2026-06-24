@@ -16,9 +16,12 @@ import androidx.room.RoomDatabase
         ChallengeEntity::class,
         StatisticsEntity::class,
         SessionStateEntity::class,
-        SettingEntity::class
+        SettingEntity::class,
+        RewardHistoryEntity::class,
+        FavoriteWordEntity::class,
+        RecentSearchEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class UserDatabase : RoomDatabase() {

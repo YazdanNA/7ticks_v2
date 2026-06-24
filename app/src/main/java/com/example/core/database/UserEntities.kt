@@ -15,7 +15,10 @@ data class UserProgressEntity(
     val nativeLanguage: String = "Persian",
     val targetLanguage: String = "English",
     val dailyGoal: String = "30 words / day",
-    val reminderTime: String = "09:00 AM"
+    val reminderTime: String = "09:00 AM",
+    val longestStreak: Int = 0,
+    val lastActiveDay: String = "",
+    val streakRestoreSpells: Int = 1 // Infrastructure for streak restoration support later
 )
 
 @Entity(tableName = "review_cards")
@@ -50,7 +53,12 @@ data class ReviewHistoryEntity(
 data class CustomBoxEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val description: String = "",
+    val iconName: String = "Folder",
+    val colorHex: String = "#00C2FF",
+    val isArchived: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastActivityAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "box_words")
@@ -59,7 +67,32 @@ data class BoxWordEntity(
     val boxId: Int,
     val wordId: Int,
     val word: String,
+    val addedAt: Long = System.currentTimeMillis(),
+    val phoneticsUs: String? = null,
+    val phoneticsUk: String? = null,
+    val definitions: String = "", // newline or pipe separated
+    val meanings: String = "",
+    val examples: String = "",
+    val synonyms: String = "",
+    val antonyms: String = "",
+    val wordFamily: String = "",
+    val level: String = "B1",
+    val topic: String = "General",
+    val type: String = "Noun",
+    val boxIndex: Int = 1, // independent box review (1 to 7)
+    val dueDate: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "favorite_words")
+data class FavoriteWordEntity(
+    @PrimaryKey val word: String,
     val addedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "recent_searches")
+data class RecentSearchEntity(
+    @PrimaryKey val query: String,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "achievements")
@@ -106,4 +139,13 @@ data class SessionStateEntity(
 data class SettingEntity(
     @PrimaryKey val key: String,
     val value: String
+)
+
+@Entity(tableName = "reward_history")
+data class RewardHistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val type: String, // "LEVEL_UP", "SESSION_COMPLETE", "CHALLENGE_COMPLETE", "ACHIEVEMENT_UNLOCK"
+    val title: String,
+    val rewardXp: Int,
+    val timestamp: Long = System.currentTimeMillis()
 )
