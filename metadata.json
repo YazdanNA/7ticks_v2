@@ -1,0 +1,6 @@
+{
+  "name": "7Ticks",
+  "description": "A premium spaced repetition vocabulary learning application with gorgeous glassmorphic styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
