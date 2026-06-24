@@ -24,15 +24,18 @@ import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.components.TikiPlaceholder
 import com.example.core.navigation.Screen
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartLearnScreen(navController: NavController) {
     val repo = remember { SevenTicksApplication.instance.userRepository }
     val prefs = remember { SevenTicksApplication.instance.preferencesManager }
+    val coroutineScope = rememberCoroutineScope()
 
     val userProgress by repo.userProgress.collectAsState(initial = null)
     val allCards by repo.allCards.collectAsState(initial = emptyList())
+    val sessionState by repo.sessionState.collectAsState(initial = null)
 
     var searchQuery by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
@@ -46,6 +49,12 @@ fun SmartLearnScreen(navController: NavController) {
     val totalWords = allCards.size
     val masteredWords = allCards.count { it.boxIndex >= 7 }
     val progressPct = if (totalWords > 0) (masteredWords * 100) / totalWords else 0
+
+    val dueCount = allCards.count { it.dueDate <= System.currentTimeMillis() && it.boxIndex in 1..6 }
+    val learningCount = allCards.count { it.boxIndex in 2..6 }
+    val newCount = allCards.count { it.boxIndex == 1 }
+
+    val isSessionActive = sessionState?.active == true
 
     Column(
         modifier = Modifier
@@ -126,7 +135,7 @@ fun SmartLearnScreen(navController: NavController) {
 
         // 3. Tiki Reserved Workspace Area
         TikiPlaceholder(
-            message = "Your brain is highly receptive right now! Tap 'Start Learning' to begin.",
+            message = if (isSessionActive) "You have an active session in progress! Resume it below." else "Your brain is highly receptive right now! Tap 'Start Learning' to begin.",
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -217,43 +226,98 @@ fun SmartLearnScreen(navController: NavController) {
             }
         }
 
-        // 5. Today's Session Card
+        // 5. Today's Session Preview Card
         GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color(0x1A9D00FF), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF9D00FF))
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color(0x1A9D00FF), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF9D00FF))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "$targetLg Session",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "$masteredWords / $totalWords words mastered",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Text(
+                        text = "$progressPct%",
+                        color = Color(0xFF00FFD2),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Divider(color = Color.White.copy(alpha = 0.1f))
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "$targetLg Basics",
-                            color = Color.White,
-                            fontSize = 16.sp,
+                            text = "$dueCount",
+                            color = Color(0xFFFF1744),
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$masteredWords / $totalWords words mastered",
+                            text = "Due Reviews",
                             color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$learningCount",
+                            color = Color(0xFF00C2FF),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Learning",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$newCount",
+                            color = Color(0xFF00E676),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "New Words",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 11.sp
                         )
                     }
                 }
-                Text(
-                    text = "$progressPct%",
-                    color = Color(0xFF00FFD2),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
             }
         }
 
@@ -299,9 +363,14 @@ fun SmartLearnScreen(navController: NavController) {
 
         // 7. Large Primary Action Learning Button
         PremiumGlassButton(
-            text = "Start Learning Session",
+            text = if (isSessionActive) "Continue Session" else "Start Learning Session",
             onClick = {
-                navController.navigate(Screen.LearningSession.route)
+                coroutineScope.launch {
+                    if (!isSessionActive) {
+                        repo.generateSmartLearnSession()
+                    }
+                    navController.navigate(Screen.LearningSession.route)
+                }
             },
             icon = {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)

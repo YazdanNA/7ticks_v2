@@ -79,6 +79,14 @@ fun OnboardingWizardScreen(navController: NavController) {
             prefs.targetLanguage = targetLanguage
             prefs.dailyGoal = dailyGoal
             prefs.reminderTime = if (reminderEnabled) reminderTime else "Disabled"
+            
+            val mappedLevel = when (placementLevel) {
+                "Beginner" -> 2   // A2
+                "Intermediate" -> 3  // B1
+                "Advanced" -> 4   // B2
+                else -> 1        // A1
+            }
+            prefs.currentLevel = mappedLevel
 
             // Trigger actual setup
             repo.runEnvironmentSetup().collectLatest { state ->

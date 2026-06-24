@@ -28,6 +28,9 @@ interface UserDao {
     @Query("SELECT * FROM review_cards")
     fun getAllCards(): Flow<List<CardEntity>>
 
+    @Query("SELECT * FROM review_cards")
+    suspend fun getAllCardsOnce(): List<CardEntity>
+
     @Query("SELECT * FROM review_cards WHERE boxIndex = :boxIndex")
     fun getCardsByBox(boxIndex: Int): Flow<List<CardEntity>>
 
@@ -48,6 +51,9 @@ interface UserDao {
 
     @Query("SELECT * FROM review_cards WHERE dueDate <= :currentTime")
     fun getDueCards(currentTime: Long): Flow<List<CardEntity>>
+
+    @Query("SELECT * FROM review_cards WHERE dueDate <= :currentTime")
+    suspend fun getDueCardsOnce(currentTime: Long): List<CardEntity>
 
     @Query("SELECT COUNT(*) FROM review_cards WHERE boxIndex = :boxIndex")
     fun getCardCountInBox(boxIndex: Int): Flow<Int>
@@ -118,6 +124,9 @@ interface UserDao {
     // 9. Learning Sessions (learning_sessions)
     @Query("SELECT * FROM learning_sessions WHERE id = 0")
     fun getSessionState(): Flow<SessionStateEntity?>
+
+    @Query("SELECT * FROM learning_sessions WHERE id = 0")
+    suspend fun getSessionStateOnce(): SessionStateEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveSessionState(sessionState: SessionStateEntity)

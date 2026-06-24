@@ -20,7 +20,8 @@ data class DictWord(
     val definition: String,
     val faDefinition: String,
     val example: String,
-    val partOfSpeech: String
+    val partOfSpeech: String,
+    val level: String
 )
 
 @Singleton
@@ -232,6 +233,56 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         return results
     }
 
+    fun getWordsByLevels(levels: List<String>, limit: Int = 100, offset: Int = 0): List<DictWord> {
+        if (!isDatabaseDownloaded()) return emptyList()
+        val results = mutableListOf<DictWord>()
+        var db: SQLiteDatabase? = null
+        try {
+            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            val tableName = getFirstUserTable(db) ?: return emptyList()
+            val columns = getColumns(db, tableName)
+
+            val wordCol = columns.find { it.equals("word", ignoreCase = true) || it.contains("term", ignoreCase = true) } ?: columns.firstOrNull() ?: ""
+            if (wordCol.isEmpty()) return emptyList()
+
+            val levelCol = columns.find { it.equals("level", ignoreCase = true) || it.contains("difficulty", ignoreCase = true) } ?: ""
+            val selection = if (levelCol.isNotEmpty() && levels.isNotEmpty()) {
+                val placeholders = levels.joinToString(",") { "?" }
+                "$levelCol IN ($placeholders)"
+            } else {
+                null
+            }
+            val selectionArgs = if (levelCol.isNotEmpty() && levels.isNotEmpty()) {
+                levels.toTypedArray()
+            } else {
+                null
+            }
+
+            val cursor = db.query(
+                tableName,
+                null,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                "$wordCol ASC",
+                "$offset, $limit"
+            )
+
+            if (cursor.moveToFirst()) {
+                do {
+                    results.add(mapCursorToDictWord(cursor, columns))
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e("VocabDbManager", "Error getting words by levels", e)
+        } finally {
+            db?.close()
+        }
+        return results
+    }
+
     fun getWordById(id: Int): DictWord? {
         if (!isDatabaseDownloaded()) return null
         var result: DictWord? = null
@@ -274,6 +325,7 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         val phoneticCol = columns.find { it.equals("phonetics", ignoreCase = true) || it.equals("phonetic", ignoreCase = true) || it.contains("pron", ignoreCase = true) } ?: ""
         val posCol = columns.find { it.equals("part_of_speech", ignoreCase = true) || it.equals("partOfSpeech", ignoreCase = true) || it.equals("pos", ignoreCase = true) } ?: ""
         val exampleCol = columns.find { it.equals("example", ignoreCase = true) || it.contains("sample", ignoreCase = true) || it.contains("sentence", ignoreCase = true) } ?: ""
+        val levelCol = columns.find { it.equals("level", ignoreCase = true) || it.contains("difficulty", ignoreCase = true) } ?: ""
 
         val idVal = if (idCol.isNotEmpty()) {
             val idx = cursor.getColumnIndex(idCol)
@@ -310,6 +362,11 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
             if (idx != -1) cursor.getString(idx) else ""
         } else ""
 
+        val levelVal = if (levelCol.isNotEmpty()) {
+            val idx = cursor.getColumnIndex(levelCol)
+            if (idx != -1) cursor.getString(idx) else "A1"
+        } else "A1"
+
         return DictWord(
             id = idVal,
             word = wordVal,
@@ -317,7 +374,8 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
             definition = defVal,
             faDefinition = faDefVal,
             example = exampleVal,
-            partOfSpeech = posVal
+            partOfSpeech = posVal,
+            level = levelVal ?: "A1"
         )
     }
 }

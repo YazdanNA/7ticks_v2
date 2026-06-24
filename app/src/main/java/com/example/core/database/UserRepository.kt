@@ -38,10 +38,16 @@ class UserRepository @Inject constructor(
     val achievements: Flow<List<AchievementEntity>> = userDao.getAchievements()
     val challenges: Flow<List<ChallengeEntity>> = userDao.getChallenges()
     val statistics: Flow<List<StatisticsEntity>> = userDao.getAllStatistics()
+    val sessionState: Flow<SessionStateEntity?> = userDao.getSessionState()
+    val reviewHistory: Flow<List<ReviewHistoryEntity>> = userDao.getReviewHistory()
 
     suspend fun getUserProgressOnce(): UserProgressEntity? = userDao.getUserProgressOnce()
 
+    suspend fun getSessionStateOnce(): SessionStateEntity? = userDao.getSessionStateOnce()
+
     suspend fun getCardByWordId(wordId: Int): CardEntity? = userDao.getCardByWordId(wordId)
+
+    suspend fun getCardById(id: Int): CardEntity? = userDao.getCardById(id)
 
     suspend fun insertCard(card: CardEntity) = userDao.insertCard(card)
 
@@ -136,7 +142,7 @@ class UserRepository @Inject constructor(
         if (existingProgress == null) {
             val initialProgress = UserProgressEntity(
                 id = 0,
-                level = 1,
+                level = prefs.currentLevel,
                 xp = 0,
                 streak = 1,
                 lastReviewTime = System.currentTimeMillis(),
@@ -283,6 +289,147 @@ class UserRepository @Inject constructor(
             startTime = System.currentTimeMillis()
         )
         userDao.saveSessionState(state)
+    }
+
+    suspend fun getLevelString(levelInt: Int): String {
+        return when (levelInt) {
+            1 -> "A1"
+            2 -> "A2"
+            3 -> "B1"
+            4 -> "B2"
+            5 -> "C1"
+            else -> "C2"
+        }
+    }
+
+    suspend fun getAllowedLevels(levelInt: Int): List<String> {
+        val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
+        return levels.take(levelInt.coerceIn(1, 6))
+    }
+
+    suspend fun checkAndProgressUserLevel(): Boolean = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: return@withContext false
+        val currentLevelInt = progress.level
+        if (currentLevelInt >= 6) return@withContext false // Max level C2 reached
+
+        val currentLevelStr = getLevelString(currentLevelInt)
+        val allLocalCards = userDao.getAllCardsOnce()
+        
+        // Count how many cards belonging to currentLevelStr are in Box 7
+        var masteredCount = 0
+        for (card in allLocalCards) {
+            if (card.boxIndex >= 7) {
+                val dictWord = vocabDbManager.getWordById(card.wordId)
+                if (dictWord != null && dictWord.level.equals(currentLevelStr, ignoreCase = true)) {
+                    masteredCount++
+                }
+            }
+        }
+
+        // If at least 5 words are mastered for the current level, unlock next!
+        if (masteredCount >= 5) {
+            val nextLevelInt = currentLevelInt + 1
+            userDao.updateLevel(nextLevelInt)
+            
+            // Auto prepopulate the database with cards for the new level!
+            val nextLevelStr = getLevelString(nextLevelInt)
+            val newWords = vocabDbManager.getWordsByLevels(listOf(nextLevelStr), limit = 15)
+            for (word in newWords) {
+                val existingCard = userDao.getCardByWordId(word.id)
+                if (existingCard == null) {
+                    val newCard = CardEntity(
+                        wordId = word.id,
+                        word = word.word,
+                        boxIndex = 1,
+                        stability = 1.0,
+                        difficulty = 3.0,
+                        elapsedDays = 0,
+                        scheduledDays = 1,
+                        reps = 0,
+                        lapses = 0,
+                        state = 0,
+                        lastReviewed = 0,
+                        dueDate = System.currentTimeMillis()
+                    )
+                    userDao.insertCard(newCard)
+                }
+            }
+            return@withContext true
+        }
+        return@withContext false
+    }
+
+    suspend fun generateSmartLearnSession(): List<CardEntity> = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: return@withContext emptyList()
+        val currentTime = System.currentTimeMillis()
+
+        // 1. Due reviews: up to 5
+        val dueCards = userDao.getDueCardsOnce(currentTime)
+            .filter { it.boxIndex < 7 }
+            .shuffled()
+            .take(5)
+
+        // 2. Learning cards (in Box 2 to 6, not due): up to 5
+        val dueIds = dueCards.map { it.id }.toSet()
+        val learningCards = userDao.getAllCardsOnce()
+            .filter { it.boxIndex in 2..6 && !dueIds.contains(it.id) }
+            .shuffled()
+            .take(5)
+
+        // 3. New cards (Box 1): up to 5
+        val learningIds = learningCards.map { it.id }.toSet()
+        val existingNewCards = userDao.getAllCardsOnce()
+            .filter { it.boxIndex == 1 && !dueIds.contains(it.id) && !learningIds.contains(it.id) }
+            .shuffled()
+            .take(5)
+
+        val totalSelected = mutableListOf<CardEntity>()
+        totalSelected.addAll(dueCards)
+        totalSelected.addAll(learningCards)
+        totalSelected.addAll(existingNewCards)
+
+        // If we still need more cards to reach a healthy session size (say 10 cards),
+        // let's fetch brand new words from the allowed levels!
+        val neededNewCount = 10 - totalSelected.size
+        if (neededNewCount > 0) {
+            val allowedLevels = getAllowedLevels(progress.level)
+            val allLocalWords = userDao.getAllCardsOnce().map { it.wordId }.toSet()
+            
+            // Get words from Vocabulary database matching the allowed levels
+            val newWords = vocabDbManager.getWordsByLevels(allowedLevels, limit = 50)
+                .filter { !allLocalWords.contains(it.id) }
+                .shuffled()
+                .take(neededNewCount)
+
+            for (word in newWords) {
+                val newCard = CardEntity(
+                    wordId = word.id,
+                    word = word.word,
+                    boxIndex = 1,
+                    stability = 1.0,
+                    difficulty = 3.0,
+                    elapsedDays = 0,
+                    scheduledDays = 1,
+                    reps = 0,
+                    lapses = 0,
+                    state = 0,
+                    lastReviewed = 0,
+                    dueDate = System.currentTimeMillis()
+                )
+                userDao.insertCard(newCard)
+                // Retrieve the inserted card so it has correct auto-generated ID
+                val inserted = userDao.getCardByWordId(word.id)
+                if (inserted != null) {
+                    totalSelected.add(inserted)
+                }
+            }
+        }
+
+        // Save session state to database so we can resume!
+        val cardIds = totalSelected.map { it.id }
+        updateSessionState(active = true, cardIds = cardIds, currentIndex = 0)
+
+        return@withContext totalSelected
     }
 
     suspend fun recordReviewLog(wordId: Int, word: String, rating: Int, stability: Double, difficulty: Double) {
