@@ -346,18 +346,31 @@ fun DictionaryScreen() {
                     verticalArrangement = Arrangement.Center
                 ) {
                     TikiPlaceholder(
+                        tikiState = "st-rap",
                         message = "I couldn't find \"$query\" in my database. Let's try typing another term or check the spelling!",
-                        sizeDp = 60,
+                        sizeDp = 100,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             } else {
-                Text(
-                    text = "Matching Vocabulary (${searchResults.size})",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Matching Vocabulary (${searchResults.size})",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TikiPlaceholder(
+                        tikiState = "st-rap",
+                        message = "",
+                        sizeDp = 48,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
 
                 searchResults.forEach { result ->
                     GlassCard(

@@ -138,6 +138,7 @@ fun TikiPlaceholder(
         "st-locked-level" -> Triple("locked", "locked", "lock")
         "st-header-peek" -> Triple("happy", "peek", "none")
         "st-collection-search" -> Triple("search", "normal", "search-data")
+        "st-rap" -> Triple("rap", "normal", "none")
         else -> Triple("happy", "normal", "none") // default st-happy
     }
 
@@ -498,6 +499,67 @@ fun TikiPlaceholder(
                             drawPath(glassesPath, color = Color(0xFF38BDF8), style = Stroke(width = 2.5f))
                             drawLine(color = Color(0xFF38BDF8), start = Offset(162f, 180f), end = Offset(185f, 180f), strokeWidth = 2f)
                             drawLine(color = Color(0xFF38BDF8), start = Offset(215f, 180f), end = Offset(238f, 180f), strokeWidth = 2f)
+                        } else if (face == "rap") {
+                            // High-fidelity hip-hop gold shades
+                            val leftShade = Path().apply {
+                                moveTo(152f, 172f)
+                                lineTo(190f, 164f)
+                                lineTo(194f, 182f)
+                                lineTo(174f, 190f)
+                                lineTo(152f, 182f)
+                                close()
+                            }
+                            val rightShade = Path().apply {
+                                moveTo(210f, 164f)
+                                lineTo(248f, 172f)
+                                lineTo(248f, 182f)
+                                lineTo(226f, 190f)
+                                lineTo(206f, 182f)
+                                close()
+                            }
+                            drawPath(leftShade, brush = Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF1E293B))))
+                            drawPath(rightShade, brush = Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF1E293B))))
+
+                            // Shiny gold borders
+                            drawPath(leftShade, color = Color(0xFFFFD600), style = Stroke(width = 2.5f))
+                            drawPath(rightShade, color = Color(0xFFFFD600), style = Stroke(width = 2.5f))
+
+                            // Bridge
+                            drawLine(color = Color(0xFFFFD600), start = Offset(190f, 173f), end = Offset(210f, 173f), strokeWidth = 3.5f)
+
+                            // Highlights
+                            drawLine(color = Color.White.copy(alpha = 0.6f), start = Offset(158f, 174f), end = Offset(170f, 184f), strokeWidth = 2f)
+                            drawLine(color = Color.White.copy(alpha = 0.6f), start = Offset(214f, 174f), end = Offset(226f, 184f), strokeWidth = 2f)
+
+                            // Open swagger beak mouth
+                            val beakInsidePath = Path().apply {
+                                moveTo(184f, 192f)
+                                cubicTo(184f, 220f, 216f, 220f, 216f, 192f)
+                                close()
+                            }
+                            drawPath(
+                                beakInsidePath,
+                                brush = Brush.linearGradient(
+                                    colors = listOf(Color(0xFFEF4444), Color(0xFF9F1239)),
+                                    start = Offset(200f, 192f),
+                                    end = Offset(200f, 220f)
+                                )
+                            )
+                            // Beak top outer
+                            val beakTopPath = Path().apply {
+                                moveTo(184f, 192f)
+                                quadraticTo(200f, 181f, 216f, 192f)
+                                quadraticTo(200f, 199f, 184f, 192f)
+                                close()
+                            }
+                            drawPath(
+                                beakTopPath,
+                                brush = Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFDE047), Color(0xFFF59E0B), Color(0xFFB45309)),
+                                    start = Offset(200f, 181f),
+                                    end = Offset(200f, 199f)
+                                )
+                            )
                         }
 
                         // Headphones
