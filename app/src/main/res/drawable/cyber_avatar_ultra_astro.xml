@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:pathData="M50,50m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0"
+        android:fillColor="#FF0F172A" />
+    <path
+        android:pathData="M50,50m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"
+        android:fillColor="#FF2563EB" />
+    <!-- Saturn Ring and Planet -->
+    <path
+        android:pathData="M50,50m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"
+        android:fillColor="#FFFF3B30" />
+    <!-- Saturn Planet Belt -->
+    <path
+        android:pathData="M22,55 Q50,35 78,55 Q50,75 22,55 Z"
+        android:fillColor="#80FFCC00" />
+    <path
+        android:pathData="M26,55 Q50,42 74,55 Q50,68 26,55 Z"
+        android:fillColor="#FF00FFD2" />
+</vector>

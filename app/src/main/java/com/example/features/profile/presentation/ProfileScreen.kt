@@ -1,5 +1,6 @@
 package com.example.features.profile.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,10 +27,12 @@ import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.components.TikiPlaceholder
+import com.example.core.components.AvatarManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen() {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showSettings by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(true) }
@@ -53,16 +58,7 @@ fun ProfileScreen() {
     val xpNeeded = level * 500
     val progressPercentage = if (xpNeeded > 0) xp.toFloat() / xpNeeded.toFloat() else 0f
 
-    // Map avatar string to Vector Icon
-    val avatarIcon = when (userProgress?.avatar ?: prefs.avatar) {
-        "avatar_1" -> Icons.Default.Face
-        "avatar_2" -> Icons.Default.Person
-        "avatar_3" -> Icons.Default.AccountCircle
-        "avatar_4" -> Icons.Default.Star
-        "avatar_5" -> Icons.Default.Favorite
-        "avatar_6" -> Icons.Default.PlayArrow
-        else -> Icons.Default.Person
-    }
+    val currentAvatarId = userProgress?.avatar ?: prefs.avatar
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -127,11 +123,10 @@ fun ProfileScreen() {
                                 .background(Color(0xFF0F1026)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = avatarIcon,
+                            Image(
+                                painter = painterResource(id = AvatarManager.getAvatarResId(context, currentAvatarId)),
                                 contentDescription = "Avatar",
-                                tint = Color(0xFF00FFD2),
-                                modifier = Modifier.size(54.dp)
+                                modifier = Modifier.fillMaxSize().padding(8.dp)
                             )
                         }
                     }

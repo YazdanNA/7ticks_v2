@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Beautiful gradient background -->
+    <path
+        android:pathData="M50,50m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0"
+        android:fillColor="#FF2D1B4E" />
+    <path
+        android:pathData="M50,50m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"
+        android:fillColor="#FF9D00FF" />
+    <!-- Dreamy clouds -->
+    <path
+        android:pathData="M30,65 Q35,55 45,60 Q55,50 65,60 Q75,58 73,68 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M25,60 Q30,50 40,55 Q50,45 60,55 Q70,53 68,63 Z"
+        android:fillColor="#80E0F2FE" />
+    <!-- Glowing crescent moon -->
+    <path
+        android:pathData="M50,25 A 15 15 0 0 1 65 40 A 15 15 0 0 0 50 25 A 12 12 0 0 1 58 38 A 12 12 0 0 0 50 25 Z"
+        android:fillColor="#FFFFD600" />
+    <!-- Glowing stars -->
+    <path
+        android:pathData="M35,35 L37,37 L35,39 L33,37 Z"
+        android:fillColor="#FF00FFD2" />
+    <path
+        android:pathData="M65,48 L66,49 L65,50 L64,49 Z"
+        android:fillColor="#FF00FFD2" />
+</vector>

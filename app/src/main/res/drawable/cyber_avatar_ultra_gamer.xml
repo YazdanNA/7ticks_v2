@@ -1,0 +1,36 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:pathData="M50,50m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0"
+        android:fillColor="#FF18001C" />
+    <path
+        android:pathData="M50,50m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"
+        android:fillColor="#FF8B5CF6" />
+    <!-- Game Controller -->
+    <path
+        android:pathData="M30,45 L70,45 C75,45 80,49 78,57 L74,68 C73,72 68,75 64,72 L58,66 L42,66 L36,72 C32,75 27,72 26,68 L22,57 C20,49 25,45 30,45 Z"
+        android:fillColor="#FF111827" />
+    <!-- D-Pad -->
+    <path
+        android:pathData="M32,56 L40,56 M36,52 L36,60"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF00FFD2"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
+    <!-- Action buttons (circle path replacements) -->
+    <path
+        android:pathData="M62,52a2,2 0,1,1 0,4a2,2 0,1,1 0,-4"
+        android:fillColor="#FFFF1744" />
+    <path
+        android:pathData="M68,52a2,2 0,1,1 0,4a2,2 0,1,1 0,-4"
+        android:fillColor="#FFFF1744" />
+    <path
+        android:pathData="M65,49a2,2 0,1,1 0,4a2,2 0,1,1 0,-4"
+        android:fillColor="#FF00FFD2" />
+    <path
+        android:pathData="M65,55a2,2 0,1,1 0,4a2,2 0,1,1 0,-4"
+        android:fillColor="#FF00FFD2" />
+</vector>

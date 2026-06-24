@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -72,9 +73,17 @@ fun PremiumGlassButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: (@Composable () -> Unit)? = null,
-    isSecondary: Boolean = false
+    isSecondary: Boolean = false,
+    enabled: Boolean = true
 ) {
-    val gradientBrush = if (!isSecondary) {
+    val gradientBrush = if (!enabled) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color(0x11FFFFFF),
+                Color(0x11FFFFFF)
+            )
+        )
+    } else if (!isSecondary) {
         Brush.horizontalGradient(
             colors = listOf(
                 Color(0xFF00C2FF), // Vibrant blue
@@ -99,17 +108,18 @@ fun PremiumGlassButton(
             .border(
                 width = 1.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0x60FFFFFF), Color(0x10FFFFFF))
+                    colors = if (enabled) listOf(Color(0x60FFFFFF), Color(0x10FFFFFF)) else listOf(Color(0x10FFFFFF), Color(0x05FFFFFF))
                 ),
                 shape = shape
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 24.dp),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         androidx.compose.foundation.layout.Row(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            modifier = Modifier.graphicsLayer(alpha = if (enabled) 1f else 0.4f)
         ) {
             if (icon != null) {
                 icon()
