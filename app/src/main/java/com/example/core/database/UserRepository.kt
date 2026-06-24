@@ -307,27 +307,95 @@ class UserRepository @Inject constructor(
         return levels.take(levelInt.coerceIn(1, 6))
     }
 
+    private val adaptiveEngine = com.example.core.fsrs.AdaptiveLearningEngine()
+
+    suspend fun getCefrLevelMasteryList(): List<com.example.core.fsrs.CefrLevelMastery> = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: return@withContext emptyList()
+        val allCards = userDao.getAllCardsOnce()
+        val allLogs = userDao.getReviewHistoryOnce()
+        val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
+
+        levels.map { levelStr ->
+            val totalInLevel = when (levelStr) {
+                "A1" -> 150
+                "A2" -> 200
+                "B1" -> 250
+                "B2" -> 300
+                "C1" -> 350
+                "C2" -> 400
+                else -> 200
+            }
+
+            // Filter cards belonging to this CEFR level
+            val levelCards = allCards.filter { card ->
+                val cachedLevel = vocabDbManager.getWordById(card.wordId)?.level ?: "A1"
+                cachedLevel.equals(levelStr, ignoreCase = true)
+            }
+
+            val levelWordIds = levelCards.map { it.wordId }.toSet()
+            val levelLogs = allLogs.filter { levelWordIds.contains(it.wordId) }
+
+            val wordsLearned = levelCards.count { it.reps > 0 }
+            val wordsRetained = levelCards.count { it.reps > 0 && it.stability >= 2.0 }
+
+            val reviewAccuracy = if (levelLogs.isEmpty()) {
+                0.0f
+            } else {
+                val successful = levelLogs.count { it.rating in 2..4 }
+                successful.toFloat() / levelLogs.size.toFloat()
+            }
+
+            // Mastery score formulation combining exposure and retention
+            val learnedRatio = (wordsLearned.toFloat() / totalInLevel.toFloat()).coerceAtMost(1.0f)
+            val retentionRatio = if (wordsLearned > 0) {
+                (wordsRetained.toFloat() / wordsLearned.toFloat()).coerceAtMost(1.0f)
+            } else {
+                0.0f
+            }
+            val masteryPercentage = (0.4f * learnedRatio + 0.6f * retentionRatio).coerceIn(0.0f, 1.0f)
+
+            val levelInt = when (levelStr) {
+                "A1" -> 1
+                "A2" -> 2
+                "B1" -> 3
+                "B2" -> 4
+                "C1" -> 5
+                "C2" -> 6
+                else -> 1
+            }
+
+            com.example.core.fsrs.CefrLevelMastery(
+                level = levelStr,
+                totalWordsInLevel = totalInLevel,
+                wordsLearned = wordsLearned,
+                wordsRetained = wordsRetained,
+                reviewAccuracy = reviewAccuracy,
+                masteryPercentage = masteryPercentage,
+                isUnlocked = progress.level >= levelInt
+            )
+        }
+    }
+
+    suspend fun getLearningQualityScore(): com.example.core.fsrs.LearningQualityScore = withContext(Dispatchers.IO) {
+        val allLogs = userDao.getReviewHistoryOnce()
+        val allCards = userDao.getAllCardsOnce()
+        adaptiveEngine.calculateLearningQuality(allLogs, allCards)
+    }
+
     suspend fun checkAndProgressUserLevel(): Boolean = withContext(Dispatchers.IO) {
         val progress = userDao.getUserProgressOnce() ?: return@withContext false
         val currentLevelInt = progress.level
         if (currentLevelInt >= 6) return@withContext false // Max level C2 reached
 
         val currentLevelStr = getLevelString(currentLevelInt)
-        val allLocalCards = userDao.getAllCardsOnce()
-        
-        // Count how many cards belonging to currentLevelStr are in Box 7
-        var masteredCount = 0
-        for (card in allLocalCards) {
-            if (card.boxIndex >= 7) {
-                val dictWord = vocabDbManager.getWordById(card.wordId)
-                if (dictWord != null && dictWord.level.equals(currentLevelStr, ignoreCase = true)) {
-                    masteredCount++
-                }
-            }
-        }
+        val masteryList = getCefrLevelMasteryList()
+        val currentLevelMastery = masteryList.find { it.level.equals(currentLevelStr, ignoreCase = true) }
 
-        // If at least 5 words are mastered for the current level, unlock next!
-        if (masteredCount >= 5) {
+        val masteryPercentage = currentLevelMastery?.masteryPercentage ?: 0.0f
+        val masteredCount = currentLevelMastery?.wordsRetained ?: 0
+
+        // Unlock next level if level mastery > 35% or user has mastered at least 5 words at this level
+        if (masteryPercentage >= 0.35f || masteredCount >= 5) {
             val nextLevelInt = currentLevelInt + 1
             userDao.updateLevel(nextLevelInt)
             
@@ -363,39 +431,50 @@ class UserRepository @Inject constructor(
         val progress = userDao.getUserProgressOnce() ?: return@withContext emptyList()
         val currentTime = System.currentTimeMillis()
 
-        // 1. Due reviews: up to 5
-        val dueCards = userDao.getDueCardsOnce(currentTime)
-            .filter { it.boxIndex < 7 }
-            .shuffled()
-            .take(5)
+        // Fetch today's reviews to calculate current fatigue
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val todayStats = userDao.getStatisticsForDate(dateStr)
+        val allLogs = userDao.getReviewHistoryOnce()
+        
+        // Parse today's starting timestamp to extract logs from today
+        val todayStart = try {
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+        val todayLogs = allLogs.filter { it.timestamp >= todayStart }
+        
+        // Calculate fatigue and determine session configuration dynamically
+        val fatigueState = adaptiveEngine.calculateFatigue(todayLogs)
+        val sessionConfig = adaptiveEngine.determineSessionConfig(todayLogs, todayStats, fatigueState)
 
-        // 2. Learning cards (in Box 2 to 6, not due): up to 5
-        val dueIds = dueCards.map { it.id }.toSet()
-        val learningCards = userDao.getAllCardsOnce()
-            .filter { it.boxIndex in 2..6 && !dueIds.contains(it.id) }
-            .shuffled()
-            .take(5)
+        // Prioritize all local cards
+        val allCards = userDao.getAllCardsOnce()
+        val prioritizedCards = adaptiveEngine.prioritizeCards(allCards, currentTime)
 
-        // 3. New cards (Box 1): up to 5
-        val learningIds = learningCards.map { it.id }.toSet()
-        val existingNewCards = userDao.getAllCardsOnce()
-            .filter { it.boxIndex == 1 && !dueIds.contains(it.id) && !learningIds.contains(it.id) }
-            .shuffled()
-            .take(5)
+        // Select review/learning cards based on limits
+        val dueAndLearningCards = prioritizedCards.filter { card ->
+            card.reps > 0 && (card.dueDate <= currentTime || card.state == 1 || card.state == 3)
+        }.take(sessionConfig.maxReviews)
+
+        val selectedIds = dueAndLearningCards.map { it.id }.toSet()
+
+        // Select new cards
+        val newCardsFromLocal = prioritizedCards.filter { card ->
+            card.reps == 0 && !selectedIds.contains(card.id)
+        }.take(sessionConfig.maxNewWords)
 
         val totalSelected = mutableListOf<CardEntity>()
-        totalSelected.addAll(dueCards)
-        totalSelected.addAll(learningCards)
-        totalSelected.addAll(existingNewCards)
+        totalSelected.addAll(dueAndLearningCards)
+        totalSelected.addAll(newCardsFromLocal)
 
-        // If we still need more cards to reach a healthy session size (say 10 cards),
+        // If we still need more words to fulfill the session length (e.g. if the user runs out of cards),
         // let's fetch brand new words from the allowed levels!
-        val neededNewCount = 10 - totalSelected.size
-        if (neededNewCount > 0) {
+        val neededNewCount = sessionConfig.sessionLength - totalSelected.size
+        if (neededNewCount > 0 && sessionConfig.maxNewWords > 0) {
             val allowedLevels = getAllowedLevels(progress.level)
             val allLocalWords = userDao.getAllCardsOnce().map { it.wordId }.toSet()
             
-            // Get words from Vocabulary database matching the allowed levels
             val newWords = vocabDbManager.getWordsByLevels(allowedLevels, limit = 50)
                 .filter { !allLocalWords.contains(it.id) }
                 .shuffled()
@@ -417,7 +496,6 @@ class UserRepository @Inject constructor(
                     dueDate = System.currentTimeMillis()
                 )
                 userDao.insertCard(newCard)
-                // Retrieve the inserted card so it has correct auto-generated ID
                 val inserted = userDao.getCardByWordId(word.id)
                 if (inserted != null) {
                     totalSelected.add(inserted)
@@ -425,7 +503,7 @@ class UserRepository @Inject constructor(
             }
         }
 
-        // Save session state to database so we can resume!
+        // Save session state to database
         val cardIds = totalSelected.map { it.id }
         updateSessionState(active = true, cardIds = cardIds, currentIndex = 0)
 

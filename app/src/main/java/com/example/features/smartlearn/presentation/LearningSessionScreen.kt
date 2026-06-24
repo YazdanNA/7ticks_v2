@@ -138,6 +138,7 @@ fun LearningSessionScreen(navController: NavController) {
     // Tiki reaction state
     var tikiReactionMessage by remember { mutableStateOf("Tiki is watching! Recall correctly to impress me!") }
     var currentStreakCount by remember { mutableStateOf(0) }
+    var consecutiveMistakesCount by remember { mutableStateOf(0) }
 
     // Animating circle feedback states
     var temporaryOverlayIndex by remember { mutableStateOf(-1) }
@@ -431,6 +432,7 @@ fun LearningSessionScreen(navController: NavController) {
             if (rating == ReviewRatingModel.GOOD || rating == ReviewRatingModel.EASY) {
                 onCorrectAnswer()
                 currentStreakCount++
+                consecutiveMistakesCount = 0
                 tikiReactionMessage = if (currentStreakCount >= 3) {
                     "Incredible $currentStreakCount-word streak! Tiki is excited! 🔥"
                 } else {
@@ -439,7 +441,12 @@ fun LearningSessionScreen(navController: NavController) {
             } else {
                 onWrongAnswer()
                 currentStreakCount = 0
-                tikiReactionMessage = "Ah, no worries! Tiki believes in you. Let's practice!"
+                consecutiveMistakesCount++
+                tikiReactionMessage = if (consecutiveMistakesCount >= 3) {
+                    "Tiki detects a bit of fatigue! 🐾 Maybe take a short break or focus on easier reviews?"
+                } else {
+                    "Ah, no worries! Tiki believes in you. Let's keep practicing!"
+                }
             }
 
             // Temporarily overlay circle states to show animation before shifting

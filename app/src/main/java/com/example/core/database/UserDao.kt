@@ -62,6 +62,9 @@ interface UserDao {
     @Query("SELECT * FROM review_history ORDER BY timestamp DESC")
     fun getReviewHistory(): Flow<List<ReviewHistoryEntity>>
 
+    @Query("SELECT * FROM review_history ORDER BY timestamp DESC")
+    suspend fun getReviewHistoryOnce(): List<ReviewHistoryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReviewLog(log: ReviewHistoryEntity)
 
