@@ -586,8 +586,9 @@ class UserRepository @Inject constructor(
             val levelWordIds = levelCards.map { it.wordId }.toSet()
             val levelLogs = allLogs.filter { levelWordIds.contains(it.wordId) }
 
-            val wordsLearned = levelCards.count { it.reps > 0 }
-            val wordsRetained = levelCards.count { it.reps > 0 && it.stability >= 2.0 }
+            // SevenTicks definitions: 3 Ticks = Learned, 7 Ticks = Mastered
+            val wordsLearned = levelCards.count { it.boxIndex >= 3 }
+            val wordsRetained = levelCards.count { it.boxIndex >= 7 }
 
             val reviewAccuracy = if (levelLogs.isEmpty()) {
                 0.0f
@@ -596,14 +597,8 @@ class UserRepository @Inject constructor(
                 successful.toFloat() / levelLogs.size.toFloat()
             }
 
-            // Mastery score formulation combining exposure and retention
-            val learnedRatio = (wordsLearned.toFloat() / totalInLevel.toFloat()).coerceAtMost(1.0f)
-            val retentionRatio = if (wordsLearned > 0) {
-                (wordsRetained.toFloat() / wordsLearned.toFloat()).coerceAtMost(1.0f)
-            } else {
-                0.0f
-            }
-            val masteryPercentage = (0.4f * learnedRatio + 0.6f * retentionRatio).coerceIn(0.0f, 1.0f)
+            // Mastery percentage is defined as the ratio of words that have reached at least 3 Ticks (Learned)
+            val masteryPercentage = (wordsLearned.toFloat() / totalInLevel.toFloat()).coerceIn(0.0f, 1.0f)
 
             val levelInt = when (levelStr) {
                 "A1" -> 1
@@ -639,14 +634,33 @@ class UserRepository @Inject constructor(
         if (currentLevelInt >= 6) return@withContext false // Max level C2 reached
 
         val currentLevelStr = getLevelString(currentLevelInt)
-        val masteryList = getCefrLevelMasteryList()
-        val currentLevelMastery = masteryList.find { it.level.equals(currentLevelStr, ignoreCase = true) }
+        
+        // Find total words in this level from vocabulary database
+        val dbWords = vocabDbManager.getWordsByLevels(listOf(currentLevelStr), limit = 2000)
+        val totalInLevel = if (dbWords.isNotEmpty()) dbWords.size else when (currentLevelStr) {
+            "A1" -> 150
+            "A2" -> 200
+            "B1" -> 250
+            "B2" -> 300
+            "C1" -> 350
+            "C2" -> 400
+            else -> 200
+        }
 
-        val masteryPercentage = currentLevelMastery?.masteryPercentage ?: 0.0f
-        val masteredCount = currentLevelMastery?.wordsRetained ?: 0
+        // Filter local cards belonging to this CEFR level
+        val allCards = userDao.getAllCardsOnce()
+        val levelCards = allCards.filter { card ->
+            val cachedLevel = vocabDbManager.getWordById(card.wordId)?.level ?: "A1"
+            cachedLevel.equals(currentLevelStr, ignoreCase = true)
+        }
 
-        // Unlock next level if level mastery > 35% or user has mastered at least 5 words at this level
-        if (masteryPercentage >= 0.35f || masteredCount >= 5) {
+        // Count how many cards in this level have boxIndex >= 3 (Learned state / >= 3 Ticks)
+        val learnedCount = levelCards.count { it.boxIndex >= 3 }
+
+        // Promotion Rule: 90% of words in current level must have reached >= 3 Ticks (Learned)
+        val requiredLearned = (totalInLevel * 0.9).toInt()
+
+        if (learnedCount >= requiredLearned) {
             val nextLevelInt = currentLevelInt + 1
             userDao.updateLevel(nextLevelInt)
             
@@ -682,81 +696,117 @@ class UserRepository @Inject constructor(
         val progress = userDao.getUserProgressOnce() ?: return@withContext emptyList()
         val currentTime = System.currentTimeMillis()
 
-        // Fetch today's reviews to calculate current fatigue
+        // Get daily goals based on onboarding study-time mapping
+        val goalLower = progress.dailyGoal.lowercase()
+        val (dailyNewLimit, dailyReviewLimit) = when {
+            goalLower.contains("5 min") || goalLower.contains("5-min") -> Pair(2, 8)
+            goalLower.contains("10 min") -> Pair(3, 10)
+            goalLower.contains("15 min") -> Pair(4, 15)
+            goalLower.contains("20 min") -> Pair(5, 20)
+            goalLower.contains("30 min") -> Pair(8, 30)
+            goalLower.contains("45 min") -> Pair(12, 45)
+            goalLower.contains("60 min") -> Pair(15, 60)
+            else -> Pair(8, 30)
+        }
+
+        // Fetch stats for today
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val todayStats = userDao.getStatisticsForDate(dateStr)
+        val reviewedToday = todayStats?.wordsReviewed ?: 0
+        val learnedToday = todayStats?.wordsLearned ?: 0
+
+        val remainingReviewsCapacity = (dailyReviewLimit - reviewedToday).coerceAtLeast(0)
+        val remainingNewWordsCapacity = (dailyNewLimit - learnedToday).coerceAtLeast(0)
+
+        // Fetch reviews logs from today to compute adaptive parameters if needed
         val allLogs = userDao.getReviewHistoryOnce()
-        
-        // Parse today's starting timestamp to extract logs from today
         val todayStart = try {
             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)?.time ?: 0L
         } catch (e: Exception) {
             0L
         }
         val todayLogs = allLogs.filter { it.timestamp >= todayStart }
-        
-        // Calculate fatigue and determine session configuration dynamically
         val fatigueState = adaptiveEngine.calculateFatigue(todayLogs)
-        val sessionConfig = adaptiveEngine.determineSessionConfig(todayLogs, todayStats, fatigueState)
+        val sessionConfig = adaptiveEngine.determineSessionConfig(todayLogs, todayStats, fatigueState, progress.dailyGoal)
 
-        // Prioritize all local cards
-        val allCards = userDao.getAllCardsOnce()
-        val prioritizedCards = adaptiveEngine.prioritizeCards(allCards, currentTime)
+        val allLocalCards = userDao.getAllCardsOnce()
 
-        // Select review/learning cards based on limits
-        val dueAndLearningCards = prioritizedCards.filter { card ->
-            card.reps > 0 && (card.dueDate <= currentTime || card.state == 1 || card.state == 3)
-        }.take(sessionConfig.maxReviews)
+        // 1. Gather Overdue Reviews (Priority #1)
+        val overdueReviews = allLocalCards.filter { card ->
+            card.reps > 0 && card.dueDate <= currentTime && card.state == 2
+        }.sortedBy { it.dueDate } // Oldest due first
 
-        val selectedIds = dueAndLearningCards.map { it.id }.toSet()
+        // 2. Gather Learning Cards (Priority #2)
+        val learningCards = allLocalCards.filter { card ->
+            card.reps > 0 && card.state == 1
+        }
 
-        // Select new cards
-        val newCardsFromLocal = prioritizedCards.filter { card ->
-            card.reps == 0 && !selectedIds.contains(card.id)
-        }.take(sessionConfig.maxNewWords)
+        // 3. Gather Relearning Cards (Priority #3)
+        val relearningCards = allLocalCards.filter { card ->
+            card.reps > 0 && card.state == 3
+        }
+
+        val totalReviewWorkload = overdueReviews.size + learningCards.size + relearningCards.size
 
         val totalSelected = mutableListOf<CardEntity>()
-        totalSelected.addAll(dueAndLearningCards)
-        totalSelected.addAll(newCardsFromLocal)
 
-        // If we still need more words to fulfill the session length (e.g. if the user runs out of cards),
-        // let's fetch brand new words from the allowed levels!
-        val neededNewCount = sessionConfig.sessionLength - totalSelected.size
-        if (neededNewCount > 0 && sessionConfig.maxNewWords > 0) {
-            val allowedLevels = getAllowedLevels(progress.level)
-            val allLocalWords = userDao.getAllCardsOnce().map { it.wordId }.toSet()
-            
-            val newWords = vocabDbManager.getWordsByLevels(allowedLevels, limit = 50)
-                .filter { !allLocalWords.contains(it.id) }
-                .shuffled()
-                .take(neededNewCount)
+        if (totalReviewWorkload > 0) {
+            // We have review workload! Build session with reviews ONLY (up to remaining review capacity).
+            // "Never prioritize new words over reviews. Never create new words if review workload exists."
+            val reviewsToTake = overdueReviews.take(remainingReviewsCapacity)
+            val learningToTake = learningCards.take(remainingReviewsCapacity - reviewsToTake.size)
+            val relearningToTake = relearningCards.take(remainingReviewsCapacity - reviewsToTake.size - learningToTake.size)
 
-            for (word in newWords) {
-                val newCard = CardEntity(
-                    wordId = word.id,
-                    word = word.word,
-                    boxIndex = 1,
-                    stability = 1.0,
-                    difficulty = 3.0,
-                    elapsedDays = 0,
-                    scheduledDays = 1,
-                    reps = 0,
-                    lapses = 0,
-                    state = 0,
-                    lastReviewed = 0,
-                    dueDate = System.currentTimeMillis()
-                )
-                userDao.insertCard(newCard)
-                val inserted = userDao.getCardByWordId(word.id)
-                if (inserted != null) {
-                    totalSelected.add(inserted)
+            totalSelected.addAll(reviewsToTake)
+            totalSelected.addAll(learningToTake)
+            totalSelected.addAll(relearningToTake)
+        } else {
+            // No due reviews, learning, or relearning cards! We can introduce new words up to the remaining capacity.
+            if (remainingNewWordsCapacity > 0) {
+                // First, look for any pre-existing new cards in review_cards (reps == 0)
+                val preExistingNew = allLocalCards.filter { it.reps == 0 }
+                val newCardsToTake = preExistingNew.take(remainingNewWordsCapacity)
+                totalSelected.addAll(newCardsToTake)
+
+                val neededNewFromDb = remainingNewWordsCapacity - totalSelected.size
+                if (neededNewFromDb > 0) {
+                    val allowedLevels = getAllowedLevels(progress.level)
+                    val allLocalWordIds = allLocalCards.map { it.wordId }.toSet()
+
+                    // Fetch brand new words of allowed levels
+                    val newWordsFromDb = vocabDbManager.getWordsByLevels(allowedLevels, limit = 100)
+                        .filter { !allLocalWordIds.contains(it.id) }
+                        .shuffled()
+                        .take(neededNewFromDb)
+
+                    for (word in newWordsFromDb) {
+                        val newCard = CardEntity(
+                            wordId = word.id,
+                            word = word.word,
+                            boxIndex = 1,
+                            stability = 1.0,
+                            difficulty = 3.0,
+                            elapsedDays = 0,
+                            scheduledDays = 1,
+                            reps = 0,
+                            lapses = 0,
+                            state = 0,
+                            lastReviewed = 0,
+                            dueDate = System.currentTimeMillis()
+                        )
+                        userDao.insertCard(newCard)
+                        val inserted = userDao.getCardByWordId(word.id)
+                        if (inserted != null) {
+                            totalSelected.add(inserted)
+                        }
+                    }
                 }
             }
         }
 
         // Save session state to database
         val cardIds = totalSelected.map { it.id }
-        updateSessionState(active = true, cardIds = cardIds, currentIndex = 0)
+        updateSessionState(active = cardIds.isNotEmpty(), cardIds = cardIds, currentIndex = 0)
 
         return@withContext totalSelected
     }

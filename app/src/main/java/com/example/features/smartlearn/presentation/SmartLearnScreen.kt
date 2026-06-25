@@ -48,6 +48,7 @@ fun SmartLearnScreen(navController: NavController) {
     val userProgress by repo.userProgress.collectAsState(initial = null)
     val allCards by repo.allCards.collectAsState(initial = emptyList())
     val sessionState by repo.sessionState.collectAsState(initial = null)
+    val statisticsList by repo.statistics.collectAsState(initial = emptyList())
     val challengesList by repo.challenges.collectAsState(initial = emptyList())
 
     val scrollState = rememberScrollState()
@@ -66,7 +67,31 @@ fun SmartLearnScreen(navController: NavController) {
     val learningCount = allCards.count { it.boxIndex in 2..6 }
     val newCount = allCards.count { it.boxIndex == 1 }
 
-    val isSessionActive = sessionState?.active == true
+    val todayDateStr = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) }
+    val todayStats = statisticsList.find { it.dateStr == todayDateStr }
+
+    val dailyGoal = userProgress?.dailyGoal ?: prefs.dailyGoal
+    val goalLower = dailyGoal.lowercase()
+    val dailyNewLimit = when {
+        goalLower.contains("5 min") || goalLower.contains("5-min") -> 2
+        goalLower.contains("10 min") -> 3
+        goalLower.contains("15 min") -> 4
+        goalLower.contains("20 min") -> 5
+        goalLower.contains("30 min") -> 8
+        goalLower.contains("45 min") -> 12
+        goalLower.contains("60 min") -> 15
+        else -> 8
+    }
+    val learnedToday = todayStats?.wordsLearned ?: 0
+
+    val hasDueReviews = allCards.any { it.reps > 0 && it.dueDate <= System.currentTimeMillis() && it.state == 2 }
+    val hasLearningCards = allCards.any { it.reps > 0 && it.state == 1 }
+    val hasRelearningCards = allCards.any { it.reps > 0 && it.state == 3 }
+    val isBudgetExhausted = learnedToday >= dailyNewLimit
+
+    val isFinishedForToday = !hasDueReviews && !hasLearningCards && !hasRelearningCards && isBudgetExhausted
+
+    val isSessionActive = sessionState?.active == true && !isFinishedForToday
 
     // Portal expansion state
     var showChallengePortal by remember { mutableStateOf(false) }
@@ -381,7 +406,7 @@ fun SmartLearnScreen(navController: NavController) {
                     val btnInteractionSource = remember { MutableInteractionSource() }
                     val btnPressed by btnInteractionSource.collectIsPressedAsState()
                     val buttonScale by animateFloatAsState(
-                        targetValue = if (btnPressed) 0.95f else breatheScale,
+                        targetValue = if (isFinishedForToday) 1.0f else if (btnPressed) 0.95f else breatheScale,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
@@ -394,21 +419,28 @@ fun SmartLearnScreen(navController: NavController) {
                             .fillMaxWidth()
                             .scale(buttonScale)
                             .shadow(
-                                elevation = 16.dp,
+                                elevation = if (isFinishedForToday) 4.dp else 16.dp,
                                 shape = RoundedCornerShape(20.dp),
                                 clip = false,
-                                ambientColor = Color(0xFF00C2FF).copy(alpha = glowGlow * 0.4f),
-                                spotColor = Color(0xFF9D00FF).copy(alpha = glowGlow * 0.5f)
+                                ambientColor = if (isFinishedForToday) Color.Transparent else Color(0xFF00C2FF).copy(alpha = glowGlow * 0.4f),
+                                spotColor = if (isFinishedForToday) Color.Transparent else Color(0xFF9D00FF).copy(alpha = glowGlow * 0.5f)
                             )
                             .clip(RoundedCornerShape(20.dp))
                             .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
-                                )
+                                if (isFinishedForToday) {
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color(0xFF2C2D35), Color(0xFF25262B))
+                                    )
+                                } else {
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
+                                    )
+                                }
                             )
                             .clickable(
+                                enabled = !isFinishedForToday,
                                 interactionSource = btnInteractionSource,
-                                indication = LocalIndication.current
+                                indication = if (isFinishedForToday) null else LocalIndication.current
                             ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 coroutineScope.launch {
@@ -426,15 +458,15 @@ fun SmartLearnScreen(navController: NavController) {
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = if (isSessionActive) Icons.Default.Refresh else Icons.Default.PlayArrow,
+                                imageVector = if (isFinishedForToday) Icons.Default.CheckCircle else if (isSessionActive) Icons.Default.Refresh else Icons.Default.PlayArrow,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = if (isFinishedForToday) Color(0xFF00E676) else Color.White,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION",
-                                color = Color.White,
+                                text = if (isFinishedForToday) "YOU'RE DONE FOR TODAY" else if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION",
+                                color = if (isFinishedForToday) Color(0xFF00E676) else Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 1.sp

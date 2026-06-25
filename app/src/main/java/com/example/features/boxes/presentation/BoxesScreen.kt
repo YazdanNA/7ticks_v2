@@ -1763,6 +1763,7 @@ fun BoxStudyScreen(
                     ReviewRatingModel.GOOD -> "Blue"
                     ReviewRatingModel.HARD -> "Yellow"
                     ReviewRatingModel.AGAIN -> "Red"
+                    else -> "Blue"
                 }
 
                 activeEngine.submitRating(
@@ -1773,6 +1774,7 @@ fun BoxStudyScreen(
                         ReviewRatingModel.HARD -> 10
                         ReviewRatingModel.GOOD -> 15
                         ReviewRatingModel.EASY -> 20
+                        else -> 15
                     },
                     onSaveDb = {
                         val updated = word.copy(

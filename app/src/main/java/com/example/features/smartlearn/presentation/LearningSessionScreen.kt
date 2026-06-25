@@ -142,10 +142,11 @@ fun LearningSessionScreen(navController: NavController) {
         dueDate = Date(dueDate)
     )
 
-    fun FsrsCardModel.toCardEntity() = CardEntity(
+    fun FsrsCardModel.toCardEntity(oldBoxIndex: Int) = CardEntity(
         id = id,
         wordId = wordId,
         word = word,
+        boxIndex = oldBoxIndex,
         stability = stability,
         difficulty = difficulty,
         elapsedDays = elapsedDays,
@@ -693,7 +694,16 @@ fun LearningSessionScreen(navController: NavController) {
                     rating,
                     System.currentTimeMillis()
                 )
-                val updatedCardEntity = updatedFsrsModel.toCardEntity()
+                // SevenTicks Tick progression logic
+                val currentBoxIndex = card.boxIndex
+                val nextBoxIndex = when (rating) {
+                    ReviewRatingModel.AGAIN -> 1
+                    ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
+                    ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
+                    ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
+                    else -> currentBoxIndex
+                }
+                val updatedCardEntity = updatedFsrsModel.toCardEntity(oldBoxIndex = nextBoxIndex)
                 repo.updateCard(updatedCardEntity)
 
                 // Log review to database history

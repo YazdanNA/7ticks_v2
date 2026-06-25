@@ -239,10 +239,20 @@ class AdaptiveLearningEngine {
     fun determineSessionConfig(
         recentLogs: List<ReviewHistoryEntity>,
         todayStats: StatisticsEntity?,
-        fatigueState: FatigueState
+        fatigueState: FatigueState,
+        dailyGoal: String
     ): AdaptiveSessionConfig {
-        val baseNewWords = 10
-        val baseReviews = 20
+        val goalLower = dailyGoal.lowercase()
+        val (baseNewWords, baseReviews) = when {
+            goalLower.contains("5 min") || goalLower.contains("5-min") -> Pair(2, 8)
+            goalLower.contains("10 min") -> Pair(3, 10)
+            goalLower.contains("15 min") -> Pair(4, 15)
+            goalLower.contains("20 min") -> Pair(5, 20)
+            goalLower.contains("30 min") -> Pair(8, 30)
+            goalLower.contains("45 min") -> Pair(12, 45)
+            goalLower.contains("60 min") -> Pair(15, 60)
+            else -> Pair(8, 30)
+        }
 
         // Adjustments based on fatigue
         val fatigueReductionFactor = (1.0f - fatigueState.fatigueScore).coerceIn(0.1f, 1.0f)
@@ -252,21 +262,21 @@ class AdaptiveLearningEngine {
         val learnedToday = todayStats?.wordsLearned ?: 0
 
         // If user already reviewed or learned a lot, slightly decay introduction rate
-        val limitNewWords = if (learnedToday >= 15) {
+        val limitNewWords = if (learnedToday >= baseNewWords * 1.5) {
             (baseNewWords * fatigueReductionFactor * 0.5f).toInt()
         } else {
             (baseNewWords * fatigueReductionFactor).toInt()
         }
 
-        val limitReviews = if (reviewedToday >= 40) {
+        val limitReviews = if (reviewedToday >= baseReviews * 2) {
             (baseReviews * fatigueReductionFactor * 0.7f).toInt()
         } else {
             (baseReviews * fatigueReductionFactor).toInt()
         }
 
         // Enforce boundaries
-        val finalNewWords = limitNewWords.coerceIn(if (fatigueState.fatigueScore > 0.6f) 0 else 2, 15)
-        val finalReviews = limitReviews.coerceIn(5, 30)
+        val finalNewWords = limitNewWords.coerceIn(if (fatigueState.fatigueScore > 0.6f) 0 else 1, baseNewWords)
+        val finalReviews = limitReviews.coerceIn(2, baseReviews)
         val finalSessionLength = finalNewWords + finalReviews
 
         return AdaptiveSessionConfig(
