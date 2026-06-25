@@ -56,16 +56,6 @@ data class AdaptiveSessionConfig(
  */
 class AdaptiveLearningEngine {
 
-    // Estimated total vocabulary sizes in standard database for each CEFR level
-    private val levelVocabularySizes = mapOf(
-        "A1" to 150,
-        "A2" to 200,
-        "B1" to 250,
-        "B2" to 300,
-        "C1" to 350,
-        "C2" to 400
-    )
-
     /**
      * Fatigue detection engine. Calculates cognitive fatigue dynamically based on
      * mistakes, responses, session length, and frequency of recent reviews.
@@ -178,7 +168,8 @@ class AdaptiveLearningEngine {
         level: String,
         allCards: List<CardEntity>,
         allLogs: List<ReviewHistoryEntity>,
-        userCurrentLevelInt: Int
+        userCurrentLevelInt: Int,
+        totalWordsInLevel: Int
     ): CefrLevelMastery {
         val levelInt = when (level.uppercase()) {
             "A1" -> 1
@@ -189,8 +180,6 @@ class AdaptiveLearningEngine {
             "C2" -> 6
             else -> 1
         }
-
-        val totalWordsInLevel = levelVocabularySizes[level.uppercase()] ?: 200
 
         // Filter cards and reviews belonging to this level
         // We might not have word level directly in CardEntity, but we can infer it or we can pass it.

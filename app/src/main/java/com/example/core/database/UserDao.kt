@@ -43,6 +43,9 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCard(card: CardEntity)
 
+    @Query("DELETE FROM review_cards")
+    suspend fun clearReviewCards()
+
     @Update
     suspend fun updateCard(card: CardEntity)
 

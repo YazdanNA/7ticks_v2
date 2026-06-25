@@ -233,7 +233,7 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         return results
     }
 
-    fun getWordsByLevels(levels: List<String>, limit: Int = 100, offset: Int = 0): List<DictWord> {
+    fun getWordsByLevels(levels: List<String>, limit: Int = -1, offset: Int = 0): List<DictWord> {
         if (!isDatabaseDownloaded()) return emptyList()
         val results = mutableListOf<DictWord>()
         var db: SQLiteDatabase? = null
@@ -258,6 +258,12 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
                 null
             }
 
+            val limitStr = if (limit > 0) {
+                if (offset > 0) "$offset, $limit" else "$limit"
+            } else {
+                null
+            }
+
             val cursor = db.query(
                 tableName,
                 null,
@@ -266,7 +272,7 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
                 null,
                 null,
                 "$wordCol ASC",
-                "$offset, $limit"
+                limitStr
             )
 
             if (cursor.moveToFirst()) {
@@ -281,6 +287,49 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
             db?.close()
         }
         return results
+    }
+
+    fun getWordCountByLevels(levels: List<String>): Int {
+        if (!isDatabaseDownloaded()) return 0
+        var count = 0
+        var db: SQLiteDatabase? = null
+        try {
+            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            val tableName = getFirstUserTable(db) ?: return 0
+            val columns = getColumns(db, tableName)
+
+            val levelCol = columns.find { it.equals("level", ignoreCase = true) || it.contains("difficulty", ignoreCase = true) } ?: ""
+            val selection = if (levelCol.isNotEmpty() && levels.isNotEmpty()) {
+                val placeholders = levels.joinToString(",") { "?" }
+                "$levelCol IN ($placeholders)"
+            } else {
+                null
+            }
+            val selectionArgs = if (levelCol.isNotEmpty() && levels.isNotEmpty()) {
+                levels.toTypedArray()
+            } else {
+                null
+            }
+
+            val cursor = db.query(
+                tableName,
+                arrayOf("COUNT(*)"),
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null
+            )
+            if (cursor.moveToFirst()) {
+                count = cursor.getInt(0)
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e("VocabDbManager", "Error getting word count by levels", e)
+        } finally {
+            db?.close()
+        }
+        return count
     }
 
     fun getWordById(id: Int): DictWord? {

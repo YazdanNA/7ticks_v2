@@ -25,7 +25,7 @@ class VocabularyRepository @Inject constructor(
         vocabDatabaseManager.getWordById(id)
     }
 
-    suspend fun getWordsByLevels(levels: List<String>, limit: Int = 100): List<DictWord> = withContext(Dispatchers.IO) {
+    suspend fun getWordsByLevels(levels: List<String>, limit: Int = -1): List<DictWord> = withContext(Dispatchers.IO) {
         vocabDatabaseManager.getWordsByLevels(levels, limit)
     }
 }

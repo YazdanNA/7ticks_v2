@@ -343,30 +343,9 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun prepareSmartLearnEngine() = withContext(Dispatchers.IO) {
-        // Pre-populate some initial word cards from the downloaded vocabulary database
-        // so that the user immediately has cards in Box 1 to learn!
-        val words = vocabDbManager.getAllWords(limit = 15)
-        Log.d("UserRepository", "Pre-populating learning engine with ${words.size} vocabulary cards.")
-        for (word in words) {
-            val existingCard = userDao.getCardByWordId(word.id)
-            if (existingCard == null) {
-                val newCard = CardEntity(
-                    wordId = word.id,
-                    word = word.word,
-                    boxIndex = 1,
-                    stability = 1.0,
-                    difficulty = 3.0,
-                    elapsedDays = 0,
-                    scheduledDays = 1,
-                    reps = 0,
-                    lapses = 0,
-                    state = 0,
-                    lastReviewed = 0,
-                    dueDate = System.currentTimeMillis()
-                )
-                userDao.insertCard(newCard)
-            }
-        }
+        // Under refactored architecture, automatic pre-population is removed.
+        // Smart Learn is the sole authority for creating new cards on-demand.
+        Log.d("UserRepository", "prepareSmartLearnEngine: Automatic card pre-population is disabled.")
     }
 
     // Award XP and handle leveling up
@@ -569,7 +548,8 @@ class UserRepository @Inject constructor(
         val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
 
         levels.map { levelStr ->
-            val totalInLevel = when (levelStr) {
+            val dbCount = vocabDbManager.getWordCountByLevels(listOf(levelStr))
+            val totalInLevel = if (dbCount > 0) dbCount else when (levelStr) {
                 "A1" -> 150
                 "A2" -> 200
                 "B1" -> 250
@@ -638,8 +618,8 @@ class UserRepository @Inject constructor(
         val currentLevelStr = getLevelString(currentLevelInt)
         
         // Find total words in this level from vocabulary database
-        val dbWords = vocabDbManager.getWordsByLevels(listOf(currentLevelStr), limit = 2000)
-        val totalInLevel = if (dbWords.isNotEmpty()) dbWords.size else when (currentLevelStr) {
+        val dbCount = vocabDbManager.getWordCountByLevels(listOf(currentLevelStr))
+        val totalInLevel = if (dbCount > 0) dbCount else when (currentLevelStr) {
             "A1" -> 150
             "A2" -> 200
             "B1" -> 250
@@ -665,30 +645,6 @@ class UserRepository @Inject constructor(
         if (learnedCount >= requiredLearned) {
             val nextLevelInt = currentLevelInt + 1
             userDao.updateLevel(nextLevelInt)
-            
-            // Auto prepopulate the database with cards for the new level!
-            val nextLevelStr = getLevelString(nextLevelInt)
-            val newWords = vocabDbManager.getWordsByLevels(listOf(nextLevelStr), limit = 15)
-            for (word in newWords) {
-                val existingCard = userDao.getCardByWordId(word.id)
-                if (existingCard == null) {
-                    val newCard = CardEntity(
-                        wordId = word.id,
-                        word = word.word,
-                        boxIndex = 1,
-                        stability = 1.0,
-                        difficulty = 3.0,
-                        elapsedDays = 0,
-                        scheduledDays = 1,
-                        reps = 0,
-                        lapses = 0,
-                        state = 0,
-                        lastReviewed = 0,
-                        dueDate = System.currentTimeMillis()
-                    )
-                    userDao.insertCard(newCard)
-                }
-            }
             return@withContext true
         }
         return@withContext false
@@ -775,8 +731,8 @@ class UserRepository @Inject constructor(
                     val allowedLevels = getAllowedLevels(progress.level)
                     val allLocalWordIds = allLocalCards.map { it.wordId }.toSet()
 
-                    // Fetch brand new words of allowed levels
-                    val newWordsFromDb = vocabDbManager.getWordsByLevels(allowedLevels, limit = 100)
+                    // Fetch brand new words of allowed levels without any artificial limit/ceiling
+                    val newWordsFromDb = vocabDbManager.getWordsByLevels(allowedLevels, limit = -1)
                         .filter { !allLocalWordIds.contains(it.id) }
                         .shuffled()
                         .take(neededNewFromDb)
