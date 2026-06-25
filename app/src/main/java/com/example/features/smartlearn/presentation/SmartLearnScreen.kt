@@ -63,10 +63,6 @@ fun SmartLearnScreen(navController: NavController) {
     val masteredWords = allCards.count { it.boxIndex >= 7 }
     val progressPct = if (totalWords > 0) (masteredWords * 100) / totalWords else 0
 
-    val dueCount = allCards.count { it.dueDate <= System.currentTimeMillis() && it.boxIndex in 1..6 }
-    val learningCount = allCards.count { it.boxIndex in 2..6 }
-    val newCount = allCards.count { it.boxIndex == 1 }
-
     val todayDateStr = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) }
     val todayStats = statisticsList.find { it.dateStr == todayDateStr }
 
@@ -82,14 +78,47 @@ fun SmartLearnScreen(navController: NavController) {
         goalLower.contains("60 min") -> 15
         else -> 8
     }
+    val dailyReviewLimit = when {
+        goalLower.contains("5 min") || goalLower.contains("5-min") -> 8
+        goalLower.contains("10 min") -> 10
+        goalLower.contains("15 min") -> 15
+        goalLower.contains("20 min") -> 20
+        goalLower.contains("30 min") -> 30
+        goalLower.contains("45 min") -> 45
+        goalLower.contains("60 min") -> 60
+        else -> 30
+    }
     val learnedToday = todayStats?.wordsLearned ?: 0
+    val reviewedToday = todayStats?.wordsReviewed ?: 0
+
+    val remainingReviewsCapacity = (dailyReviewLimit - reviewedToday).coerceAtLeast(0)
+    val remainingNewWordsCapacity = (dailyNewLimit - learnedToday).coerceAtLeast(0)
 
     val hasDueReviews = allCards.any { it.reps > 0 && it.dueDate <= System.currentTimeMillis() && it.state == 2 }
     val hasLearningCards = allCards.any { it.reps > 0 && it.state == 1 }
     val hasRelearningCards = allCards.any { it.reps > 0 && it.state == 3 }
     val isBudgetExhausted = learnedToday >= dailyNewLimit
 
-    val isFinishedForToday = !hasDueReviews && !hasLearningCards && !hasRelearningCards && isBudgetExhausted
+    val overdueReviewsCount = allCards.count { it.reps > 0 && it.dueDate <= System.currentTimeMillis() && it.state == 2 }
+    val learningCardsCount = allCards.count { it.reps > 0 && it.state == 1 }
+    val relearningCardsCount = allCards.count { it.reps > 0 && it.state == 3 }
+    val totalReviewWorkload = overdueReviewsCount + learningCardsCount + relearningCardsCount
+
+    val dueCount: Int
+    val learningCount: Int
+    val newCount: Int
+
+    if (totalReviewWorkload > 0) {
+        dueCount = overdueReviewsCount.coerceAtMost(remainingReviewsCapacity)
+        learningCount = (learningCardsCount + relearningCardsCount).coerceAtMost((remainingReviewsCapacity - dueCount).coerceAtLeast(0))
+        newCount = 0
+    } else {
+        dueCount = 0
+        learningCount = 0
+        newCount = remainingNewWordsCapacity
+    }
+
+    val isFinishedForToday = (!hasDueReviews && !hasLearningCards && !hasRelearningCards && isBudgetExhausted) || (dueCount == 0 && learningCount == 0 && newCount == 0)
 
     val isSessionActive = sessionState?.active == true && !isFinishedForToday
 
