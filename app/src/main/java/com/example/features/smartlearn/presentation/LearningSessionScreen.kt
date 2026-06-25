@@ -41,6 +41,8 @@ import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
+import com.example.core.ui.components.flashcard.FlashCardState
+import com.example.core.ui.components.flashcard.FlashCardWidget
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
 import com.example.core.database.ReviewHistoryEntity
@@ -776,9 +778,16 @@ fun LearningSessionScreen(navController: NavController) {
                 (currentCard to currentWord).toFlashcardData()
             }
 
-            UniversalFlashcard(
-                data = flashcardData,
-                isFlipped = isFlipped,
+            val flashcardState = remember(flashcardData, isFlipped, circleStates) {
+                FlashCardState(
+                    data = flashcardData,
+                    isFlipped = isFlipped,
+                    circleStates = circleStates
+                )
+            }
+
+            FlashCardWidget(
+                state = flashcardState,
                 onFlip = {
                     onCardFlip()
                     isFlipped = !isFlipped
@@ -788,7 +797,6 @@ fun LearningSessionScreen(navController: NavController) {
                     .fillMaxWidth()
                     .offset(y = cardFloatY.dp)
                     .padding(vertical = 12.dp),
-                circleStates = circleStates,
                 onAgainClick = { handleRating(ReviewRatingModel.AGAIN) },
                 onHardClick = { handleRating(ReviewRatingModel.HARD) },
                 onGoodClick = { handleRating(ReviewRatingModel.GOOD) },

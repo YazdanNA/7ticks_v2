@@ -40,6 +40,8 @@ import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
+import com.example.core.ui.components.flashcard.FlashCardState
+import com.example.core.ui.components.flashcard.FlashCardWidget
 import com.example.core.database.BoxWordEntity
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.SearchResult
@@ -1662,9 +1664,26 @@ fun BoxStudyScreen(
                 Text("Box index: ${currentWord.boxIndex}", color = Color(0xFFE040FB), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
 
-            UniversalFlashcard(
-                data = currentWord.toFlashcardData(),
-                isFlipped = isFlipped,
+            val currentWordData = remember(currentWord) {
+                currentWord.toFlashcardData()
+            }
+
+            val boxCircleStates = remember(currentWord.boxIndex) {
+                List(7) { idx ->
+                    if (idx < currentWord.boxIndex) "Blue" else "Gray"
+                }
+            }
+
+            val flashcardState = remember(currentWordData, isFlipped, boxCircleStates) {
+                FlashCardState(
+                    data = currentWordData,
+                    isFlipped = isFlipped,
+                    circleStates = boxCircleStates
+                )
+            }
+
+            FlashCardWidget(
+                state = flashcardState,
                 onFlip = { isFlipped = !isFlipped },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1678,6 +1697,7 @@ fun BoxStudyScreen(
                             dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
                         )
                         boxRepo.updateBoxWord(updated)
+                        delay(850)
                         isFlipped = false
                         if (currentIndex + 1 < cardsToReview.size) {
                             currentIndex++
@@ -1695,6 +1715,7 @@ fun BoxStudyScreen(
                             dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
                         )
                         boxRepo.updateBoxWord(updated)
+                        delay(850)
                         isFlipped = false
                         if (currentIndex + 1 < cardsToReview.size) {
                             currentIndex++
@@ -1722,6 +1743,7 @@ fun BoxStudyScreen(
                             dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
                         )
                         boxRepo.updateBoxWord(updated)
+                        delay(850)
                         isFlipped = false
                         if (currentIndex + 1 < cardsToReview.size) {
                             currentIndex++
@@ -1749,6 +1771,7 @@ fun BoxStudyScreen(
                             dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
                         )
                         boxRepo.updateBoxWord(updated)
+                        delay(850)
                         isFlipped = false
                         if (currentIndex + 1 < cardsToReview.size) {
                             currentIndex++
