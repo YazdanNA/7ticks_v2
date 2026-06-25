@@ -5,10 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.example.core.ui.components.UniversalFlashcard
+import com.example.core.learning.FlashcardAnimator
 
 /**
  * The standard, reusable SevenTicks Flashcard widget.
- * Wraps the visual UniversalFlashcard into a FlashCardAnimator to provide
+ * Wraps the visual UniversalFlashcard into a FlashcardAnimator to provide
  * highly performant, sequential slide-left/slide-right transitions.
  */
 @Composable
@@ -25,7 +26,7 @@ fun FlashCardWidget(
     goodSubtext: String = "1d",
     easySubtext: String = "4d"
 ) {
-    FlashCardAnimator(
+    FlashcardAnimator(
         data = state.data,
         isFlipped = state.isFlipped,
         modifier = modifier

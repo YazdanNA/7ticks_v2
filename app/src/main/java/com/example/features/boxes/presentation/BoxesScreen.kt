@@ -42,6 +42,8 @@ import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
 import com.example.core.ui.components.flashcard.FlashCardWidget
+import com.example.core.learning.*
+import com.example.core.fsrs.ReviewRatingModel
 import com.example.core.database.BoxWordEntity
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.SearchResult
@@ -1522,6 +1524,36 @@ fun BoxStudyScreen(
     var isFlipped by remember { mutableStateOf(false) }
     var sessionFinished by remember { mutableStateOf(false) }
 
+    // Setup the unified session queue engine dynamically once cards load
+    val engine = remember(cardsToReview) {
+        if (cardsToReview.isEmpty()) null else {
+            val items = cardsToReview.map { word ->
+                val boxCircleStates = List(7) { idx ->
+                    if (idx < word.boxIndex) "Blue" else "Gray"
+                }
+                StudySessionItem(
+                    id = word.id.toString(),
+                    data = word.toFlashcardData(),
+                    circleStates = boxCircleStates,
+                    payload = word
+                )
+            }
+            val queueManager = SessionQueueManager(items)
+            StudySessionEngine(
+                queueManager = queueManager,
+                scope = coroutineScope,
+                initialStreak = 0,
+                onCorrectHook = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                onWrongHook = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                onSessionFinished = { sessionFinished = true }
+            )
+        }
+    }
+
+    // Connect queue flows to state
+    val activeIndex by engine?.queueManager?.currentIndex?.collectAsState() ?: remember { mutableStateOf(0) }
+    val currentItem by engine?.queueManager?.currentItem?.collectAsState() ?: remember { mutableStateOf(null) }
+
     // Reload list based on toggle and box details
     LaunchedEffect(boxId, activeReviewsOnly) {
         isLoading = true
@@ -1656,8 +1688,25 @@ fun BoxStudyScreen(
             }
         } else {
             // CARD STUDY ACTIVE VIEW
-            val currentWord = cardsToReview[currentIndex]
-            val progressText = "${currentIndex + 1} / ${cardsToReview.size} cards"
+            val activeItem = currentItem ?: if (cardsToReview.isNotEmpty()) {
+                val word = cardsToReview.first()
+                val boxCircleStates = List(7) { idx ->
+                    if (idx < word.boxIndex) "Blue" else "Gray"
+                }
+                StudySessionItem(
+                    id = word.id.toString(),
+                    data = word.toFlashcardData(),
+                    circleStates = boxCircleStates,
+                    payload = word
+                )
+            } else null
+
+            val currentWord = activeItem?.payload as? BoxWordEntity ?: if (cardsToReview.isNotEmpty()) {
+                cardsToReview.first()
+            } else {
+                BoxWordEntity(boxId = 0, wordId = 0, word = "")
+            }
+            val progressText = "${activeIndex + 1} / ${cardsToReview.size} cards"
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(progressText, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1668,9 +1717,16 @@ fun BoxStudyScreen(
                 currentWord.toFlashcardData()
             }
 
-            val boxCircleStates = remember(currentWord.boxIndex) {
-                List(7) { idx ->
-                    if (idx < currentWord.boxIndex) "Blue" else "Gray"
+            val boxCircleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
+                val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
+                val overlayIdx = engine?.temporaryOverlayIndex ?: -1
+                val overlayRating = engine?.temporaryOverlayRating ?: ""
+                if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
+                    baseCircles.toMutableList().apply {
+                        this[overlayIdx] = overlayRating
+                    }
+                } else {
+                    baseCircles
                 }
             }
 
@@ -1682,6 +1738,52 @@ fun BoxStudyScreen(
                 )
             }
 
+            fun getLeitnerInterval(newIdx: Int): Int {
+                return when (newIdx) {
+                    1 -> 1
+                    2 -> 2
+                    3 -> 4
+                    4 -> 7
+                    5 -> 14
+                    6 -> 30
+                    7 -> 64
+                    else -> 1
+                }
+            }
+
+            fun handleBoxRating(rating: ReviewRatingModel, targetBoxIndex: Int, intervalDays: Int) {
+                val activeEngine = engine ?: return
+                val item = activeItem ?: return
+                val word = item.payload as? BoxWordEntity ?: return
+
+                isFlipped = false
+
+                val mappedColorStr = when (rating) {
+                    ReviewRatingModel.EASY -> "Green"
+                    ReviewRatingModel.GOOD -> "Blue"
+                    ReviewRatingModel.HARD -> "Yellow"
+                    ReviewRatingModel.AGAIN -> "Red"
+                }
+
+                activeEngine.submitRating(
+                    rating = rating,
+                    currentCircleIndex = (word.boxIndex - 1).coerceIn(0, 6),
+                    xpAmount = when (rating) {
+                        ReviewRatingModel.AGAIN -> 5
+                        ReviewRatingModel.HARD -> 10
+                        ReviewRatingModel.GOOD -> 15
+                        ReviewRatingModel.EASY -> 20
+                    },
+                    onSaveDb = {
+                        val updated = word.copy(
+                            boxIndex = targetBoxIndex,
+                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
+                        )
+                        boxRepo.updateBoxWord(updated)
+                    }
+                )
+            }
+
             FlashCardWidget(
                 state = flashcardState,
                 onFlip = { isFlipped = !isFlipped },
@@ -1690,95 +1792,18 @@ fun BoxStudyScreen(
                     .weight(1f)
                     .padding(vertical = 12.dp),
                 onAgainClick = {
-                    coroutineScope.launch {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val updated = currentWord.copy(
-                            boxIndex = 1,
-                            dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
-                        )
-                        boxRepo.updateBoxWord(updated)
-                        delay(850)
-                        isFlipped = false
-                        if (currentIndex + 1 < cardsToReview.size) {
-                            currentIndex++
-                        } else {
-                            sessionFinished = true
-                        }
-                    }
+                    handleBoxRating(ReviewRatingModel.AGAIN, 1, 1)
                 },
                 onHardClick = {
-                    coroutineScope.launch {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val newBoxIdx = (currentWord.boxIndex - 1).coerceAtLeast(1)
-                        val updated = currentWord.copy(
-                            boxIndex = newBoxIdx,
-                            dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
-                        )
-                        boxRepo.updateBoxWord(updated)
-                        delay(850)
-                        isFlipped = false
-                        if (currentIndex + 1 < cardsToReview.size) {
-                            currentIndex++
-                        } else {
-                            sessionFinished = true
-                        }
-                    }
+                    handleBoxRating(ReviewRatingModel.HARD, (currentWord.boxIndex - 1).coerceAtLeast(1), 1)
                 },
                 onGoodClick = {
-                    coroutineScope.launch {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val newIdx = (currentWord.boxIndex + 1).coerceAtMost(7)
-                        val intervalDays = when (newIdx) {
-                            1 -> 1
-                            2 -> 2
-                            3 -> 4
-                            4 -> 7
-                            5 -> 14
-                            6 -> 30
-                            7 -> 64
-                            else -> 1
-                        }
-                        val updated = currentWord.copy(
-                            boxIndex = newIdx,
-                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
-                        )
-                        boxRepo.updateBoxWord(updated)
-                        delay(850)
-                        isFlipped = false
-                        if (currentIndex + 1 < cardsToReview.size) {
-                            currentIndex++
-                        } else {
-                            sessionFinished = true
-                        }
-                    }
+                    val newIdx = (currentWord.boxIndex + 1).coerceAtMost(7)
+                    handleBoxRating(ReviewRatingModel.GOOD, newIdx, getLeitnerInterval(newIdx))
                 },
                 onEasyClick = {
-                    coroutineScope.launch {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val newIdx = (currentWord.boxIndex + 2).coerceAtMost(7)
-                        val intervalDays = when (newIdx) {
-                            1 -> 1
-                            2 -> 2
-                            3 -> 4
-                            4 -> 7
-                            5 -> 14
-                            6 -> 30
-                            7 -> 64
-                            else -> 1
-                        }
-                        val updated = currentWord.copy(
-                            boxIndex = newIdx,
-                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
-                        )
-                        boxRepo.updateBoxWord(updated)
-                        delay(850)
-                        isFlipped = false
-                        if (currentIndex + 1 < cardsToReview.size) {
-                            currentIndex++
-                        } else {
-                            sessionFinished = true
-                        }
-                    }
+                    val newIdx = (currentWord.boxIndex + 2).coerceAtMost(7)
+                    handleBoxRating(ReviewRatingModel.EASY, newIdx, getLeitnerInterval(newIdx))
                 },
                 againSubtext = "",
                 hardSubtext = "",

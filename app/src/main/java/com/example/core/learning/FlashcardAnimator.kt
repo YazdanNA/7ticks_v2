@@ -1,4 +1,4 @@
-package com.example.core.ui.components.flashcard
+package com.example.core.learning
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.Box
@@ -14,12 +14,12 @@ import kotlinx.coroutines.launch
 /**
  * Handles the sequential entrance/exit transitions for the flashcard.
  * When data changes, it:
- * 1. Slides the current card left, fades out, and scales down slightly.
- * 2. Swaps content to the new card and resets state.
- * 3. Slides the new card in from the right, fades in, and scales up slightly.
+ * - Slides the current card LEFT, fades out, and scales down slightly. (300ms)
+ * - Swaps card content & resets flipped state.
+ * - Slides the new card in from the RIGHT, fades in, and scales up. (300ms)
  */
 @Composable
-fun FlashCardAnimator(
+fun FlashcardAnimator(
     data: FlashcardData,
     isFlipped: Boolean,
     modifier: Modifier = Modifier,
@@ -32,34 +32,33 @@ fun FlashCardAnimator(
     val fadeAlpha = remember { Animatable(1f) }
     val cardScale = remember { Animatable(1f) }
 
-    // Keep flip state in sync when not transitioning
+    // Synchronize flip state when not mid-transition
     LaunchedEffect(isFlipped) {
         currentFlipped = isFlipped
     }
 
     LaunchedEffect(data) {
         if (data.word != currentData.word) {
-            // STEP 3: Current card exits to the left
+            // Exit animation: Slide LEFT + Fade Out + Scale Down
             val exitJobX = launch {
                 offsetX.animateTo(
-                    targetValue = -350f, // slide left
+                    targetValue = -350f,
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
                 )
             }
             val exitJobAlpha = launch {
                 fadeAlpha.animateTo(
-                    targetValue = 0f, // fade out
+                    targetValue = 0f,
                     animationSpec = tween(durationMillis = 300, easing = LinearEasing)
                 )
             }
             val exitJobScale = launch {
                 cardScale.animateTo(
-                    targetValue = 0.88f, // scale down
+                    targetValue = 0.88f,
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
                 )
             }
-            
-            // Wait for exit animation to complete
+
             exitJobX.join()
             exitJobAlpha.join()
             exitJobScale.join()
@@ -68,27 +67,27 @@ fun FlashCardAnimator(
             currentData = data
             currentFlipped = false
 
-            // Snap new card to start position on the right
+            // Snap new card to starting position on the right
             offsetX.snapTo(350f)
             fadeAlpha.snapTo(0f)
             cardScale.snapTo(0.88f)
 
-            // STEP 4: New card enters from the right
+            // Entrance animation: Slide RIGHT to center + Fade In + Scale Up
             val enterJobX = launch {
                 offsetX.animateTo(
-                    targetValue = 0f, // slide in
+                    targetValue = 0f,
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
                 )
             }
             val enterJobAlpha = launch {
                 fadeAlpha.animateTo(
-                    targetValue = 1f, // fade in
+                    targetValue = 1f,
                     animationSpec = tween(durationMillis = 300, easing = LinearEasing)
                 )
             }
             val enterJobScale = launch {
                 cardScale.animateTo(
-                    targetValue = 1f, // scale up
+                    targetValue = 1f,
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
                 )
             }
@@ -97,7 +96,6 @@ fun FlashCardAnimator(
             enterJobAlpha.join()
             enterJobScale.join()
         } else {
-            // Simply update other fields if word didn't change
             currentData = data
         }
     }

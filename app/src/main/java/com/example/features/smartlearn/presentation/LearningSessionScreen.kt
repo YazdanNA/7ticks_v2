@@ -43,6 +43,7 @@ import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
 import com.example.core.ui.components.flashcard.FlashCardWidget
+import com.example.core.learning.*
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
 import com.example.core.database.ReviewHistoryEntity
@@ -125,33 +126,6 @@ fun LearningSessionScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
-    val sessionState by repo.sessionState.collectAsState(initial = null)
-    val userProgress by repo.userProgress.collectAsState(initial = null)
-    val reviewLogs by repo.reviewHistory.collectAsState(initial = emptyList())
-    val rewardHistory by repo.rewardHistory.collectAsState(initial = emptyList())
-
-    var currentCardIndex by remember { mutableStateOf(0) }
-    var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var isFlipped by remember { mutableStateOf(false) }
-    var showBottomSheet by remember { mutableStateOf(false) }
-
-    // Session statistics
-    var xpEarnedInSession by remember { mutableStateOf(0) }
-    var isSessionCompleted by remember { mutableStateOf(false) }
-    var showLeveledUpDialog by remember { mutableStateOf(false) }
-    var totalAnswersInSession by remember { mutableStateOf(0) }
-    var correctAnswersInSession by remember { mutableStateOf(0) }
-
-    // Tiki reaction state
-    var tikiReactionMessage by remember { mutableStateOf("Tiki is watching! Recall correctly to impress me!") }
-    var currentStreakCount by remember { mutableStateOf(0) }
-    var consecutiveMistakesCount by remember { mutableStateOf(0) }
-
-    // Animating circle feedback states
-    var temporaryOverlayIndex by remember { mutableStateOf(-1) }
-    var temporaryOverlayRating by remember { mutableStateOf("") }
-
     // Helpers to convert between CardEntity and FsrsCardModel
     fun CardEntity.toFsrsModel() = FsrsCardModel(
         id = id,
@@ -198,6 +172,74 @@ fun LearningSessionScreen(navController: NavController) {
         Log.d("HapticSoundHook", "Haptic & Sound: Card Flip Triggered")
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
+
+    val sessionState by repo.sessionState.collectAsState(initial = null)
+    val userProgress by repo.userProgress.collectAsState(initial = null)
+    val reviewLogs by repo.reviewHistory.collectAsState(initial = emptyList())
+    val rewardHistory by repo.rewardHistory.collectAsState(initial = emptyList())
+
+    var currentCardIndex by remember { mutableStateOf(0) }
+    var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isFlipped by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    // Session statistics
+    var xpEarnedInSession by remember { mutableStateOf(0) }
+    var isSessionCompleted by remember { mutableStateOf(false) }
+    var showLeveledUpDialog by remember { mutableStateOf(false) }
+    var totalAnswersInSession by remember { mutableStateOf(0) }
+    var correctAnswersInSession by remember { mutableStateOf(0) }
+
+    // Tiki reaction state
+    var tikiReactionMessage by remember { mutableStateOf("Tiki is watching! Recall correctly to impress me!") }
+    var currentStreakCount by remember { mutableStateOf(0) }
+    var consecutiveMistakesCount by remember { mutableStateOf(0) }
+
+    // Setup the unified session queue engine dynamically once cards load
+    val engine = remember(loadedCards) {
+        if (loadedCards.isEmpty()) null else {
+            val items = loadedCards.map { (card, word) ->
+                val wordReviewHistory = reviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
+                val initialCircleStates = List(7) { i ->
+                    if (i < wordReviewHistory.size) {
+                        val ratingVal = wordReviewHistory[i].rating
+                        when (ratingVal) {
+                            4 -> "Green"
+                            3 -> "Blue"
+                            2 -> "Yellow"
+                            else -> "Red"
+                        }
+                    } else "Gray"
+                }
+                StudySessionItem(
+                    id = card.id.toString(),
+                    data = (card to word).toFlashcardData(),
+                    circleStates = initialCircleStates,
+                    payload = card to word
+                )
+            }
+            val startIdx = sessionState?.currentIndex?.coerceIn(0, (items.size - 1).coerceAtLeast(0)) ?: 0
+            val queueManager = SessionQueueManager(items)
+            repeat(startIdx) { queueManager.next() }
+            StudySessionEngine(
+                queueManager = queueManager,
+                scope = coroutineScope,
+                initialStreak = currentStreakCount,
+                onCorrectHook = { onCorrectAnswer() },
+                onWrongHook = { onWrongAnswer() },
+                onSessionFinished = { isSessionCompleted = true }
+            )
+        }
+    }
+
+    // Connect queue index & current item flows to Composable state
+    val activeIndex by engine?.queueManager?.currentIndex?.collectAsState() ?: remember { mutableStateOf(0) }
+    val currentItem by engine?.queueManager?.currentItem?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    // Animating circle feedback states
+    var temporaryOverlayIndex by remember { mutableStateOf(-1) }
+    var temporaryOverlayRating by remember { mutableStateOf("") }
 
     // Load active session card list
     LaunchedEffect(Unit) {
@@ -303,7 +345,7 @@ fun LearningSessionScreen(navController: NavController) {
         return
     }
 
-    if (isSessionCompleted) {
+    if (engine?.isSessionCompleted ?: isSessionCompleted) {
         // --- SESSION COMPLETION SCREEN & REWARD OVERLAY ---
         Box(
             modifier = Modifier
@@ -462,7 +504,7 @@ fun LearningSessionScreen(navController: NavController) {
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "+$xpEarnedInSession",
+                                    text = "+${engine?.xpEarned ?: xpEarnedInSession}",
                                     color = Color(0xFFFFD600),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black
@@ -571,7 +613,32 @@ fun LearningSessionScreen(navController: NavController) {
         return
     }
 
-    val (currentCard, currentWord) = loadedCards[currentCardIndex]
+    val activeItem = currentItem ?: if (loadedCards.isNotEmpty()) {
+        val wordReviewHistory = reviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
+        val initialCircleStates = List(7) { i ->
+            if (i < wordReviewHistory.size) {
+                val ratingVal = wordReviewHistory[i].rating
+                when (ratingVal) {
+                    4 -> "Green"
+                    3 -> "Blue"
+                    2 -> "Yellow"
+                    else -> "Red"
+                }
+            } else "Gray"
+        }
+        StudySessionItem(
+            id = loadedCards.first().first.id.toString(),
+            data = (loadedCards.first().first to loadedCards.first().second).toFlashcardData(),
+            circleStates = initialCircleStates,
+            payload = loadedCards.first()
+        )
+    } else null
+
+    val (currentCard, currentWord) = activeItem?.payload as? Pair<CardEntity, DictWord> ?: if (loadedCards.isNotEmpty()) {
+        loadedCards.first()
+    } else {
+        CardEntity(wordId = 0, word = "") to DictWord(0, "", "", "", "", "", "", "")
+    }
 
     // Fetch real historical reviews for this word to map 7 circles
     val wordReviewHistory = remember(reviewLogs, currentWord.id) {
@@ -579,118 +646,91 @@ fun LearningSessionScreen(navController: NavController) {
     }
 
     // Active review states calculated on the fly
-    val currentCircleIndex = wordReviewHistory.size.coerceAtMost(6)
-    val circleStates = remember(wordReviewHistory, temporaryOverlayIndex, temporaryOverlayRating) {
-        val list = mutableListOf<String>()
-        for (i in 0 until 7) {
-            if (i == temporaryOverlayIndex) {
-                list.add(temporaryOverlayRating)
-            } else if (i < wordReviewHistory.size) {
-                val rating = wordReviewHistory[i].rating
-                val mapped = when (rating) {
-                    4 -> "Green"  // Easy
-                    3 -> "Blue"   // Good
-                    2 -> "Yellow" // Hard
-                    else -> "Red" // Again
-                }
-                list.add(mapped)
-            } else {
-                list.add("Gray")
+    val currentCircleIndex = remember(activeItem) {
+        val word = (activeItem?.payload as? Pair<CardEntity, DictWord>)?.second
+        if (word != null) {
+            val wordReviewHistory = reviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
+            wordReviewHistory.size.coerceAtMost(6)
+        } else 0
+    }
+    val circleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
+        val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
+        val overlayIdx = engine?.temporaryOverlayIndex ?: -1
+        val overlayRating = engine?.temporaryOverlayRating ?: ""
+        if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
+            baseCircles.toMutableList().apply {
+                this[overlayIdx] = overlayRating
             }
+        } else {
+            baseCircles
         }
-        list
     }
 
     // Handle button action click and transition logic
     fun handleRating(rating: ReviewRatingModel) {
-        coroutineScope.launch {
-            totalAnswersInSession++
-            // Trigger haptic & sound hooks
-            if (rating == ReviewRatingModel.GOOD || rating == ReviewRatingModel.EASY) {
-                correctAnswersInSession++
-                onCorrectAnswer()
-                currentStreakCount++
-                consecutiveMistakesCount = 0
-                tikiReactionMessage = if (currentStreakCount >= 3) {
-                    "Incredible $currentStreakCount-word streak! Tiki is excited! 🔥"
-                } else {
-                    "Awesome! Tiki is super happy! 🎉"
-                }
-            } else {
-                onWrongAnswer()
-                currentStreakCount = 0
-                consecutiveMistakesCount++
-                tikiReactionMessage = if (consecutiveMistakesCount >= 3) {
-                    "Tiki detects a bit of fatigue! 🐾 Maybe take a short break or focus on easier reviews?"
-                } else {
-                    "Ah, no worries! Tiki believes in you. Let's keep practicing!"
-                }
-            }
+        val activeEngine = engine ?: return
+        val item = activeItem ?: return
+        val (card, word) = item.payload as? Pair<CardEntity, DictWord> ?: return
 
-            // Temporarily overlay circle states to show animation before shifting
-            val mappedColorStr = when (rating) {
-                ReviewRatingModel.EASY -> "Green"
-                ReviewRatingModel.GOOD -> "Blue"
-                ReviewRatingModel.HARD -> "Yellow"
-                ReviewRatingModel.AGAIN -> "Red"
-            }
-            temporaryOverlayIndex = currentCircleIndex
-            temporaryOverlayRating = mappedColorStr
-
-            // Visual pause so the user can witness the circle fill, icon checkmark & spring scale animation
-            delay(850)
-
-            // Submit FSRS review
-            val updatedFsrsModel = fsrsRepo.calculateNextReview(
-                currentCard.toFsrsModel(),
-                rating,
-                System.currentTimeMillis()
-            )
-            val updatedCardEntity = updatedFsrsModel.toCardEntity()
-            repo.updateCard(updatedCardEntity)
-
-            // Log review to database history
-            repo.recordReviewLog(
-                wordId = currentCard.wordId,
-                word = currentCard.word,
-                rating = rating.value,
-                stability = updatedFsrsModel.stability,
-                difficulty = updatedFsrsModel.difficulty
-            )
-
-            // Award XP based on rating
-            val xpAmount = when (rating) {
-                ReviewRatingModel.AGAIN -> 5
-                ReviewRatingModel.HARD -> 10
-                ReviewRatingModel.GOOD -> 15
-                ReviewRatingModel.EASY -> 20
-            }
-            xpEarnedInSession += xpAmount
-            val leveledUp = repo.awardXp(xpAmount, "review")
-            if (leveledUp) {
-                showLeveledUpDialog = true
-            }
-
-            // Check level advancement
-            repo.checkAndProgressUserLevel()
-
-            // Reset overlays & slide to next
-            temporaryOverlayIndex = -1
-            temporaryOverlayRating = ""
-
-            val nextIndex = currentCardIndex + 1
-            if (nextIndex >= loadedCards.size) {
-                isSessionCompleted = true
-            } else {
-                currentCardIndex = nextIndex
-                isFlipped = false
-                repo.updateSessionState(
-                    active = true,
-                    cardIds = loadedCards.map { it.first.id },
-                    currentIndex = nextIndex
-                )
-            }
+        val xpAmount = when (rating) {
+            ReviewRatingModel.AGAIN -> 5
+            ReviewRatingModel.HARD -> 10
+            ReviewRatingModel.GOOD -> 15
+            ReviewRatingModel.EASY -> 20
         }
+
+        // Instantly reset flip state and update UI parameters
+        isFlipped = false
+
+        activeEngine.submitRating(
+            rating = rating,
+            currentCircleIndex = currentCircleIndex,
+            xpAmount = xpAmount,
+            onSaveDb = {
+                // Submit FSRS review
+                val updatedFsrsModel = fsrsRepo.calculateNextReview(
+                    card.toFsrsModel(),
+                    rating,
+                    System.currentTimeMillis()
+                )
+                val updatedCardEntity = updatedFsrsModel.toCardEntity()
+                repo.updateCard(updatedCardEntity)
+
+                // Log review to database history
+                repo.recordReviewLog(
+                    wordId = card.wordId,
+                    word = card.word,
+                    rating = rating.value,
+                    stability = updatedFsrsModel.stability,
+                    difficulty = updatedFsrsModel.difficulty
+                )
+
+                // Award XP based on rating
+                val leveledUp = repo.awardXp(xpAmount, "review")
+                if (leveledUp) {
+                    showLeveledUpDialog = true
+                }
+
+                // Check level advancement
+                repo.checkAndProgressUserLevel()
+
+                // Update session state in database
+                val nextIdx = (engine?.queueManager?.currentIndex?.value ?: 0) + 1
+                if (nextIdx < loadedCards.size) {
+                    repo.updateSessionState(
+                        active = true,
+                        cardIds = loadedCards.map { it.first.id },
+                        currentIndex = nextIdx
+                    )
+                } else {
+                    repo.updateSessionState(
+                        active = false,
+                        cardIds = emptyList(),
+                        currentIndex = 0
+                    )
+                }
+            }
+        )
     }
 
     // Camera 3D rotation rotation angle
@@ -750,20 +790,20 @@ fun LearningSessionScreen(navController: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Level ${userProgress?.level ?: 1} | +${xpEarnedInSession} XP",
+                        text = "Level ${userProgress?.level ?: 1} | +${engine?.xpEarned ?: xpEarnedInSession} XP",
                         color = Color(0xFFFFD600),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
                     Text(
-                        text = "Remaining: ${loadedCards.size - currentCardIndex}",
+                        text = "Remaining: ${loadedCards.size - activeIndex}",
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { (currentCardIndex + 1).toFloat() / loadedCards.size.toFloat() },
+                    progress = { (activeIndex + 1).toFloat() / loadedCards.size.toFloat() },
                     color = Color(0xFF00FFD2),
                     trackColor = Color(0x1AFFFFFF),
                     modifier = Modifier
@@ -805,7 +845,7 @@ fun LearningSessionScreen(navController: NavController) {
 
             // 3. Unified Global Ticky Mascot Helper Card
             TickyCard(
-                message = tikiReactionMessage,
+                message = engine?.tikiReactionMessage ?: tikiReactionMessage,
                 sizeDp = 50,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
