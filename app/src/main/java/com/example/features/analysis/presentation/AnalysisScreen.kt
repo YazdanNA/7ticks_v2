@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
 import com.example.core.database.CardEntity
 import com.example.core.database.ReviewHistoryEntity
 import com.example.core.database.UserProgressEntity
@@ -538,7 +538,7 @@ fun TabOverview(
             list
         }
 
-        TikiPlaceholder(
+        TickyCard(
             message = insights.randomOrNull() ?: "Study consistently to generate personalized learning intelligence insights.",
             sizeDp = 64,
             modifier = Modifier.fillMaxWidth()

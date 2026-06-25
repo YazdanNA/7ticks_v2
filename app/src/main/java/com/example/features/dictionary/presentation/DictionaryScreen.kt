@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
 import com.example.core.database.BoxWordEntity
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.FavoriteWordEntity
@@ -325,7 +325,7 @@ fun DictionaryScreen() {
             }
 
             // Tiki Mascot Placement
-            TikiPlaceholder(
+            TickyCard(
                 message = "Explore word structures, synonyms, and levels! Star terms to find them quickly.",
                 sizeDp = 50,
                 modifier = Modifier.fillMaxWidth()
@@ -345,10 +345,10 @@ fun DictionaryScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    TikiPlaceholder(
+                    TickyCard(
                         tikiState = "st-rap",
                         message = "I couldn't find \"$query\" in my database. Let's try typing another term or check the spelling!",
-                        sizeDp = 100,
+                        sizeDp = 80,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -363,12 +363,6 @@ fun DictionaryScreen() {
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
-                    )
-                    TikiPlaceholder(
-                        tikiState = "st-rap",
-                        message = "",
-                        sizeDp = 48,
-                        modifier = Modifier.size(48.dp)
                     )
                 }
 

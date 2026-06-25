@@ -38,8 +38,9 @@ import androidx.navigation.NavController
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.SevenCircles
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
+import com.example.core.ui.components.UniversalFlashcard
+import com.example.core.ui.components.toFlashcardData
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
 import com.example.core.database.ReviewHistoryEntity
@@ -390,9 +391,9 @@ fun LearningSessionScreen(navController: NavController) {
                             else -> "Tiki is cheering for you! Keep up the incredible work!"
                         }
 
-                        TikiPlaceholder(
+                        TickyCard(
                             message = tikiMsg,
-                            sizeDp = 50,
+                            sizeDp = 60,
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -770,313 +771,36 @@ fun LearningSessionScreen(navController: NavController) {
                 )
             }
 
-            // 2. High-fidelity 3D Interactive Flashcard
-            Box(
+            // 2. High-fidelity Unified Universal Spaced Repetition Flashcard
+            val flashcardData = remember(currentCard, currentWord) {
+                (currentCard to currentWord).toFlashcardData()
+            }
+
+            UniversalFlashcard(
+                data = flashcardData,
+                isFlipped = isFlipped,
+                onFlip = {
+                    onCardFlip()
+                    isFlipped = !isFlipped
+                },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .offset(y = cardFloatY.dp)
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight()
-                        .graphicsLayer {
-                            rotationY = rotationAngle
-                            cameraDistance = 12f * density
-                        }
-                        .clickable {
-                            onCardFlip()
-                            isFlipped = !isFlipped
-                        }
-                ) {
-                    if (rotationAngle <= 90f) {
-                        // --- FRONT SIDE ---
-                        GlassCard(
-                            modifier = Modifier.fillMaxSize(),
-                            cornerRadius = 24.dp
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0x1A00C2FF))
-                                            .border(1.dp, Color(0x3300C2FF), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = currentWord.partOfSpeech.uppercase(),
-                                            color = Color(0xFF00FFD2),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = "Favorite",
-                                        tint = Color.White.copy(alpha = 0.2f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = currentWord.word,
-                                        color = Color.White,
-                                        fontSize = 32.sp,
-                                        fontWeight = FontWeight.Black,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = currentWord.phonetics,
-                                        color = Color.White.copy(alpha = 0.4f),
-                                        fontSize = 15.sp,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-
-                                // English definition (short) + example sentence centered
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                ) {
-                                    Text(
-                                        text = currentWord.definition,
-                                        color = Color.White.copy(alpha = 0.85f),
-                                        fontSize = 14.sp,
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 18.sp,
-                                        maxLines = 3,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (currentWord.example.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(14.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(Color(0x0AFFFFFF))
-                                                .padding(10.dp)
-                                        ) {
-                                            Text(
-                                                text = "\"${currentWord.example}\"",
-                                                color = Color(0xFF00FFD2).copy(alpha = 0.7f),
-                                                fontSize = 12.sp,
-                                                textAlign = TextAlign.Center,
-                                                lineHeight = 16.sp,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Text(
-                                    text = "Tap Card to Reveal Meaning",
-                                    color = Color(0xFF00C2FF).copy(alpha = 0.8f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    } else {
-                        // --- BACK SIDE (Mirrored to show correctly) ---
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    rotationY = 180f
-                                }
-                        ) {
-                            GlassCard(
-                                modifier = Modifier.fillMaxSize(),
-                                cornerRadius = 24.dp
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = currentWord.word,
-                                            color = Color(0xFF00C2FF),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        IconButton(onClick = { /* Audio pronunciation placeholder */ }) {
-                                            Icon(Icons.Default.PlayArrow, contentDescription = "Pronounce", tint = Color(0xFF00FFD2))
-                                        }
-                                    }
-
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Meaning (Multi-language ready Persian/Farsi translation)
-                                        Text(
-                                            text = currentWord.faDefinition,
-                                            color = Color(0xFFFFD600),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(bottom = 8.dp)
-                                        )
-
-                                        // Primary English definitions & meanings
-                                        Text(
-                                            text = currentWord.definition,
-                                            color = Color.White,
-                                            fontSize = 14.sp,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 18.sp,
-                                            modifier = Modifier.padding(horizontal = 6.dp)
-                                        )
-
-                                        Spacer(modifier = Modifier.height(14.dp))
-
-                                        // Examples (Multiple examples represented)
-                                        if (currentWord.example.isNotEmpty()) {
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(Color(0x06FFFFFF))
-                                                    .padding(10.dp)
-                                            ) {
-                                                Text(
-                                                    text = "Primary Usage:",
-                                                    color = Color.White.copy(alpha = 0.4f),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(bottom = 2.dp)
-                                                )
-                                                Text(
-                                                    text = "\"${currentWord.example}\"",
-                                                    color = Color.White.copy(alpha = 0.7f),
-                                                    fontSize = 11.sp,
-                                                    textAlign = TextAlign.Center,
-                                                    lineHeight = 15.sp
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = "Typical Word Pattern:",
-                                                    color = Color.White.copy(alpha = 0.4f),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(bottom = 2.dp)
-                                                )
-                                                Text(
-                                                    text = "\"Highly ${currentWord.word} terms represent refined communication.\"",
-                                                    color = Color.White.copy(alpha = 0.6f),
-                                                    fontSize = 11.sp,
-                                                    textAlign = TextAlign.Center,
-                                                    lineHeight = 15.sp
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Button: More Details (Opens bottom sheet)
-                                    PremiumGlassButton(
-                                        text = "More Details",
-                                        onClick = { showBottomSheet = true },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Spaced Repetition Seven Circles System Visualizer
-            SevenCircles(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                activeStates = circleStates
+                    .padding(vertical = 12.dp),
+                circleStates = circleStates,
+                onAgainClick = { handleRating(ReviewRatingModel.AGAIN) },
+                onHardClick = { handleRating(ReviewRatingModel.HARD) },
+                onGoodClick = { handleRating(ReviewRatingModel.GOOD) },
+                onEasyClick = { handleRating(ReviewRatingModel.EASY) }
             )
 
-            // 4. Tiki Mascot Helper & Integration area
-            TikiPlaceholder(
+            // 3. Unified Global Ticky Mascot Helper Card
+            TickyCard(
                 message = tikiReactionMessage,
                 sizeDp = 50,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
-
-            // 5. Spaced Repetition (Again, Hard, Good, Easy) Action Controls
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // AGAIN (Red)
-                ActionButton(
-                    text = "Again",
-                    subtext = "<1m",
-                    color = Color(0xFFFF1744),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    handleRating(ReviewRatingModel.AGAIN)
-                }
-
-                // HARD (Yellow)
-                ActionButton(
-                    text = "Hard",
-                    subtext = "<10m",
-                    color = Color(0xFFFFD600),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    handleRating(ReviewRatingModel.HARD)
-                }
-
-                // GOOD (Blue)
-                ActionButton(
-                    text = "Good",
-                    subtext = "1d",
-                    color = Color(0xFF2979FF),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    handleRating(ReviewRatingModel.GOOD)
-                }
-
-                // EASY (Green)
-                ActionButton(
-                    text = "Easy",
-                    subtext = "4d",
-                    color = Color(0xFF00E676),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    handleRating(ReviewRatingModel.EASY)
-                }
-            }
         }
     }
 

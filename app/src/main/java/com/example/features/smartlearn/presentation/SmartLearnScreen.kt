@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.SevenTicksApplication
-import com.example.core.components.TikiPlaceholder
 import com.example.core.navigation.Screen
 import com.example.core.ui.components.*
 import kotlinx.coroutines.launch
@@ -162,7 +161,7 @@ fun SmartLearnScreen(navController: NavController) {
             )
 
             // ORDER 2: Ticky Card (Unified Ticky component)
-            UnifiedTikiCard(
+            TickyCard(
                 tikiState = "st-happy",
                 sizeDp = 80,
                 messages = listOf(

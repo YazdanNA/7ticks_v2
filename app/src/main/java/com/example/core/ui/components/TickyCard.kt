@@ -13,17 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import com.example.core.components.TikiPlaceholder
 import kotlinx.coroutines.delay
 
 /**
  * Reusable Global Ticky Card Component.
  * Features:
- * - Tiki mascot avatar (uses TikiPlaceholder with st-talking/breathing animation)
- * - Rotating typewriter message sequence
+ * - Tiki mascot avatar (uses TikiPlaceholder with talking/breathing animations)
+ * - Single message or rotating typewriter message sequence
  * - Deletion/erase visual typewriter animation
  * - Glassmorphic styled card container
  * - State-driven animation hooks
@@ -33,51 +33,59 @@ fun TickyCard(
     modifier: Modifier = Modifier,
     tikiState: String = "st-happy",
     sizeDp: Int = 80,
-    messages: List<String> = listOf(
-        "Welcome back! Ready for a fast brain workout?",
-        "Your neural pathways are highly receptive right now!",
-        "Let's hit today's daily FSRS cognitive goals!"
-    ),
-    speedMs: Long = 40,
-    pauseMs: Long = 2500
+    message: String? = null,
+    messages: List<String>? = null,
+    speedMs: Long = 25,
+    pauseMs: Long = 3000
 ) {
+    // Resolve which messages to display
+    val resolvedMessages = remember(message, messages) {
+        when {
+            messages != null && messages.isNotEmpty() -> messages
+            message != null && message.isNotEmpty() -> listOf(message)
+            else -> listOf("Welcome! Let's level up your vocabulary today!")
+        }
+    }
+
     var currentMsgIdx by remember { mutableStateOf(0) }
     var displayedText by remember { mutableStateOf("") }
     var isTypingOrErasing by remember { mutableStateOf(false) }
 
-    // Safe fallback for empty list
-    val messagesList = remember(messages) { messages.ifEmpty { listOf("Hi, let's learn some vocabulary today!") } }
-
-    LaunchedEffect(messagesList) {
+    // Typewriter state tracking
+    LaunchedEffect(resolvedMessages) {
         currentMsgIdx = 0
-        while (true) {
-            val message = messagesList[currentMsgIdx % messagesList.size]
-            
-            // Typewriter in
+        // If there's only 1 message, type it once and keep it.
+        if (resolvedMessages.size == 1) {
+            val singleMsg = resolvedMessages[0]
             isTypingOrErasing = true
-            for (i in 1..message.length) {
-                displayedText = message.substring(0, i)
+            for (i in 1..singleMsg.length) {
+                displayedText = singleMsg.substring(0, i)
                 delay(speedMs)
             }
             isTypingOrErasing = false
-            
-            delay(pauseMs)
-            
-            // Erase out (only if multiple messages, or if we want a nice reset animation)
-            if (messagesList.size > 1) {
+        } else {
+            // Loop rotating messages
+            while (true) {
+                val currentMsg = resolvedMessages[currentMsgIdx % resolvedMessages.size]
                 isTypingOrErasing = true
-                for (i in message.length downTo 0) {
-                    displayedText = message.substring(0, i)
+                for (i in 1..currentMsg.length) {
+                    displayedText = currentMsg.substring(0, i)
+                    delay(speedMs)
+                }
+                isTypingOrErasing = false
+                
+                delay(pauseMs)
+                
+                isTypingOrErasing = true
+                for (i in currentMsg.length downTo 0) {
+                    displayedText = currentMsg.substring(0, i)
                     delay(speedMs / 2) // erase faster
                 }
                 isTypingOrErasing = false
-                delay(300) // gap
-            } else {
-                // Stay on screen, then restart just to trigger mouth or keep loop
-                delay(pauseMs)
+                delay(400) // small gap before next message
+                
+                currentMsgIdx++
             }
-            
-            currentMsgIdx++
         }
     }
 
@@ -122,7 +130,7 @@ fun TickyCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
-                // Speech bubble bubble background
+                // Speech bubble background
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

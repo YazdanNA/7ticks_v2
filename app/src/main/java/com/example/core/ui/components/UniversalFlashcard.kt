@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontStyle
@@ -24,10 +25,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.core.components.SevenCircles
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
 import com.example.core.database.BoxWordEntity
 import com.example.features.smartlearn.presentation.getWordDetails
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Unified data representation for UniversalFlashcard.
@@ -101,15 +105,86 @@ fun BoxWordEntity.toFlashcardData(): FlashcardData {
 }
 
 /**
+ * Bouncy ActionButton shared across review experiences.
+ */
+@Composable
+fun FlashcardActionButton(
+    text: String,
+    subtext: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "flashcard_button_bounce"
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.12f))
+            .border(
+                width = 1.dp,
+                color = color.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable {
+                coroutineScope.launch {
+                    isPressed = true
+                    delay(80)
+                    isPressed = false
+                }
+                onClick()
+            }
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = text,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+            if (subtext.isNotEmpty()) {
+                Text(
+                    text = subtext,
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontSize = 9.sp
+                )
+            }
+        }
+    }
+}
+
+/**
  * Universal Flashcard Component.
- * Implements standard 3D flipping, glass styling, consistent typography and animations.
+ * Implements standard 3D flipping, glass styling, progress circles, and rating buttons.
  */
 @Composable
 fun UniversalFlashcard(
     data: FlashcardData,
     isFlipped: Boolean,
     onFlip: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    circleStates: List<String>? = null,
+    onAgainClick: (() -> Unit)? = null,
+    onHardClick: (() -> Unit)? = null,
+    onGoodClick: (() -> Unit)? = null,
+    onEasyClick: (() -> Unit)? = null,
+    againSubtext: String = "<1m",
+    hardSubtext: String = "<10m",
+    goodSubtext: String = "1d",
+    easySubtext: String = "4d"
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
@@ -260,13 +335,13 @@ fun UniversalFlashcard(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(24.dp),
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         // Word label and Pronounce button
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -276,8 +351,15 @@ fun UniversalFlashcard(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            IconButton(onClick = { /* TTS placeholder hook */ }) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = "Pronounce", tint = Color(0xFF00FFD2))
+                            IconButton(
+                                onClick = { onFlip() },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = "Pronounce",
+                                    tint = Color(0xFF00FFD2)
+                                )
                             }
                         }
 
@@ -287,18 +369,18 @@ fun UniversalFlashcard(
                                 .weight(1f)
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
-                                .padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             // Primary translation (glowing Persian/Farsi word)
                             if (data.translation.isNotEmpty()) {
                                 Text(
                                     text = data.translation,
                                     color = Color(0xFFFFD600),
-                                    fontSize = 24.sp,
+                                    fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
                                 )
                             }
 
@@ -363,16 +445,79 @@ fun UniversalFlashcard(
                                         .background(Color(0x08FFFFFF))
                                         .padding(8.dp)
                                 ) {
-                                    Text(text = "Tiki's Note: ${data.notes}", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontStyle = FontStyle.Italic)
+                                    Text(
+                                        text = "Tiki's Note: ${data.notes}",
+                                        color = Color.White.copy(alpha = 0.6f),
+                                        fontSize = 11.sp,
+                                        fontStyle = FontStyle.Italic
+                                    )
+                                }
+                            }
+                        }
+
+                        // Progress Ticks system integration
+                        if (circleStates != null) {
+                            SevenCircles(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                activeStates = circleStates
+                            )
+                        }
+
+                        // Built-in Rating Actions inside the card
+                        if (onAgainClick != null || onHardClick != null || onGoodClick != null || onEasyClick != null) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (onAgainClick != null) {
+                                    FlashcardActionButton(
+                                        text = "Again",
+                                        subtext = againSubtext,
+                                        color = Color(0xFFFF1744),
+                                        modifier = Modifier.weight(1f),
+                                        onClick = onAgainClick
+                                    )
+                                }
+                                if (onHardClick != null) {
+                                    FlashcardActionButton(
+                                        text = "Hard",
+                                        subtext = hardSubtext,
+                                        color = Color(0xFFFFD600),
+                                        modifier = Modifier.weight(1f),
+                                        onClick = onHardClick
+                                    )
+                                }
+                                if (onGoodClick != null) {
+                                    FlashcardActionButton(
+                                        text = "Good",
+                                        subtext = goodSubtext,
+                                        color = Color(0xFF2979FF),
+                                        modifier = Modifier.weight(1.1f),
+                                        onClick = onGoodClick
+                                    )
+                                }
+                                if (onEasyClick != null) {
+                                    FlashcardActionButton(
+                                        text = "Easy",
+                                        subtext = easySubtext,
+                                        color = Color(0xFF00E676),
+                                        modifier = Modifier.weight(1f),
+                                        onClick = onEasyClick
+                                    )
                                 }
                             }
                         }
 
                         // Hint indicator at bottom
                         Text(
-                            text = "Tap Card to Hide Translations",
-                            color = Color.White.copy(alpha = 0.2f),
-                            fontSize = 10.sp
+                            text = "Tap Header/Pronounce to Flip",
+                            color = Color.White.copy(alpha = 0.25f),
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }

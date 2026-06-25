@@ -37,7 +37,9 @@ import androidx.compose.ui.unit.sp
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
+import com.example.core.ui.components.UniversalFlashcard
+import com.example.core.ui.components.toFlashcardData
 import com.example.core.database.BoxWordEntity
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.SearchResult
@@ -298,7 +300,7 @@ fun BoxesDashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                TikiPlaceholder(
+                TickyCard(
                     message = if (showArchivedOnly) "You don't have any archived boxes yet." else "Let's create your first custom vocabulary collection! Tap 'Create Box' above.",
                     sizeDp = 64,
                     modifier = Modifier.fillMaxWidth()
@@ -894,7 +896,7 @@ fun BoxDetailScreen(
         // Custom list of words
         if (filteredWords.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                TikiPlaceholder(
+                TickyCard(
                     message = "No words inside this box matched your search. Tap '+' to create/auto-fill new terms!",
                     sizeDp = 60,
                     modifier = Modifier.fillMaxWidth()
@@ -1634,7 +1636,7 @@ fun BoxStudyScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                TikiPlaceholder(
+                TickyCard(
                     message = if (cardsToReview.isEmpty() && activeReviewsOnly) {
                         "Congratulations! No due cards found inside $boxName! Try reviewing all words or create some new ones."
                     } else {
@@ -1660,236 +1662,106 @@ fun BoxStudyScreen(
                 Text("Box index: ${currentWord.boxIndex}", color = Color(0xFFE040FB), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
 
-            // Flashcard Box
-            Box(
+            UniversalFlashcard(
+                data = currentWord.toFlashcardData(),
+                isFlipped = isFlipped,
+                onFlip = { isFlipped = !isFlipped },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0x0AFFFFFF))
-                    .border(1.dp, Color(0x1F7A88FF), RoundedCornerShape(24.dp))
-                    .clickable {
+                    .padding(vertical = 12.dp),
+                onAgainClick = {
+                    coroutineScope.launch {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        isFlipped = !isFlipped
-                    }
-                    .padding(24.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (!isFlipped) {
-                        // FRONT SIDE
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = currentWord.word,
-                                color = Color.White,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Black,
-                                textAlign = TextAlign.Center
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                currentWord.phoneticsUs?.let { us ->
-                                    Text(text = "US: $us", color = Color(0xFF00FFD2), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                                }
-                                currentWord.phoneticsUk?.let { uk ->
-                                    Text(text = "UK: $uk", color = Color(0xFFFFD600), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0x2200C2FF))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(currentWord.type, color = Color(0xFF00C2FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        
-                        Text(
-                            text = "Tap Card to Reveal Translations & Definition",
-                            color = Color.White.copy(alpha = 0.3f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                        val updated = currentWord.copy(
+                            boxIndex = 1,
+                            dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
                         )
-                    } else {
-                        // BACK SIDE
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(currentWord.word, color = Color(0xFF00FFD2), fontSize = 20.sp, fontWeight = FontWeight.Black)
-
-                            // Meaning
-                            if (currentWord.meanings.isNotEmpty()) {
-                                Text("Meanings", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                currentWord.meanings.split("\n").filter { it.isNotEmpty() }.forEach { m ->
-                                    Text(m, color = Color(0xFFFFD600), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                                }
-                            }
-
-                            // Definition
-                            if (currentWord.definitions.isNotEmpty()) {
-                                Text("Definitions", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                currentWord.definitions.split("\n").filter { it.isNotEmpty() }.forEach { def ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("•", color = Color(0xFF00C2FF))
-                                        Text(def, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-                                    }
-                                }
-                            }
-
-                            // Sentence Example
-                            if (currentWord.examples.isNotEmpty()) {
-                                Text("Examples", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                currentWord.examples.split("\n").filter { it.isNotEmpty() }.forEach { ex ->
-                                    Text("\"$ex\"", color = Color.White.copy(alpha = 0.65f), fontStyle = FontStyle.Italic, fontSize = 12.sp)
-                                }
-                            }
+                        boxRepo.updateBoxWord(updated)
+                        isFlipped = false
+                        if (currentIndex + 1 < cardsToReview.size) {
+                            currentIndex++
+                        } else {
+                            sessionFinished = true
                         }
-
-                        Text(
-                            text = "Tap Card to Hide",
-                            color = Color.White.copy(alpha = 0.2f),
-                            fontSize = 10.sp
-                        )
                     }
-                }
-            }
-
-            // Rating Actions below (Leitner Intervals calculation)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Rate Again (Box Index reset to 1)
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            // reset to box 1, due in 1 day
-                            val updated = currentWord.copy(
-                                boxIndex = 1,
-                                dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
-                            )
-                            boxRepo.updateBoxWord(updated)
-                            isFlipped = false
-                            if (currentIndex + 1 < cardsToReview.size) {
-                                currentIndex++
-                            } else {
-                                sessionFinished = true
-                            }
+                },
+                onHardClick = {
+                    coroutineScope.launch {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val newBoxIdx = (currentWord.boxIndex - 1).coerceAtLeast(1)
+                        val updated = currentWord.copy(
+                            boxIndex = newBoxIdx,
+                            dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
+                        )
+                        boxRepo.updateBoxWord(updated)
+                        isFlipped = false
+                        if (currentIndex + 1 < cardsToReview.size) {
+                            currentIndex++
+                        } else {
+                            sessionFinished = true
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Again", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-
-                // Rate Hard (Remain or Clamp boxIndex)
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            // remains boxIndex or decrease, schedule 1 day
-                            val newBoxIdx = (currentWord.boxIndex - 1).coerceAtLeast(1)
-                            val updated = currentWord.copy(
-                                boxIndex = newBoxIdx,
-                                dueDate = System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000)
-                            )
-                            boxRepo.updateBoxWord(updated)
-                            isFlipped = false
-                            if (currentIndex + 1 < cardsToReview.size) {
-                                currentIndex++
-                            } else {
-                                sessionFinished = true
-                            }
+                    }
+                },
+                onGoodClick = {
+                    coroutineScope.launch {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val newIdx = (currentWord.boxIndex + 1).coerceAtMost(7)
+                        val intervalDays = when (newIdx) {
+                            1 -> 1
+                            2 -> 2
+                            3 -> 4
+                            4 -> 7
+                            5 -> 14
+                            6 -> 30
+                            7 -> 64
+                            else -> 1
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57C00)),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Hard", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-
-                // Rate Good (Increase Leitner boxIndex by 1)
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val newIdx = (currentWord.boxIndex + 1).coerceAtMost(7)
-                            // Interval table
-                            val intervalDays = when (newIdx) {
-                                1 -> 1
-                                2 -> 2
-                                3 -> 4
-                                4 -> 7
-                                5 -> 14
-                                6 -> 30
-                                7 -> 64
-                                else -> 1
-                            }
-                            val updated = currentWord.copy(
-                                boxIndex = newIdx,
-                                dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
-                            )
-                            boxRepo.updateBoxWord(updated)
-                            isFlipped = false
-                            if (currentIndex + 1 < cardsToReview.size) {
-                                currentIndex++
-                            } else {
-                                sessionFinished = true
-                            }
+                        val updated = currentWord.copy(
+                            boxIndex = newIdx,
+                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
+                        )
+                        boxRepo.updateBoxWord(updated)
+                        isFlipped = false
+                        if (currentIndex + 1 < cardsToReview.size) {
+                            currentIndex++
+                        } else {
+                            sessionFinished = true
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF388E3C)),
-                    modifier = Modifier.weight(1.2f)
-                ) {
-                    Text("Good", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-
-                // Rate Easy (Increase Leitner boxIndex by 2 or directly Mastered!)
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val newIdx = (currentWord.boxIndex + 2).coerceAtMost(7)
-                            val intervalDays = when (newIdx) {
-                                1 -> 1
-                                2 -> 2
-                                3 -> 4
-                                4 -> 7
-                                5 -> 14
-                                6 -> 30
-                                7 -> 64
-                                else -> 1
-                            }
-                            val updated = currentWord.copy(
-                                boxIndex = newIdx,
-                                dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
-                            )
-                            boxRepo.updateBoxWord(updated)
-                            isFlipped = false
-                            if (currentIndex + 1 < cardsToReview.size) {
-                                currentIndex++
-                            } else {
-                                sessionFinished = true
-                            }
+                    }
+                },
+                onEasyClick = {
+                    coroutineScope.launch {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val newIdx = (currentWord.boxIndex + 2).coerceAtMost(7)
+                        val intervalDays = when (newIdx) {
+                            1 -> 1
+                            2 -> 2
+                            3 -> 4
+                            4 -> 7
+                            5 -> 14
+                            6 -> 30
+                            7 -> 64
+                            else -> 1
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0288D1)),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Easy", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
+                        val updated = currentWord.copy(
+                            boxIndex = newIdx,
+                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
+                        )
+                        boxRepo.updateBoxWord(updated)
+                        isFlipped = false
+                        if (currentIndex + 1 < cardsToReview.size) {
+                            currentIndex++
+                        } else {
+                            sessionFinished = true
+                        }
+                    }
+                },
+                againSubtext = "",
+                hardSubtext = "",
+                goodSubtext = "",
+                easySubtext = ""
+            )
         }
     }
 }

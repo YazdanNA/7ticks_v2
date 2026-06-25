@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
 import com.example.core.components.AvatarManager
 import com.example.core.ui.components.SharedTextField
 
@@ -509,7 +509,7 @@ fun ProfileScreen() {
             }
 
             // 5. Tiki Mascot Box
-            TikiPlaceholder(
+            TickyCard(
                 message = if (unlockedCount > 0) {
                     "You are making stellar progress, $userName! You have already unlocked $unlockedCount achievements."
                 } else {

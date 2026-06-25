@@ -33,7 +33,7 @@ import androidx.navigation.NavController
 import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
-import com.example.core.components.TikiPlaceholder
+import com.example.core.ui.components.TickyCard
 import com.example.core.components.AvatarManager
 import com.example.core.assessment.AssessmentSession
 import com.example.core.assessment.AssessmentItem
@@ -212,13 +212,7 @@ fun OnboardingWizardScreen(navController: NavController) {
                 else -> "st-happy"
             }
 
-            TikiPlaceholder(
-                tikiState = targetTikiState,
-                sizeDp = 90,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-
-            // 2. Typewriter Message Area (Permanently fixed in place)
+            // 2. Typewriter Message Area with TickyCard (Unified global component)
             val targetMessage = when (step) {
                 0 -> "Hi there! I am Tiki, your vocabulary mentor. Welcome to 7Ticks, a scientifically proven spaced repetition system!"
                 1 -> "Let's get to know you! What is your name?"
@@ -242,44 +236,12 @@ fun OnboardingWizardScreen(navController: NavController) {
                 else -> ""
             }
 
-            var displayedMessage by remember { mutableStateOf("") }
-            LaunchedEffect(targetMessage) {
-                if (displayedMessage.isNotEmpty()) {
-                    val currentText = displayedMessage
-                    for (i in currentText.length downTo 0) {
-                        displayedMessage = currentText.substring(0, i)
-                        delay(12)
-                    }
-                }
-                delay(120)
-                for (char in targetMessage) {
-                    displayedMessage += char
-                    delay(18)
-                }
-            }
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 68.dp),
-                cornerRadius = 16.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = displayedMessage,
-                        color = Color(0xFF00FFD2),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
+            TickyCard(
+                message = targetMessage,
+                tikiState = targetTikiState,
+                sizeDp = 80,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
