@@ -3,6 +3,7 @@ package com.example.features.onboarding.presentation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -120,6 +121,16 @@ fun OnboardingWizardScreen(navController: NavController) {
 
             repo.runEnvironmentSetup().collectLatest { state ->
                 setupState = state
+            }
+        }
+    }
+
+    // Reset Tiki's assessment face back to neutral after showing feedback
+    LaunchedEffect(currentQuestion) {
+        if (currentQuestion != null) {
+            delay(1200)
+            if (assessmentSession != null && !assessmentFinished) {
+                assessmentTikiState = "st-poker"
             }
         }
     }
@@ -409,7 +420,7 @@ fun OnboardingWizardScreen(navController: NavController) {
                         }
                     }
                     3 -> {
-                        // Native Language View (Compact, No Scrolling, No search)
+                        // Native Language View (Compact Grid, No Scrolling, No search)
                         val nativeLanguages = listOf(
                             "Persian" to true,
                             "English" to false,
@@ -418,24 +429,62 @@ fun OnboardingWizardScreen(navController: NavController) {
                         )
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            nativeLanguages.forEachIndexed { idx, (lang, available) ->
-                                LanguageOptionCard(
-                                    name = lang,
-                                    available = available,
-                                    isSelected = nativeLanguage == lang,
-                                    index = idx,
-                                    totalItems = nativeLanguages.size,
-                                    isExiting = isTransitioning
-                                ) {
-                                    nativeLanguage = lang
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = nativeLanguages[0].first,
+                                        available = nativeLanguages[0].second,
+                                        isSelected = nativeLanguage == nativeLanguages[0].first,
+                                        index = 0,
+                                        totalItems = 4,
+                                        isExiting = isTransitioning
+                                    ) { nativeLanguage = nativeLanguages[0].first }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = nativeLanguages[1].first,
+                                        available = nativeLanguages[1].second,
+                                        isSelected = nativeLanguage == nativeLanguages[1].first,
+                                        index = 1,
+                                        totalItems = 4,
+                                        isExiting = isTransitioning
+                                    ) { nativeLanguage = nativeLanguages[1].first }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = nativeLanguages[2].first,
+                                        available = nativeLanguages[2].second,
+                                        isSelected = nativeLanguage == nativeLanguages[2].first,
+                                        index = 2,
+                                        totalItems = 4,
+                                        isExiting = isTransitioning
+                                    ) { nativeLanguage = nativeLanguages[2].first }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = nativeLanguages[3].first,
+                                        available = nativeLanguages[3].second,
+                                        isSelected = nativeLanguage == nativeLanguages[3].first,
+                                        index = 3,
+                                        totalItems = 4,
+                                        isExiting = isTransitioning
+                                    ) { nativeLanguage = nativeLanguages[3].first }
                                 }
                             }
                         }
                     }
                     4 -> {
-                        // Target Language View (Compact, No Scrolling, No search)
+                        // Target Language View (Compact Grid, No Scrolling, No search)
                         val targetLanguages = listOf(
                             "English" to true,
                             "German" to false,
@@ -445,45 +494,158 @@ fun OnboardingWizardScreen(navController: NavController) {
                         )
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            targetLanguages.forEachIndexed { idx, (lang, available) ->
-                                LanguageOptionCard(
-                                    name = lang,
-                                    available = available,
-                                    isSelected = targetLanguage == lang,
-                                    index = idx,
-                                    totalItems = targetLanguages.size,
-                                    isExiting = isTransitioning
-                                ) {
-                                    targetLanguage = lang
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = targetLanguages[0].first,
+                                        available = targetLanguages[0].second,
+                                        isSelected = targetLanguage == targetLanguages[0].first,
+                                        index = 0,
+                                        totalItems = 5,
+                                        isExiting = isTransitioning
+                                    ) { targetLanguage = targetLanguages[0].first }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = targetLanguages[1].first,
+                                        available = targetLanguages[1].second,
+                                        isSelected = targetLanguage == targetLanguages[1].first,
+                                        index = 1,
+                                        totalItems = 5,
+                                        isExiting = isTransitioning
+                                    ) { targetLanguage = targetLanguages[1].first }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = targetLanguages[2].first,
+                                        available = targetLanguages[2].second,
+                                        isSelected = targetLanguage == targetLanguages[2].first,
+                                        index = 2,
+                                        totalItems = 5,
+                                        isExiting = isTransitioning
+                                    ) { targetLanguage = targetLanguages[2].first }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LanguageOptionCard(
+                                        name = targetLanguages[3].first,
+                                        available = targetLanguages[3].second,
+                                        isSelected = targetLanguage == targetLanguages[3].first,
+                                        index = 3,
+                                        totalItems = 5,
+                                        isExiting = isTransitioning
+                                    ) { targetLanguage = targetLanguages[3].first }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Box(modifier = Modifier.fillMaxWidth(0.5f)) {
+                                    LanguageOptionCard(
+                                        name = targetLanguages[4].first,
+                                        available = targetLanguages[4].second,
+                                        isSelected = targetLanguage == targetLanguages[4].first,
+                                        index = 4,
+                                        totalItems = 5,
+                                        isExiting = isTransitioning
+                                    ) { targetLanguage = targetLanguages[4].first }
                                 }
                             }
                         }
                     }
                     5 -> {
-                        // Daily Goals Study Time View
+                        // Daily Goals Study Time View (Compact Grid, No scrolling, No oversized cards)
                         val goals = listOf(
-                            "5 minutes / day" to "Casual Learning Session",
-                            "10 minutes / day" to "Regular Study Practice",
-                            "15 minutes / day" to "Serious Vocabulary Commitment",
-                            "20 minutes / day" to "Intense Spaced Practice",
-                            "30 minutes / day" to "Insane Mastery Speedrun"
+                            "5 min" to "Casual",
+                            "10 min" to "Regular",
+                            "15 min" to "Serious",
+                            "20 min" to "Intense",
+                            "30 min" to "Insane",
+                            "45 min" to "Mastery"
                         )
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            goals.forEachIndexed { idx, (goalStr, desc) ->
-                                GoalOptionCard(
-                                    goalStr = goalStr,
-                                    desc = desc,
-                                    isSelected = dailyGoal == goalStr,
-                                    index = idx,
-                                    totalItems = goals.size,
-                                    isExiting = isTransitioning
-                                ) {
-                                    dailyGoal = goalStr
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[0].first,
+                                        desc = goals[0].second,
+                                        isSelected = dailyGoal.startsWith(goals[0].first),
+                                        index = 0,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[0].first} / day" }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[1].first,
+                                        desc = goals[1].second,
+                                        isSelected = dailyGoal.startsWith(goals[1].first),
+                                        index = 1,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[1].first} / day" }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[2].first,
+                                        desc = goals[2].second,
+                                        isSelected = dailyGoal.startsWith(goals[2].first),
+                                        index = 2,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[2].first} / day" }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[3].first,
+                                        desc = goals[3].second,
+                                        isSelected = dailyGoal.startsWith(goals[3].first),
+                                        index = 3,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[3].first} / day" }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[4].first,
+                                        desc = goals[4].second,
+                                        isSelected = dailyGoal.startsWith(goals[4].first),
+                                        index = 4,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[4].first} / day" }
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GoalOptionCard(
+                                        goalStr = goals[5].first,
+                                        desc = goals[5].second,
+                                        isSelected = dailyGoal.startsWith(goals[5].first),
+                                        index = 5,
+                                        totalItems = 6,
+                                        isExiting = isTransitioning
+                                    ) { dailyGoal = "${goals[5].first} / day" }
                                 }
                             }
                         }
@@ -519,21 +681,16 @@ fun OnboardingWizardScreen(navController: NavController) {
                                     lastAnswerCorrect = isCorrect
                                     assessmentTikiState = if (isCorrect) "st-welcome" else "st-sad"
                                     
-                                    coroutineScope.launch {
-                                        delay(1200)
-                                        if (session.isComplete) {
-                                            val res = session.getResult()
-                                            if (res != null) {
-                                                placementLevel = res.cefrLevel.label
-                                                assessmentResultBreakdown = res.detailedBreakdown
-                                            }
-                                            assessmentFinished = true
-                                            assessmentTikiState = "st-welcome"
-                                        } else {
-                                            currentQuestion = session.getCurrentQuestion()
-                                            assessmentTikiState = "st-poker"
+                                    if (session.isComplete) {
+                                        val res = session.getResult()
+                                        if (res != null) {
+                                            placementLevel = res.cefrLevel.label
+                                            assessmentResultBreakdown = res.detailedBreakdown
                                         }
-                                        lastAnswerCorrect = null
+                                        assessmentFinished = true
+                                        assessmentTikiState = "st-welcome"
+                                    } else {
+                                        currentQuestion = session.getCurrentQuestion()
                                     }
                                 }
                             },
@@ -773,61 +930,81 @@ fun LanguageOptionCard(
     isExiting: Boolean,
     onClick: () -> Unit
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.05f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "lang_scale"
+    )
+
     StaggeredItem(
         index = index,
         totalItems = totalItems,
         isExiting = isExiting
     ) {
         GlassCard(
-            cornerRadius = 12.dp,
-            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 14.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .border(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    brush = if (isSelected) {
+                        Brush.linearGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF00FFD2)))
+                    } else {
+                        Brush.linearGradient(colors = listOf(Color(0x11FFFFFF), Color(0x11FFFFFF)))
+                    },
+                    shape = RoundedCornerShape(14.dp)
+                ),
             onClick = { if (available) onClick() }
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) Color(0x2200FFD2) else if (available) Color(0x10FFFFFF) else Color(0x05FFFFFF)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (!available) Icons.Default.Lock else if (isSelected) Icons.Default.Check else Icons.Default.Star,
-                            contentDescription = null,
-                            tint = if (isSelected) Color(0xFF00FFD2) else if (available) Color.White.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = name,
-                        color = if (isSelected) Color(0xFF00FFD2) else if (available) Color.White else Color.White.copy(alpha = 0.4f),
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 14.sp
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) Color(0x2200FFD2) else if (available) Color(0x10FFFFFF) else Color(0x05FFFFFF)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (!available) Icons.Default.Lock else if (isSelected) Icons.Default.Check else Icons.Default.Star,
+                        contentDescription = null,
+                        tint = if (isSelected) Color(0xFF00FFD2) else if (available) Color.White.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = name,
+                    color = if (isSelected) Color(0xFF00FFD2) else if (available) Color.White else Color.White.copy(alpha = 0.4f),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
                 
                 if (!available) {
+                    Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(Color(0x11FF9D00))
-                            .border(1.dp, Color(0x33FF9D00), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .border(0.5.dp, Color(0x33FF9D00), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "Coming Soon",
+                            text = "Soon",
                             color = Color(0xFFFFB300),
-                            fontSize = 8.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -847,44 +1024,58 @@ fun GoalOptionCard(
     isExiting: Boolean,
     onClick: () -> Unit
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.05f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "goal_scale"
+    )
+
     StaggeredItem(
         index = index,
         totalItems = totalItems,
         isExiting = isExiting
     ) {
         GlassCard(
-            cornerRadius = 12.dp,
-            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 14.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .border(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    brush = if (isSelected) {
+                        Brush.linearGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF00FFD2)))
+                    } else {
+                        Brush.linearGradient(colors = listOf(Color(0x11FFFFFF), Color(0x11FFFFFF)))
+                    },
+                    shape = RoundedCornerShape(14.dp)
+                ),
             onClick = onClick
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column {
-                    Text(
-                        text = goalStr,
-                        color = if (isSelected) Color(0xFF00FFD2) else Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = desc,
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 11.sp
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color(0xFF00FFD2),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                Text(
+                    text = goalStr,
+                    color = if (isSelected) Color(0xFF00FFD2) else Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = desc,
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 9.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 11.sp
+                )
             }
         }
     }
@@ -1069,6 +1260,13 @@ fun InfiniteWheelPicker(
                 if (centerItem != null) {
                     val realIndex = centerItem.index % itemsCount
                     onItemSelected(items[realIndex])
+                    
+                    // Force alignment centered inside the visual selector
+                    val itemCenter = centerItem.offset + centerItem.size / 2f
+                    val diff = itemCenter - centerOffset
+                    if (kotlin.math.abs(diff) > 0.5f) {
+                        listState.animateScrollBy(diff)
+                    }
                 }
             }
         }
@@ -1159,7 +1357,7 @@ fun InfiniteWheelPicker(
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0F1026), Color.Transparent)
+                        colors = listOf(Color(0xFF070814), Color.Transparent)
                     )
                 )
         )
@@ -1170,7 +1368,7 @@ fun InfiniteWheelPicker(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0xFF0F1026))
+                        colors = listOf(Color.Transparent, Color(0xFF070814))
                     )
                 )
         )
@@ -1189,6 +1387,26 @@ fun OnboardingPlacementView(
     onSkip: () -> Unit,
     onProceed: () -> Unit
 ) {
+    var selectedOptionIdx by remember { mutableStateOf(-1) }
+    var isQuestionExiting by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(currentQuestion) {
+        selectedOptionIdx = -1
+        isQuestionExiting = false
+    }
+
+    fun handleOptionClick(idx: Int) {
+        if (selectedOptionIdx != -1 || isQuestionExiting) return
+        selectedOptionIdx = idx
+        coroutineScope.launch {
+            delay(380) // Selection glow animation feedback
+            isQuestionExiting = true
+            delay(320) // Let current question and options staggered exit left
+            onAnswer(idx)
+        }
+    }
+
     if (assessmentSession == null) {
         StaggeredItem(index = 0, totalItems = 1, isExiting = isExiting) {
             GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -1239,7 +1457,7 @@ fun OnboardingPlacementView(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            StaggeredItem(index = 0, totalItems = totalItems, isExiting = isExiting) {
+            StaggeredItem(index = 0, totalItems = totalItems, isExiting = isExiting || isQuestionExiting) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1254,7 +1472,7 @@ fun OnboardingPlacementView(
                 }
             }
             
-            StaggeredItem(index = 1, totalItems = totalItems, isExiting = isExiting) {
+            StaggeredItem(index = 1, totalItems = totalItems, isExiting = isExiting || isQuestionExiting) {
                 LinearProgressIndicator(
                     progress = { assessmentSession.progressPercent / 100f },
                     color = Color(0xFF00C2FF),
@@ -1267,7 +1485,7 @@ fun OnboardingPlacementView(
             }
             
             currentQuestion?.let { item ->
-                StaggeredItem(index = 2, totalItems = totalItems, isExiting = isExiting) {
+                StaggeredItem(index = 2, totalItems = totalItems, isExiting = isExiting || isQuestionExiting) {
                     Text(
                         text = item.question,
                         color = Color.White,
@@ -1281,16 +1499,38 @@ fun OnboardingPlacementView(
                 }
                 
                 item.options.forEachIndexed { idx, option ->
-                    StaggeredItem(index = 3 + idx, totalItems = totalItems, isExiting = isExiting) {
+                    val isSelected = selectedOptionIdx == idx
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        ),
+                        label = "option_scale"
+                    )
+
+                    StaggeredItem(index = 3 + idx, totalItems = totalItems, isExiting = isExiting || isQuestionExiting) {
                         GlassCard(
-                            cornerRadius = 12.dp,
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { onAnswer(idx) }
+                            cornerRadius = 14.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .scale(scale)
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    brush = if (isSelected) {
+                                        Brush.linearGradient(colors = listOf(Color(0xFF00FFD2), Color(0xFF00C2FF)))
+                                    } else {
+                                        Brush.linearGradient(colors = listOf(Color(0x11FFFFFF), Color(0x11FFFFFF)))
+                                    },
+                                    shape = RoundedCornerShape(14.dp)
+                                ),
+                            onClick = { handleOptionClick(idx) }
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .background(if (isSelected) Color(0x1A00FFD2) else Color.Transparent)
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val prefix = when (idx) {
@@ -1301,16 +1541,26 @@ fun OnboardingPlacementView(
                                 }
                                 Box(
                                     modifier = Modifier
-                                        .size(22.dp)
+                                        .size(24.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0x1AFFFFFF)),
+                                        .background(if (isSelected) Color(0xFF00FFD2) else Color(0x1AFFFFFF)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(prefix, color = Color(0xFF00C2FF), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                    Text(
+                                        text = prefix,
+                                        color = if (isSelected) Color(0xFF070814) else Color(0xFF00C2FF),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(option, color = Color.White, fontSize = 12.sp)
-                             }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = option,
+                                    color = if (isSelected) Color(0xFF00FFD2) else Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
                         }
                     }
                 }
