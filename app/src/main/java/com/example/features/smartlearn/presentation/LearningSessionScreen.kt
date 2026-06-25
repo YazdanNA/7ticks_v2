@@ -174,9 +174,7 @@ fun LearningSessionScreen(navController: NavController) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
-    val sessionState by repo.sessionState.collectAsState(initial = null)
     val userProgress by repo.userProgress.collectAsState(initial = null)
-    val reviewLogs by repo.reviewHistory.collectAsState(initial = emptyList())
     val rewardHistory by repo.rewardHistory.collectAsState(initial = emptyList())
 
     var currentCardIndex by remember { mutableStateOf(0) }
@@ -197,11 +195,13 @@ fun LearningSessionScreen(navController: NavController) {
     var currentStreakCount by remember { mutableStateOf(0) }
     var consecutiveMistakesCount by remember { mutableStateOf(0) }
 
+    var initialReviewLogs by remember { mutableStateOf<List<ReviewHistoryEntity>>(emptyList()) }
+
     // Setup the unified session queue engine dynamically once cards load
     val engine = remember(loadedCards) {
         if (loadedCards.isEmpty()) null else {
             val items = loadedCards.map { (card, word) ->
-                val wordReviewHistory = reviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
+                val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
                 val initialCircleStates = List(7) { i ->
                     if (i < wordReviewHistory.size) {
                         val ratingVal = wordReviewHistory[i].rating
@@ -220,7 +220,7 @@ fun LearningSessionScreen(navController: NavController) {
                     payload = card to word
                 )
             }
-            val startIdx = sessionState?.currentIndex?.coerceIn(0, (items.size - 1).coerceAtLeast(0)) ?: 0
+            val startIdx = currentCardIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
             val queueManager = SessionQueueManager(items)
             repeat(startIdx) { queueManager.next() }
             StudySessionEngine(
@@ -244,13 +244,11 @@ fun LearningSessionScreen(navController: NavController) {
 
     // Load active session card list
     LaunchedEffect(Unit) {
+        isLoading = true
         repo.updateStreakOnActivity()
-    }
-
-    LaunchedEffect(sessionState) {
-        val state = sessionState
+        val state = repo.getSessionStateOnce()
+        initialReviewLogs = repo.getReviewHistoryOnce()
         if (state != null && state.active && state.cardIds.isNotEmpty()) {
-            isLoading = true
             val ids = state.cardIds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }
             val cardsList = mutableListOf<Pair<CardEntity, DictWord>>()
             for (id in ids) {
@@ -265,7 +263,7 @@ fun LearningSessionScreen(navController: NavController) {
             loadedCards = cardsList
             currentCardIndex = state.currentIndex.coerceIn(0, (cardsList.size - 1).coerceAtLeast(0))
             isLoading = false
-        } else if (state != null && !state.active) {
+        } else {
             isLoading = false
         }
     }
@@ -615,7 +613,7 @@ fun LearningSessionScreen(navController: NavController) {
     }
 
     val activeItem = currentItem ?: if (loadedCards.isNotEmpty()) {
-        val wordReviewHistory = reviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
+        val wordReviewHistory = initialReviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
         val initialCircleStates = List(7) { i ->
             if (i < wordReviewHistory.size) {
                 val ratingVal = wordReviewHistory[i].rating
@@ -641,18 +639,10 @@ fun LearningSessionScreen(navController: NavController) {
         CardEntity(wordId = 0, word = "") to DictWord(0, "", "", "", "", "", "", "")
     }
 
-    // Fetch real historical reviews for this word to map 7 circles
-    val wordReviewHistory = remember(reviewLogs, currentWord.id) {
-        reviewLogs.filter { it.wordId == currentWord.id }.sortedBy { it.timestamp }
-    }
-
     // Active review states calculated on the fly
     val currentCircleIndex = remember(activeItem) {
-        val word = (activeItem?.payload as? Pair<CardEntity, DictWord>)?.second
-        if (word != null) {
-            val wordReviewHistory = reviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
-            wordReviewHistory.size.coerceAtMost(6)
-        } else 0
+        val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
+        baseCircles.count { it != "Gray" }.coerceAtMost(6)
     }
     val circleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
         val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
@@ -688,56 +678,31 @@ fun LearningSessionScreen(navController: NavController) {
             currentCircleIndex = currentCircleIndex,
             xpAmount = xpAmount,
             onSaveDb = {
-                // Submit FSRS review
-                val updatedFsrsModel = fsrsRepo.calculateNextReview(
-                    card.toFsrsModel(),
-                    rating,
-                    System.currentTimeMillis()
-                )
-                // SevenTicks Tick progression logic
-                val currentBoxIndex = card.boxIndex
-                val nextBoxIndex = when (rating) {
-                    ReviewRatingModel.AGAIN -> 1
-                    ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
-                    ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
-                    ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
-                    else -> currentBoxIndex
-                }
-                val updatedCardEntity = updatedFsrsModel.toCardEntity(oldBoxIndex = nextBoxIndex)
-                repo.updateCard(updatedCardEntity)
-
-                // Log review to database history
-                repo.recordReviewLog(
-                    wordId = card.wordId,
-                    word = card.word,
-                    rating = rating.value,
-                    stability = updatedFsrsModel.stability,
-                    difficulty = updatedFsrsModel.difficulty
-                )
-
-                // Award XP based on rating
-                val leveledUp = repo.awardXp(xpAmount, "review")
-                if (leveledUp) {
-                    showLeveledUpDialog = true
-                }
-
-                // Check level advancement
-                repo.checkAndProgressUserLevel()
-
-                // Update session state in database
-                val nextIdx = (engine?.queueManager?.currentIndex?.value ?: 0) + 1
-                if (nextIdx < loadedCards.size) {
-                    repo.updateSessionState(
-                        active = true,
-                        cardIds = loadedCards.map { it.first.id },
-                        currentIndex = nextIdx
+                coroutineScope.launch {
+                    val leveledUp = repo.reviewCard(
+                        cardId = card.id,
+                        isBoxWord = false,
+                        rating = rating
                     )
-                } else {
-                    repo.updateSessionState(
-                        active = false,
-                        cardIds = emptyList(),
-                        currentIndex = 0
-                    )
+                    if (leveledUp) {
+                        showLeveledUpDialog = true
+                    }
+
+                    // Update session state in database
+                    val nextIdx = (engine?.queueManager?.currentIndex?.value ?: 0) + 1
+                    if (nextIdx < loadedCards.size) {
+                        repo.updateSessionState(
+                            active = true,
+                            cardIds = loadedCards.map { it.first.id },
+                            currentIndex = nextIdx
+                        )
+                    } else {
+                        repo.updateSessionState(
+                            active = false,
+                            cardIds = emptyList(),
+                            currentIndex = 0
+                        )
+                    }
                 }
             }
         )

@@ -21,7 +21,14 @@ data class UserProgressEntity(
     val streakRestoreSpells: Int = 1 // Infrastructure for streak restoration support later
 )
 
-@Entity(tableName = "review_cards")
+@Entity(
+    tableName = "review_cards",
+    indices = [
+        androidx.room.Index(value = ["dueDate"]),
+        androidx.room.Index(value = ["boxIndex"]),
+        androidx.room.Index(value = ["state"])
+    ]
+)
 data class CardEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val wordId: Int,
@@ -61,7 +68,13 @@ data class CustomBoxEntity(
     val lastActivityAt: Long = System.currentTimeMillis()
 )
 
-@Entity(tableName = "box_words")
+@Entity(
+    tableName = "box_words",
+    indices = [
+        androidx.room.Index(value = ["dueDate"]),
+        androidx.room.Index(value = ["boxIndex"])
+    ]
+)
 data class BoxWordEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val boxId: Int,
@@ -80,7 +93,15 @@ data class BoxWordEntity(
     val topic: String = "General",
     val type: String = "Noun",
     val boxIndex: Int = 1, // independent box review (1 to 7)
-    val dueDate: Long = System.currentTimeMillis()
+    val dueDate: Long = System.currentTimeMillis(),
+    val stability: Double = 0.0,
+    val difficulty: Double = 0.0,
+    val elapsedDays: Int = 0,
+    val scheduledDays: Int = 0,
+    val reps: Int = 0,
+    val lapses: Int = 0,
+    val state: Int = 0, // FSRS state: 0=New, 1=Learning, 2=Review, 3=Relearning
+    val lastReviewed: Long = 0
 )
 
 @Entity(tableName = "favorite_words")

@@ -21,7 +21,7 @@ import androidx.room.RoomDatabase
         FavoriteWordEntity::class,
         RecentSearchEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class UserDatabase : RoomDatabase() {

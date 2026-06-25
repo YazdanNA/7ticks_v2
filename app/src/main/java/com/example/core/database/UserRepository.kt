@@ -44,6 +44,8 @@ class UserRepository @Inject constructor(
     val reviewHistory: Flow<List<ReviewHistoryEntity>> = userDao.getReviewHistory()
     val rewardHistory: Flow<List<RewardHistoryEntity>> = userDao.getRewardHistory()
 
+    suspend fun getReviewHistoryOnce(): List<ReviewHistoryEntity> = userDao.getReviewHistoryOnce()
+
     suspend fun getUserProgressOnce(): UserProgressEntity? = userDao.getUserProgressOnce()
 
     suspend fun getSessionStateOnce(): SessionStateEntity? = userDao.getSessionStateOnce()
@@ -809,6 +811,170 @@ class UserRepository @Inject constructor(
         updateSessionState(active = cardIds.isNotEmpty(), cardIds = cardIds, currentIndex = 0)
 
         return@withContext totalSelected
+    }
+
+    /**
+     * Centralized review engine function.
+     * The ONLY place allowed to update card/word review state.
+     */
+    suspend fun reviewCard(
+        cardId: Int,
+        isBoxWord: Boolean,
+        rating: com.example.core.fsrs.ReviewRatingModel
+    ): Boolean = withContext(Dispatchers.IO) {
+        val currentTime = System.currentTimeMillis()
+        val fsrsRepo = com.example.core.fsrs.FsrsRepository()
+
+        val xpAmount = when (rating) {
+            com.example.core.fsrs.ReviewRatingModel.AGAIN -> 5
+            com.example.core.fsrs.ReviewRatingModel.HARD -> 10
+            com.example.core.fsrs.ReviewRatingModel.GOOD -> 15
+            com.example.core.fsrs.ReviewRatingModel.EASY -> 20
+        }
+
+        if (isBoxWord) {
+            val boxWord = userDao.getBoxWordById(cardId) ?: return@withContext false
+            
+            // Map to FsrsCardModel
+            val fsrsModel = com.example.core.fsrs.FsrsCardModel(
+                id = boxWord.id,
+                wordId = boxWord.wordId,
+                word = boxWord.word,
+                stability = boxWord.stability,
+                difficulty = boxWord.difficulty,
+                elapsedDays = boxWord.elapsedDays,
+                scheduledDays = boxWord.scheduledDays,
+                reps = boxWord.reps,
+                lapses = boxWord.lapses,
+                state = boxWord.state,
+                lastReviewed = if (boxWord.lastReviewed > 0) java.util.Date(boxWord.lastReviewed) else null,
+                dueDate = java.util.Date(boxWord.dueDate)
+            )
+
+            // FSRS calculate
+            val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
+
+            // SevenTicks progression logic
+            val currentBoxIndex = boxWord.boxIndex
+            val nextBoxIndex = when (rating) {
+                com.example.core.fsrs.ReviewRatingModel.AGAIN -> 1
+                com.example.core.fsrs.ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
+                com.example.core.fsrs.ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
+                com.example.core.fsrs.ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
+            }
+
+            val updatedBoxWord = boxWord.copy(
+                boxIndex = nextBoxIndex,
+                stability = updatedFsrsModel.stability,
+                difficulty = updatedFsrsModel.difficulty,
+                elapsedDays = updatedFsrsModel.elapsedDays,
+                scheduledDays = updatedFsrsModel.scheduledDays,
+                reps = updatedFsrsModel.reps,
+                lapses = updatedFsrsModel.lapses,
+                state = updatedFsrsModel.state,
+                lastReviewed = updatedFsrsModel.lastReviewed?.time ?: currentTime,
+                dueDate = updatedFsrsModel.dueDate.time
+            )
+
+            userDao.updateBoxWord(updatedBoxWord)
+
+            // Record review log
+            recordReviewLog(
+                wordId = boxWord.wordId,
+                word = boxWord.word,
+                rating = rating.value,
+                stability = updatedFsrsModel.stability,
+                difficulty = updatedFsrsModel.difficulty
+            )
+
+            val isNewWordLearned = boxWord.reps == 0
+
+            // Award XP
+            val leveledUp = awardXp(xpAmount, "review")
+
+            if (isNewWordLearned) {
+                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val currentStats = userDao.getStatisticsForDate(dateStr) ?: StatisticsEntity(dateStr)
+                val statsCopy = currentStats.copy(wordsLearned = currentStats.wordsLearned + 1)
+                userDao.insertStatistics(statsCopy)
+            }
+
+            return@withContext leveledUp
+        } else {
+            val card = userDao.getCardById(cardId) ?: return@withContext false
+
+            // Map to FsrsCardModel
+            val fsrsModel = com.example.core.fsrs.FsrsCardModel(
+                id = card.id,
+                wordId = card.wordId,
+                word = card.word,
+                stability = card.stability,
+                difficulty = card.difficulty,
+                elapsedDays = card.elapsedDays,
+                scheduledDays = card.scheduledDays,
+                reps = card.reps,
+                lapses = card.lapses,
+                state = card.state,
+                lastReviewed = if (card.lastReviewed > 0) java.util.Date(card.lastReviewed) else null,
+                dueDate = java.util.Date(card.dueDate)
+            )
+
+            // FSRS calculate
+            val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
+
+            // SevenTicks progression logic
+            val currentBoxIndex = card.boxIndex
+            val nextBoxIndex = when (rating) {
+                com.example.core.fsrs.ReviewRatingModel.AGAIN -> 1
+                com.example.core.fsrs.ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
+                com.example.core.fsrs.ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
+                com.example.core.fsrs.ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
+            }
+
+            val updatedCard = CardEntity(
+                id = card.id,
+                wordId = card.wordId,
+                word = card.word,
+                boxIndex = nextBoxIndex,
+                stability = updatedFsrsModel.stability,
+                difficulty = updatedFsrsModel.difficulty,
+                elapsedDays = updatedFsrsModel.elapsedDays,
+                scheduledDays = updatedFsrsModel.scheduledDays,
+                reps = updatedFsrsModel.reps,
+                lapses = updatedFsrsModel.lapses,
+                state = updatedFsrsModel.state,
+                lastReviewed = updatedFsrsModel.lastReviewed?.time ?: currentTime,
+                dueDate = updatedFsrsModel.dueDate.time
+            )
+
+            userDao.updateCard(updatedCard)
+
+            // Record review log
+            recordReviewLog(
+                wordId = card.wordId,
+                word = card.word,
+                rating = rating.value,
+                stability = updatedFsrsModel.stability,
+                difficulty = updatedFsrsModel.difficulty
+            )
+
+            val isNewWordLearned = card.reps == 0
+
+            // Award XP
+            val leveledUp = awardXp(xpAmount, "review")
+
+            if (isNewWordLearned) {
+                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val currentStats = userDao.getStatisticsForDate(dateStr) ?: StatisticsEntity(dateStr)
+                val statsCopy = currentStats.copy(wordsLearned = currentStats.wordsLearned + 1)
+                userDao.insertStatistics(statsCopy)
+            }
+
+            // Check level advancement
+            checkAndProgressUserLevel()
+
+            return@withContext leveledUp
+        }
     }
 
     suspend fun recordReviewLog(wordId: Int, word: String, rating: Int, stability: Double, difficulty: Double) {

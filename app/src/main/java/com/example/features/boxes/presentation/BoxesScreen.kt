@@ -1509,6 +1509,7 @@ fun BoxStudyScreen(
     onBack: () -> Unit
 ) {
     val boxRepo = remember { SevenTicksApplication.instance.boxRepository }
+    val repo = remember { SevenTicksApplication.instance.userRepository }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
@@ -1553,6 +1554,25 @@ fun BoxStudyScreen(
     // Connect queue flows to state
     val activeIndex by engine?.queueManager?.currentIndex?.collectAsState() ?: remember { mutableStateOf(0) }
     val currentItem by engine?.queueManager?.currentItem?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    val activeItem = currentItem ?: if (cardsToReview.isNotEmpty()) {
+        val word = cardsToReview.first()
+        val boxCircleStates = List(7) { idx ->
+            if (idx < word.boxIndex) "Blue" else "Gray"
+        }
+        StudySessionItem(
+            id = word.id.toString(),
+            data = word.toFlashcardData(),
+            circleStates = boxCircleStates,
+            payload = word
+        )
+    } else null
+
+    val currentWord = activeItem?.payload as? BoxWordEntity ?: if (cardsToReview.isNotEmpty()) {
+        cardsToReview.first()
+    } else {
+        BoxWordEntity(boxId = 0, wordId = 0, word = "")
+    }
 
     // Reload list based on toggle and box details
     LaunchedEffect(boxId, activeReviewsOnly) {
@@ -1630,7 +1650,7 @@ fun BoxStudyScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             for (boxNum in 1..7) {
-                val isActiveCardBox = !sessionFinished && cardsToReview.isNotEmpty() && currentIndex < cardsToReview.size && cardsToReview[currentIndex].boxIndex == boxNum
+                val isActiveCardBox = !sessionFinished && currentWord.id != 0 && currentWord.boxIndex == boxNum
                 val cardCount = leitnerDistribution[boxNum - 1]
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
@@ -1688,24 +1708,6 @@ fun BoxStudyScreen(
             }
         } else {
             // CARD STUDY ACTIVE VIEW
-            val activeItem = currentItem ?: if (cardsToReview.isNotEmpty()) {
-                val word = cardsToReview.first()
-                val boxCircleStates = List(7) { idx ->
-                    if (idx < word.boxIndex) "Blue" else "Gray"
-                }
-                StudySessionItem(
-                    id = word.id.toString(),
-                    data = word.toFlashcardData(),
-                    circleStates = boxCircleStates,
-                    payload = word
-                )
-            } else null
-
-            val currentWord = activeItem?.payload as? BoxWordEntity ?: if (cardsToReview.isNotEmpty()) {
-                cardsToReview.first()
-            } else {
-                BoxWordEntity(boxId = 0, wordId = 0, word = "")
-            }
             val progressText = "${activeIndex + 1} / ${cardsToReview.size} cards"
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1738,33 +1740,12 @@ fun BoxStudyScreen(
                 )
             }
 
-            fun getLeitnerInterval(newIdx: Int): Int {
-                return when (newIdx) {
-                    1 -> 1
-                    2 -> 2
-                    3 -> 4
-                    4 -> 7
-                    5 -> 14
-                    6 -> 30
-                    7 -> 64
-                    else -> 1
-                }
-            }
-
-            fun handleBoxRating(rating: ReviewRatingModel, targetBoxIndex: Int, intervalDays: Int) {
+            fun handleBoxRating(rating: ReviewRatingModel) {
                 val activeEngine = engine ?: return
                 val item = activeItem ?: return
                 val word = item.payload as? BoxWordEntity ?: return
 
                 isFlipped = false
-
-                val mappedColorStr = when (rating) {
-                    ReviewRatingModel.EASY -> "Green"
-                    ReviewRatingModel.GOOD -> "Blue"
-                    ReviewRatingModel.HARD -> "Yellow"
-                    ReviewRatingModel.AGAIN -> "Red"
-                    else -> "Blue"
-                }
 
                 activeEngine.submitRating(
                     rating = rating,
@@ -1777,11 +1758,13 @@ fun BoxStudyScreen(
                         else -> 15
                     },
                     onSaveDb = {
-                        val updated = word.copy(
-                            boxIndex = targetBoxIndex,
-                            dueDate = System.currentTimeMillis() + (intervalDays.toLong() * 24 * 60 * 60 * 1000)
-                        )
-                        boxRepo.updateBoxWord(updated)
+                        coroutineScope.launch {
+                            repo.reviewCard(
+                                cardId = word.id,
+                                isBoxWord = true,
+                                rating = rating
+                            )
+                        }
                     }
                 )
             }
@@ -1794,18 +1777,16 @@ fun BoxStudyScreen(
                     .weight(1f)
                     .padding(vertical = 12.dp),
                 onAgainClick = {
-                    handleBoxRating(ReviewRatingModel.AGAIN, 1, 1)
+                    handleBoxRating(ReviewRatingModel.AGAIN)
                 },
                 onHardClick = {
-                    handleBoxRating(ReviewRatingModel.HARD, (currentWord.boxIndex - 1).coerceAtLeast(1), 1)
+                    handleBoxRating(ReviewRatingModel.HARD)
                 },
                 onGoodClick = {
-                    val newIdx = (currentWord.boxIndex + 1).coerceAtMost(7)
-                    handleBoxRating(ReviewRatingModel.GOOD, newIdx, getLeitnerInterval(newIdx))
+                    handleBoxRating(ReviewRatingModel.GOOD)
                 },
                 onEasyClick = {
-                    val newIdx = (currentWord.boxIndex + 2).coerceAtMost(7)
-                    handleBoxRating(ReviewRatingModel.EASY, newIdx, getLeitnerInterval(newIdx))
+                    handleBoxRating(ReviewRatingModel.EASY)
                 },
                 againSubtext = "",
                 hardSubtext = "",
