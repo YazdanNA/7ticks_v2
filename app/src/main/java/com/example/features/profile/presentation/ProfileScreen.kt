@@ -3,6 +3,8 @@ package com.example.features.profile.presentation
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +30,7 @@ import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.components.TikiPlaceholder
 import com.example.core.components.AvatarManager
+import com.example.core.ui.components.SharedTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +57,10 @@ fun ProfileScreen() {
     val longestStreak = userProgress?.longestStreak ?: streak
     val targetLg = userProgress?.targetLanguage ?: prefs.targetLanguage
     val spells = userProgress?.streakRestoreSpells ?: 1
+
+    var isEditingName by remember { mutableStateOf(false) }
+    var editNameValue by remember(userName) { mutableStateOf(userName) }
+    var showAvatarPicker by remember { mutableStateOf(false) }
 
     val xpNeeded = level * 500
     val progressPercentage = if (xpNeeded > 0) xp.toFloat() / xpNeeded.toFloat() else 0f
@@ -98,21 +105,25 @@ fun ProfileScreen() {
                 }
             }
 
-            // 2. Avatar & Name Section
+            // 2. Interactive Avatar & Name Section (Inline Direct Editing)
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Tap Avatar to toggle picker
                     Box(
                         modifier = Modifier
-                            .size(90.dp)
+                            .size(96.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
                                 )
                             )
+                            .clickable {
+                                showAvatarPicker = !showAvatarPicker
+                            }
                             .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -129,19 +140,149 @@ fun ProfileScreen() {
                                 modifier = Modifier.fillMaxSize().padding(8.dp)
                             )
                         }
+
+                        // Sleek Edit Overlay Badge
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF00C2FF))
+                                .border(1.dp, Color.White, CircleShape)
+                                .align(Alignment.BottomEnd),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Change Avatar",
+                                tint = Color.Black,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                     }
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = userName,
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black
-                    )
+
+                    // Inline Name Editor Row
+                    if (isEditingName) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        ) {
+                            SharedTextField(
+                                value = editNameValue,
+                                onValueChange = { editNameValue = it },
+                                placeholder = "Enter your name...",
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    if (editNameValue.isNotBlank()) {
+                                        coroutineScope.launch {
+                                            repo.updateUserProfile(editNameValue, currentAvatarId)
+                                            prefs.userName = editNameValue
+                                            isEditingName = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .background(Color(0x1F00E676), CircleShape)
+                                    .border(1.dp, Color(0x3300E676), CircleShape)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Save", tint = Color(0xFF00E676))
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.clickable { isEditingName = true }
+                        ) {
+                            Text(
+                                text = userName,
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Name",
+                                tint = Color(0xFF00FFD2),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Text(
                         text = "Level $level • $targetLg Master • $streak-Day Streak",
                         color = Color.White.copy(alpha = 0.5f),
                         fontSize = 13.sp
                     )
+
+                    // Expandable inline avatar picker grid
+                    AnimatedVisibility(visible = showAvatarPicker) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Select an Avatar",
+                                color = Color(0xFF00FFD2),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val available = AvatarManager.getAvailableAvatars(context)
+                                available.forEach { avatarInfo ->
+                                    val isSelected = avatarInfo.id == currentAvatarId
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isSelected) {
+                                                    Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)))
+                                                } else {
+                                                    Brush.horizontalGradient(colors = listOf(Color(0x1AFFFFFF), Color(0x1AFFFFFF)))
+                                                }
+                                            )
+                                            .border(
+                                                width = if (isSelected) 2.dp else 1.dp,
+                                                color = if (isSelected) Color.White else Color(0x1AFFFFFF),
+                                                shape = CircleShape
+                                            )
+                                            .clickable {
+                                                coroutineScope.launch {
+                                                    repo.updateUserProfile(userName, avatarInfo.id)
+                                                    prefs.avatar = avatarInfo.id
+                                                    showAvatarPicker = false
+                                                }
+                                            }
+                                            .padding(2.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = avatarInfo.resId),
+                                            contentDescription = avatarInfo.displayName,
+                                            modifier = Modifier.fillMaxSize().padding(4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

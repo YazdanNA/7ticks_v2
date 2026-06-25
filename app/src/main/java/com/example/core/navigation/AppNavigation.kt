@@ -30,6 +30,7 @@ import com.example.features.profile.presentation.ProfileScreen
 import com.example.features.smartlearn.presentation.LearningSessionScreen
 import com.example.features.smartlearn.presentation.SmartLearnScreen
 import com.example.features.splash.presentation.SplashScreen
+import com.example.core.ui.components.AnimatedBackground
 
 @Composable
 fun AppNavigation() {
@@ -63,19 +64,8 @@ fun MainScreen(navController: androidx.navigation.NavController) {
     var selectedTab by remember { mutableStateOf<TabScreen>(TabScreen.SmartLearn) }
     var showDictionaryOverlay by remember { mutableStateOf(false) }
 
-    // Multi-color backplate gradient
-    val bgBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF070814),
-            Color(0xFF0F1026),
-            Color(0xFF1B0C33)
-        )
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgBrush)
+    AnimatedBackground(
+        modifier = Modifier.fillMaxSize()
     ) {
         Scaffold(
             containerColor = Color.Transparent,

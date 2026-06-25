@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -103,6 +104,11 @@ fun SmartLearnScreen(navController: NavController) {
         label = "hero_glow"
     )
 
+    // Animated counters for premium level up and XP increases
+    val animStreak by animateIntAsState(targetValue = streak, animationSpec = tween(1200, easing = EaseOutQuad), label = "anim_streak")
+    val animLevel by animateIntAsState(targetValue = level, animationSpec = tween(1000, easing = EaseOutQuad), label = "anim_level")
+    val animXp by animateIntAsState(targetValue = xp, animationSpec = tween(1500, easing = EaseOutQuad), label = "anim_xp")
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -147,51 +153,120 @@ fun SmartLearnScreen(navController: NavController) {
                 }
             }
 
-            // SECTION 1: Progress Overview Cards
+            // ORDER 1: XP + Level + Streak cards (Single row, responsive, animated counters)
             SharedProgressHeader(
-                streak = streak,
-                level = level,
-                xp = xp,
+                streak = animStreak,
+                level = animLevel,
+                xp = animXp,
                 badgeText = "Cognitive Guru"
             )
 
-            // SECTION 2: Persistent Ticky Character & Typewriter Message Card
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                TikiPlaceholder(
-                    tikiState = "st-talking",
-                    sizeDp = 90,
-                    modifier = Modifier.padding(bottom = 2.dp)
+            // ORDER 2: Ticky Card (Unified Ticky component)
+            UnifiedTikiCard(
+                tikiState = "st-happy",
+                sizeDp = 80,
+                messages = listOf(
+                    "Welcome back, $userName! 👋 Ready for another cognitive boost?",
+                    if (isSessionActive) "You have an active spacing session waiting!" else "Your neural pathways are highly receptive right now!",
+                    "Daily quests are active! Let's conquer some academic words!"
                 )
+            )
+
+            // ORDER 3: Active Challenge Card (Expandable card with seamless morph animation)
+            if (challengesList.isNotEmpty()) {
+                val challenge = challengesList.firstOrNull { !it.completed } ?: challengesList.first()
+                val progress = if (challenge.target > 0) challenge.current.toFloat() / challenge.target.toFloat() else 0f
 
                 SharedGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 20.dp
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showChallengePortal = true
+                    }
                 ) {
-                    TypewriterText(
-                        text = if (isSessionActive) {
-                            "You have an active spacing session in progress, $userName! Tap below to resume and solidify your memory trace!"
-                        } else {
-                            "Your neural pathways are highly receptive right now! Let's conquer some new terms and hit today's cognitive goal!"
-                        },
-                        color = Color(0xFF00FFD2),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (challenge.completed) Icons.Default.Check else Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Active Challenge",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (challenge.completed) Color(0x3300E676) else Color(0x1F9D00FF))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = challenge.title,
+                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = challenge.description,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                trackColor = Color(0x1AFFFFFF),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                            )
+                            Text(
+                                text = "${challenge.current}/${challenge.target}",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text(
+                            text = "Tap to expand Quests portal",
+                            color = Color(0xFF00C2FF).copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
                 }
             }
 
-            // SECTION 5: Cognitive English Session Summary Card
+            // ORDER 4: English Workspace + Continue Learning Card (Merged into one intelligent dominant card)
             SharedGlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 24.dp
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -216,31 +291,25 @@ fun SmartLearnScreen(navController: NavController) {
                                 Text(
                                     text = "$targetLg Workspace",
                                     color = Color.White,
-                                    fontSize = 15.sp,
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "$masteredWords of $totalWords mastered",
                                     color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 11.sp
+                                    fontSize = 12.sp
                                 )
                             }
                         }
                         Text(
                             text = "$progressPct%",
                             color = Color(0xFF00FFD2),
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color(0x12FFFFFF))
-                    )
-
+                    // Stat Indicators Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
@@ -286,203 +355,133 @@ fun SmartLearnScreen(navController: NavController) {
                                 fontSize = 11.sp
                             )
                         }
-                    }
-                }
-            }
 
-            // SECTION 4: Hero "START LEARNING" Button with Breathing, Pulse and Hover effect
-            val btnInteractionSource = remember { MutableInteractionSource() }
-            val btnPressed by btnInteractionSource.collectIsPressedAsState()
-            val buttonScale by animateFloatAsState(
-                targetValue = if (btnPressed) 0.94f else breatheScale,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "btn_press_breathe"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp)
-                    .offset(y = floatOffsetY.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .scale(buttonScale)
-                        .shadow(
-                            elevation = 16.dp,
-                            shape = RoundedCornerShape(22.dp),
-                            clip = false,
-                            ambientColor = Color(0xFF00C2FF).copy(alpha = glowGlow * 0.4f),
-                            spotColor = Color(0xFF9D00FF).copy(alpha = glowGlow * 0.5f)
-                        )
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
-                            )
-                        )
-                        .clickable(
-                            interactionSource = btnInteractionSource,
-                            indication = LocalIndication.current
-                        ) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            coroutineScope.launch {
-                                if (!isSessionActive) {
-                                    repo.generateSmartLearnSession()
-                                }
-                                navController.navigate(Screen.LearningSession.route)
-                            }
-                        }
-                        .padding(horizontal = 24.dp, vertical = 18.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isSessionActive) Icons.Default.Refresh else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = if (isSessionActive) "CONTINUE STUDY" else "START LEARNING SESSION",
-                            color = Color.White,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
-                        )
-                    }
-                }
-            }
-
-            // SECTION 3: Single Active Challenge Card
-            if (challengesList.isNotEmpty()) {
-                val challenge = challengesList.firstOrNull { !it.completed } ?: challengesList.first()
-                val isDaily = challenge.id.startsWith("daily")
-                val progress = if (challenge.target > 0) challenge.current.toFloat() / challenge.target.toFloat() else 0f
-
-                Text(
-                    text = "Active Challenge",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                SharedGlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showChallengePortal = true
-                    }
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (challenge.completed) Icons.Default.Check else Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = challenge.title,
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (challenge.completed) Color(0x3300E676) else Color(0x1F9D00FF))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = if (isDaily) "+150 XP" else "+250 XP",
-                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = challenge.description,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                trackColor = Color(0x1AFFFFFF),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "$masteredWords",
+                                color = Color(0xFFFFD600),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "${challenge.current}/${challenge.target}",
+                                text = "Mastered",
                                 color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 11.sp
                             )
                         }
+                    }
 
-                        Text(
-                            text = "Tap to open Quest & Challenge Portal",
-                            color = Color(0xFF00C2FF).copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.align(Alignment.End)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Color(0x12FFFFFF))
+                    )
+
+                    // Continue Learning CTA (large, beautiful, pulsating, inside the same card!)
+                    val btnInteractionSource = remember { MutableInteractionSource() }
+                    val btnPressed by btnInteractionSource.collectIsPressedAsState()
+                    val buttonScale by animateFloatAsState(
+                        targetValue = if (btnPressed) 0.95f else breatheScale,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "btn_press_breathe"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .scale(buttonScale)
+                            .shadow(
+                                elevation = 16.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                clip = false,
+                                ambientColor = Color(0xFF00C2FF).copy(alpha = glowGlow * 0.4f),
+                                spotColor = Color(0xFF9D00FF).copy(alpha = glowGlow * 0.5f)
+                            )
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
+                                )
+                            )
+                            .clickable(
+                                interactionSource = btnInteractionSource,
+                                indication = LocalIndication.current
+                            ) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                coroutineScope.launch {
+                                    if (!isSessionActive) {
+                                        repo.generateSmartLearnSession()
+                                    }
+                                    navController.navigate(Screen.LearningSession.route)
+                                }
+                            }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isSessionActive) Icons.Default.Refresh else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // SECTION 9: CHALLENGE CENTER EXPANSION PORTAL OVERLAY
-        AnimatedVisibility(
-            visible = showChallengePortal,
-            enter = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.85f, animationSpec = spring(stiffness = Spring.StiffnessLow)),
-            exit = fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.85f, animationSpec = tween(300))
-        ) {
+        // SECTION 9: ACTIVE CHALLENGE CARD EXPANSION PORTAL (Seamless morph transition to fill the screen)
+        val expansionFraction by animateFloatAsState(
+            targetValue = if (showChallengePortal) 1f else 0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "challenge_expansion"
+        )
+
+        if (expansionFraction > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xE6060713))
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
+                    .background(Color(0xFF060713).copy(alpha = expansionFraction * 0.96f))
+                    .clickable(enabled = expansionFraction == 1f) {
+                        showChallengePortal = false
+                    }
             ) {
+                val scale = 0.92f + (0.08f * expansionFraction)
+                val alpha = expansionFraction
+
                 SharedGlassCard(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.85f),
-                    cornerRadius = 28.dp,
-                    backgroundColor = Color(0xFF0F1026)
+                        .fillMaxWidth(0.92f + (0.08f * expansionFraction))
+                        .fillMaxHeight(0.75f + (0.25f * expansionFraction))
+                        .align(Alignment.Center)
+                        .scale(scale)
+                        .graphicsLayer { this.alpha = alpha },
+                    cornerRadius = (24 * (1f - expansionFraction) + 28 * expansionFraction).dp,
+                    backgroundColor = Color(0xFF0F1026).copy(alpha = 0.9f + 0.1f * expansionFraction)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Portal Header
@@ -500,7 +499,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Quest Portal",
+                                    text = "Active Challenges",
                                     color = Color.White,
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Black
@@ -537,13 +536,6 @@ fun SmartLearnScreen(navController: NavController) {
                                     .verticalScroll(portalScrollState),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = "All Spaced Repetition Missions",
-                                    color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-
                                 challengesList.forEach { item ->
                                     val isDailyItem = item.id.startsWith("daily")
                                     val itemProgress = if (item.target > 0) item.current.toFloat() / item.target.toFloat() else 0f

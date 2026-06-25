@@ -56,6 +56,12 @@ class UserRepository @Inject constructor(
 
     suspend fun updateCard(card: CardEntity) = userDao.updateCard(card)
 
+    suspend fun updateUserProfile(username: String, avatar: String) = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: UserProgressEntity()
+        val updated = progress.copy(userName = username, avatar = avatar)
+        userDao.insertUserProgress(updated)
+    }
+
     fun getCardsByBox(boxIndex: Int): Flow<List<CardEntity>> = userDao.getCardsByBox(boxIndex)
 
     fun getCardCountInBox(boxIndex: Int): Flow<Int> = userDao.getCardCountInBox(boxIndex)

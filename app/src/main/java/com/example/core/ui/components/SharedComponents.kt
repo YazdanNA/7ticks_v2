@@ -28,6 +28,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import com.example.core.components.TikiPlaceholder
+import kotlin.math.sin
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -835,4 +838,117 @@ fun TypewriterText(
         lineHeight = lineHeight,
         modifier = modifier
     )
+}
+
+/**
+ * SECTION 13. UNIFIED TICKY CARD
+ * A single glass card component containing Tiki (the avatar) and his speech bubble
+ * in a unified animation system, where the speech text automatically rotates
+ * with typewriter write-in and erase-out effects.
+ */
+@Composable
+fun UnifiedTikiCard(
+    modifier: Modifier = Modifier,
+    tikiState: String = "st-happy",
+    sizeDp: Int = 80,
+    messages: List<String> = listOf(
+        "Welcome back! Ready for a fast brain workout?",
+        "Your neural pathways are highly receptive right now!",
+        "Let's hit today's daily FSRS cognitive goals!"
+    ),
+    speedMs: Long = 40,
+    pauseMs: Long = 2500
+) {
+    var currentMsgIdx by remember { mutableStateOf(0) }
+    var displayedText by remember { mutableStateOf("") }
+    var isTypingOrErasing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(messages) {
+        if (messages.isEmpty()) return@LaunchedEffect
+        while (true) {
+            val message = messages[currentMsgIdx % messages.size]
+            
+            // Typewriter in
+            isTypingOrErasing = true
+            for (i in 1..message.length) {
+                displayedText = message.substring(0, i)
+                delay(speedMs)
+            }
+            isTypingOrErasing = false
+            
+            delay(pauseMs)
+            
+            // Eraser out
+            isTypingOrErasing = true
+            for (i in message.length downTo 0) {
+                displayedText = message.substring(0, i)
+                delay(speedMs / 2) // erase twice as fast
+            }
+            isTypingOrErasing = false
+            delay(300) // small gap
+            
+            currentMsgIdx++
+        }
+    }
+
+    // Tiki speaks (mouth moves) when typewriter is active
+    val activeTikiState = remember(tikiState, isTypingOrErasing) {
+        if (isTypingOrErasing) "st-talking" else tikiState
+    }
+
+    // Pulse factor for breathing
+    val infiniteTransition = rememberInfiniteTransition(label = "unified_tiki_breathe")
+    val breatheScale by infiniteTransition.animateFloat(
+        initialValue = 0.98f,
+        targetValue = 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "tiki_breathe"
+    )
+
+    SharedGlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 24.dp,
+        depth = 1
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TikiPlaceholder(
+                tikiState = activeTikiState,
+                sizeDp = sizeDp,
+                modifier = Modifier
+                    .size(sizeDp.dp)
+                    .scale(breatheScale)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Speech bubble bubble background
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0x0AFFFFFF))
+                        .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = displayedText,
+                        color = Color(0xFF00FFD2),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 17.sp,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
 }

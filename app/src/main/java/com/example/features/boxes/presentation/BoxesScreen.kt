@@ -222,19 +222,29 @@ fun BoxesDashboardScreen(
 
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Dashboard Title & Action Button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    // Smart FAB Scrolling direction logic
+    var previousScrollOffset by remember { mutableStateOf(0) }
+    var isFabExpanded by remember { mutableStateOf(true) }
+
+    LaunchedEffect(scrollState.value) {
+        val delta = scrollState.value - previousScrollOffset
+        if (delta > 10 && scrollState.isScrollInProgress) {
+            isFabExpanded = false // scrolling down -> collapse
+        } else if (delta < -10 && scrollState.isScrollInProgress) {
+            isFabExpanded = true  // scrolling up -> expand
+        }
+        previousScrollOffset = scrollState.value
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Dashboard Title
             Column {
                 Text(
                     text = "My Vocab Boxes",
@@ -249,82 +259,35 @@ fun BoxesDashboardScreen(
                 )
             }
 
-            PremiumGlassButton(
-                text = "Create Box",
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigateToCreateBox()
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = null, tint = Color.White) },
-                modifier = Modifier.wrapContentSize()
-            )
-        }
-
-        // Secondary Import/Backup button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigateToImport()
-                },
-                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF00C2FF))
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Text("Import Collection Backup", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Archive toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { showArchivedOnly = !showArchivedOnly }
-            ) {
-                Checkbox(
-                    checked = showArchivedOnly,
-                    onCheckedChange = { showArchivedOnly = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Color(0xFF00FFD2),
-                        uncheckedColor = Color.White.copy(alpha = 0.4f)
-                    )
-                )
-                Text("Show Archived", color = Color.White, fontSize = 12.sp)
-            }
-        }
-
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search boxes by name/descr...", color = Color.White.copy(alpha = 0.5f)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search boxes", color = Color.White.copy(alpha = 0.5f)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+                        }
                     }
-                }
-            },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0x0AFFFFFF),
-                unfocusedContainerColor = Color(0x0AFFFFFF),
-                focusedIndicatorColor = Color(0xFF00C2FF),
-                unfocusedIndicatorColor = Color(0x22FFFFFF),
-                cursorColor = Color(0xFF00C2FF),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            ),
-            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 14.sp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, Color(0x12FFFFFF), RoundedCornerShape(16.dp))
-        )
+                },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color(0x0AFFFFFF),
+                    unfocusedContainerColor = Color(0x0AFFFFFF),
+                    focusedIndicatorColor = Color(0xFF00C2FF),
+                    unfocusedIndicatorColor = Color(0x22FFFFFF),
+                    cursorColor = Color(0xFF00C2FF),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 14.sp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Color(0x12FFFFFF), RoundedCornerShape(16.dp))
+            )
 
         // Glassmorphic List or Empty State
         if (filteredBoxes.isEmpty()) {
@@ -539,6 +502,52 @@ fun BoxesDashboardScreen(
                                 }
                             }
                         )
+                    }
+                }
+            }
+        }
+    }
+
+        // Smart FAB at the bottom-right corner of the Box
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 24.dp, end = 24.dp)
+        ) {
+            FloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onNavigateToCreateBox()
+                },
+                containerColor = Color.Transparent,
+                elevation = FloatingActionButtonDefaults.elevation(12.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)))
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Create Box", tint = Color.White)
+                    AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = expandHorizontally() + fadeIn(),
+                        exit = shrinkHorizontally() + fadeOut()
+                    ) {
+                        Row {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Create Box",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
