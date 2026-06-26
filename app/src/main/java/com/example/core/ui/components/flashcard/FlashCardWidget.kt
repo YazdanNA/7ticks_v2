@@ -24,7 +24,9 @@ fun FlashCardWidget(
     againSubtext: String = "<1m",
     hardSubtext: String = "<10m",
     goodSubtext: String = "1d",
-    easySubtext: String = "4d"
+    easySubtext: String = "4d",
+    onMoreDetailsClick: () -> Unit = {},
+    onPronounceClick: (text: String, isMale: Boolean) -> Unit = { _, _ -> }
 ) {
     FlashcardAnimator(
         data = state.data,
@@ -44,6 +46,8 @@ fun FlashCardWidget(
             hardSubtext = hardSubtext,
             goodSubtext = goodSubtext,
             easySubtext = easySubtext,
+            onMoreDetailsClick = onMoreDetailsClick,
+            onPronounceClick = onPronounceClick,
             modifier = Modifier.fillMaxSize()
         )
     }

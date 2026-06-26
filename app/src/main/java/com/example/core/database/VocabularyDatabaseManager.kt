@@ -40,7 +40,8 @@ data class DictWord(
     val word_family: List<String> = emptyList(),
     val collocations: List<String> = emptyList(),
     val phrases: List<String> = emptyList(),
-    val notes: List<String> = emptyList()
+    val notes: List<String> = emptyList(),
+    val definitions_en: List<String> = emptyList()
 )
 
 @Singleton
@@ -392,7 +393,14 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
                 val idx = cursor.getColumnIndex(col)
                 if (idx != -1) {
                     val raw = cursor.getString(idx)
-                    if (raw != null) return raw
+                    if (raw != null) {
+                        val trimmed = raw.trim()
+                        if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                            val parsed = JsonParserUtils.parseJsonArray(trimmed)
+                            return parsed.firstOrNull() ?: ""
+                        }
+                        return raw
+                    }
                 }
             }
         }
@@ -407,29 +415,12 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
                 if (idx != -1) {
                     val raw = cursor.getString(idx)
                     if (raw != null && raw.isNotEmpty()) {
-                        return parseJsonOrList(raw)
+                        return JsonParserUtils.parseJsonArray(raw)
                     }
                 }
             }
         }
         return emptyList()
-    }
-
-    private fun parseJsonOrList(raw: String): List<String> {
-        val trimmed = raw.trim()
-        if (trimmed.startsWith("[")) {
-            try {
-                val array = org.json.JSONArray(trimmed)
-                val list = mutableListOf<String>()
-                for (i in 0 until array.length()) {
-                    list.add(array.getString(i))
-                }
-                return list
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
-        return trimmed.split(Regex("[,;|\\n]")).map { it.trim() }.filter { it.isNotEmpty() }
     }
 
     private fun mapCursorToDictWord(cursor: Cursor, columns: List<String>): DictWord {
@@ -471,6 +462,7 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         val collocations = getListOrEmpty(cursor, columns, "collocations_json", "collocations")
         val phrases = getListOrEmpty(cursor, columns, "phrases_json", "phrases")
         val notes = getListOrEmpty(cursor, columns, "notes_json", "notes")
+        val definitionsEnList = getListOrEmpty(cursor, columns, "definitions_json", "definition_en", "definitions", "definition")
 
         // Map to backward-compatible fields
         val firstEx = examplesEn.firstOrNull() ?: ""
@@ -501,7 +493,8 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
             word_family = wordFamily,
             collocations = collocations,
             phrases = phrases,
-            notes = notes
+            notes = notes,
+            definitions_en = definitionsEnList
         )
     }
 }

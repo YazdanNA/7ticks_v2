@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,16 +40,26 @@ import kotlinx.coroutines.launch
 data class FlashcardData(
     val word: String,
     val phonetics: String,
+    val phoneticsUs: String,
+    val phoneticsUk: String,
     val partOfSpeech: String,
     val primaryDefinition: String,
     val primaryExample: String,
     val translation: String,
     val definitionsList: List<String>,
     val examplesList: List<String>,
+    val translationsList: List<String>,
+    val examplesFaList: List<String>,
     val synonyms: List<String> = emptyList(),
     val antonyms: List<String> = emptyList(),
     val wordFamily: List<String> = emptyList(),
-    val notes: String = ""
+    val collocations: List<String> = emptyList(),
+    val phrases: List<String> = emptyList(),
+    val notes: List<String> = emptyList(),
+    val senseId: String = "1",
+    val label: String = "",
+    val topic: String = "",
+    val level: String = ""
 )
 
 /**
@@ -56,20 +67,29 @@ data class FlashcardData(
  */
 fun Pair<CardEntity, DictWord>.toFlashcardData(): FlashcardData {
     val wordObj = this.second
-    val details = getWordDetails(wordObj.word)
     return FlashcardData(
         word = wordObj.word,
         phonetics = wordObj.phonetics,
+        phoneticsUs = wordObj.phonetics_us,
+        phoneticsUk = wordObj.phonetics_uk,
         partOfSpeech = wordObj.partOfSpeech,
-        primaryDefinition = wordObj.definition,
-        primaryExample = wordObj.example,
-        translation = wordObj.faDefinition,
-        definitionsList = listOf(wordObj.definition),
-        examplesList = if (wordObj.example.isNotEmpty()) listOf(wordObj.example) else emptyList(),
-        synonyms = details.synonyms,
-        antonyms = details.antonyms,
-        wordFamily = details.wordFamily,
-        notes = details.notes
+        primaryDefinition = wordObj.definition_en.ifEmpty { wordObj.definition },
+        primaryExample = wordObj.example.ifEmpty { wordObj.examples_en.firstOrNull() ?: "" },
+        translation = wordObj.definition_fa.ifEmpty { wordObj.faDefinition },
+        definitionsList = wordObj.definitions_en.ifEmpty { listOf(wordObj.definition_en.ifEmpty { wordObj.definition }) },
+        examplesList = wordObj.examples_en.ifEmpty { if (wordObj.example.isNotEmpty()) listOf(wordObj.example) else emptyList() },
+        translationsList = wordObj.translations,
+        examplesFaList = wordObj.examples_fa,
+        synonyms = wordObj.synonyms,
+        antonyms = wordObj.antonyms,
+        wordFamily = wordObj.word_family,
+        collocations = wordObj.collocations,
+        phrases = wordObj.phrases,
+        notes = wordObj.notes,
+        senseId = wordObj.sense_id,
+        label = wordObj.label,
+        topic = wordObj.topic,
+        level = wordObj.level
     )
 }
 
@@ -91,16 +111,26 @@ fun BoxWordEntity.toFlashcardData(): FlashcardData {
             this.phoneticsUk != null -> "UK: ${this.phoneticsUk}"
             else -> ""
         },
+        phoneticsUs = this.phoneticsUs ?: "",
+        phoneticsUk = this.phoneticsUk ?: "",
         partOfSpeech = this.type,
         primaryDefinition = primaryDef,
         primaryExample = primaryEx,
         translation = farsi,
         definitionsList = rawDefs,
         examplesList = rawExs,
-        synonyms = emptyList(),
-        antonyms = emptyList(),
-        wordFamily = emptyList(),
-        notes = ""
+        translationsList = this.meanings.split("\n").filter { it.isNotBlank() },
+        examplesFaList = emptyList(),
+        synonyms = if (this.synonyms.isNotEmpty()) this.synonyms.split(",").map { it.trim() } else emptyList(),
+        antonyms = if (this.antonyms.isNotEmpty()) this.antonyms.split(",").map { it.trim() } else emptyList(),
+        wordFamily = if (this.wordFamily.isNotEmpty()) this.wordFamily.split(",").map { it.trim() } else emptyList(),
+        collocations = emptyList(),
+        phrases = emptyList(),
+        notes = emptyList(),
+        senseId = "1",
+        label = "General",
+        topic = this.topic,
+        level = this.level
     )
 }
 
@@ -184,7 +214,9 @@ fun UniversalFlashcard(
     againSubtext: String = "<1m",
     hardSubtext: String = "<10m",
     goodSubtext: String = "1d",
-    easySubtext: String = "4d"
+    easySubtext: String = "4d",
+    onMoreDetailsClick: () -> Unit = {},
+    onPronounceClick: (text: String, isMale: Boolean) -> Unit = { _, _ -> }
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
@@ -195,6 +227,14 @@ fun UniversalFlashcard(
         label = "universal_flashcard_rotation"
     )
 
+    // State to toggle translation display on the back side
+    var showTranslation by remember { mutableStateOf(false) }
+
+    // Keep translation OFF by default when card changes or is flipped back
+    LaunchedEffect(data.word) {
+        showTranslation = false
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -203,14 +243,13 @@ fun UniversalFlashcard(
                 rotationY = rotationAngle
                 cameraDistance = 14f * density
             }
-            .clickable {
-                onFlip()
-            }
     ) {
         if (rotationAngle <= 90f) {
             // --- FRONT SIDE ---
             SharedGlassCard(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onFlip() },
                 cornerRadius = 24.dp,
                 depth = 1
             ) {
@@ -221,7 +260,7 @@ fun UniversalFlashcard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Header tag row
+                    // Header Tag Row (Part of Speech Badge)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,69 +288,73 @@ fun UniversalFlashcard(
                         )
                     }
 
-                    // Main Word & Phonetics
+                    // Main Word & US / UK Phonetics
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
                             text = data.word,
                             color = Color.White,
-                            fontSize = 32.sp,
+                            fontSize = 36.sp,
                             fontWeight = FontWeight.Black,
                             textAlign = TextAlign.Center
                         )
-                        if (data.phonetics.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = data.phonetics,
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    // Meaning and Examples
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        if (data.primaryDefinition.isNotEmpty()) {
-                            Text(
-                                text = data.primaryDefinition,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 18.sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        if (data.primaryExample.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0x0AFFFFFF))
-                                    .padding(10.dp)
-                            ) {
+                        
+                        // Separate US and UK Phonetics display
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val usText = data.phoneticsUs.ifEmpty { data.phonetics }
+                            if (usText.isNotEmpty()) {
                                 Text(
-                                    text = "\"${data.primaryExample}\"",
-                                    color = Color(0xFF00FFD2).copy(alpha = 0.7f),
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 16.sp,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = "US: $usText",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            if (data.phoneticsUk.isNotEmpty()) {
+                                Text(
+                                    text = "UK: ${data.phoneticsUk}",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Front Card Pronunciation Button (Pronounces Word - Male Voice)
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x1A00FFD2))
+                                .border(1.dp, Color(0x3300FFD2), CircleShape)
+                                .clickable {
+                                    // Speak Word (Male voice)
+                                    onPronounceClick(data.word, true)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Pronounce Word",
+                                tint = Color(0xFF00FFD2),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
                     }
 
-                    // Hint indicator at bottom
+                    // Touch Indicator Hint
                     Text(
-                        text = "Tap Card to Reveal Translations & Details",
+                        text = "Tap Card to Reveal Definition & Translation",
                         color = Color(0xFF00C2FF).copy(alpha = 0.8f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -328,7 +371,9 @@ fun UniversalFlashcard(
                     }
             ) {
                 SharedGlassCard(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { onFlip() },
                     cornerRadius = 24.dp,
                     depth = 1
                 ) {
@@ -339,123 +384,242 @@ fun UniversalFlashcard(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Word label and Pronounce button
+                        // Header word display & back flip hint
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = data.word,
                                 color = Color(0xFF00C2FF),
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            IconButton(
-                                onClick = { onFlip() },
-                                modifier = Modifier.size(36.dp)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0x1A00C2FF))
+                                    .clickable { onFlip() }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.PlayArrow,
-                                    contentDescription = "Pronounce",
-                                    tint = Color(0xFF00FFD2)
+                                Text(
+                                    text = "Flip",
+                                    color = Color(0xFF00C2FF),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
 
-                        // Scrollable Translation, definition and more details content
+                        // Scrollable Content
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Primary translation (glowing Persian/Farsi word)
-                            if (data.translation.isNotEmpty()) {
-                                Text(
-                                    text = data.translation,
-                                    color = Color(0xFFFFD600),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
-                                )
+                            // 1. Definition (English) with a Play Pronounce Button (Male Voice)
+                            if (data.primaryDefinition.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Definition",
+                                            color = Color.White.copy(alpha = 0.5f),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        // Pronounce Definition Button (Male)
+                                        IconButton(
+                                            onClick = { onPronounceClick(data.primaryDefinition, true) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Pronounce Definition",
+                                                tint = Color(0xFF00C2FF),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = data.primaryDefinition,
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        lineHeight = 18.sp
+                                    )
+                                }
                             }
 
-                            // Secondary definitions list
-                            if (data.definitionsList.isNotEmpty()) {
-                                Text(
-                                    text = "Definitions",
-                                    color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                data.definitionsList.forEach { def ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("•", color = Color(0xFF00C2FF))
-                                        Text(def, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
+                            // 2. Example(s) (English) with female voice pronunciation play button
+                            if (data.examplesList.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "Examples",
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    data.examplesList.forEach { ex ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Text(
+                                                text = "\"$ex\"",
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                fontStyle = FontStyle.Italic,
+                                                fontSize = 13.sp,
+                                                lineHeight = 16.sp,
+                                                modifier = Modifier.weight(1f).padding(end = 4.dp)
+                                            )
+                                            // Pronounce Example Button (Female voice)
+                                            IconButton(
+                                                onClick = { onPronounceClick(ex, false) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PlayArrow,
+                                                    contentDescription = "Pronounce Example",
+                                                    tint = Color(0xFF00FFD2),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
 
-                            // Examples list
-                            if (data.examplesList.isNotEmpty()) {
-                                Text(
-                                    text = "Examples",
-                                    color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                data.examplesList.forEach { ex ->
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // 3. Two Interactive Action Buttons (Translation, More Details)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Translation Toggle Button
+                                Button(
+                                    onClick = { showTranslation = !showTranslation },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (showTranslation) Color(0x3300FFD2) else Color(0x12FFFFFF),
+                                        contentColor = if (showTranslation) Color(0xFF00FFD2) else Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(vertical = 8.dp)
+                                ) {
                                     Text(
-                                        text = "\"$ex\"",
-                                        color = Color.White.copy(alpha = 0.65f),
-                                        fontStyle = FontStyle.Italic,
-                                        fontSize = 12.sp
+                                        text = if (showTranslation) "Hide Translation" else "Translation",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                // More Details Screen Modal Sheet Opener
+                                Button(
+                                    onClick = { onMoreDetailsClick() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0x12FFFFFF),
+                                        contentColor = Color(0xFF00C2FF)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "More Details",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
 
-                            // Linguistic specifics (Synonyms / Antonyms / Word Family)
-                            if (data.synonyms.isNotEmpty()) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Synonyms:", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    Text(data.synonyms.joinToString(", "), color = Color(0xFF00FFD2), fontSize = 11.sp)
-                                }
-                            }
-                            if (data.antonyms.isNotEmpty()) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Antonyms:", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    Text(data.antonyms.joinToString(", "), color = Color(0xFFFF1744), fontSize = 11.sp)
-                                }
-                            }
-                            if (data.wordFamily.isNotEmpty()) {
-                                Text("Word Family", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                data.wordFamily.forEach { family ->
-                                    Text("• $family", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                                }
-                            }
-                            if (data.notes.isNotEmpty()) {
-                                Box(
+                            // 4. Conditional Translation Details
+                            if (showTranslation) {
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x08FFFFFF))
-                                        .padding(8.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0x0AFFFFFF))
+                                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "Tiki's Note: ${data.notes}",
-                                        color = Color.White.copy(alpha = 0.6f),
-                                        fontSize = 11.sp,
-                                        fontStyle = FontStyle.Italic
-                                    )
+                                    // Persian Definition
+                                    if (data.translation.isNotEmpty()) {
+                                        Column {
+                                            Text(
+                                                text = "Definition (Persian)",
+                                                color = Color(0xFFFFD600).copy(alpha = 0.6f),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = data.translation,
+                                                color = Color(0xFFFFD600),
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Right,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+
+                                    // Word translations list
+                                    if (data.translationsList.isNotEmpty()) {
+                                        Column {
+                                            Text(
+                                                text = "Translations",
+                                                color = Color(0xFF00FFD2).copy(alpha = 0.6f),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = data.translationsList.joinToString(", "),
+                                                color = Color(0xFF00FFD2),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                textAlign = TextAlign.Right,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+
+                                    // Persian Example Translations
+                                    if (data.examplesFaList.isNotEmpty()) {
+                                        Column {
+                                            Text(
+                                                text = "Example Translation(s)",
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            data.examplesFaList.forEach { exFa ->
+                                                Text(
+                                                    text = "• $exFa",
+                                                    color = Color.White.copy(alpha = 0.7f),
+                                                    fontSize = 12.sp,
+                                                    textAlign = TextAlign.Right,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        // Progress Ticks system integration
+                        // Progress Ticks
                         if (circleStates != null) {
                             SevenCircles(
                                 modifier = Modifier
@@ -465,7 +629,7 @@ fun UniversalFlashcard(
                             )
                         }
 
-                        // Built-in Rating Actions inside the card
+                        // Built-in Rating Actions inside card if specified
                         if (onAgainClick != null || onHardClick != null || onGoodClick != null || onEasyClick != null) {
                             Row(
                                 modifier = Modifier
@@ -512,9 +676,8 @@ fun UniversalFlashcard(
                             }
                         }
 
-                        // Hint indicator at bottom
                         Text(
-                            text = "Tap Header/Pronounce to Flip",
+                            text = "Tap Header/Flip to Close Back View",
                             color = Color.White.copy(alpha = 0.25f),
                             fontSize = 10.sp,
                             modifier = Modifier.padding(top = 4.dp)

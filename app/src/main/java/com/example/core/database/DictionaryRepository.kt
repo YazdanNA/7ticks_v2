@@ -98,7 +98,7 @@ class DictionaryRepository @Inject constructor(
                     val idx = cursor.getColumnIndex(colName)
                     if (idx == -1) return emptyList()
                     val raw = cursor.getString(idx) ?: return emptyList()
-                    return raw.split(Regex("[,;|\\n]")).map { it.trim() }.filter { it.isNotEmpty() }
+                    return JsonParserUtils.parseJsonArray(raw)
                 }
 
                 val definitionsVal = getListFromField(defCol)
