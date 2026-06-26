@@ -48,6 +48,8 @@ import com.example.core.database.BoxWordEntity
 import com.example.core.database.toWordDetails
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.SearchResult
+import com.example.core.database.ReviewHistoryEntity
+import androidx.compose.animation.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1497,6 +1499,7 @@ fun BoxWordDetailScreen(
 // ====================================================
 // 6. BOX LEARNING / REVIEW SESSIONS
 // ====================================================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoxStudyScreen(
     boxId: Int,
@@ -1507,10 +1510,12 @@ fun BoxStudyScreen(
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
+    val userProgress by repo.userProgress.collectAsState(initial = null)
+
     var cardsToReview by remember { mutableStateOf<List<BoxWordEntity>>(emptyList()) }
     var allCardsInBox by remember { mutableStateOf<List<BoxWordEntity>>(emptyList()) }
-    var activeReviewsOnly by remember { mutableStateOf(true) }
-
+    var initialReviewLogs by remember { mutableStateOf<List<ReviewHistoryEntity>>(emptyList()) }
+    
     var isLoading by remember { mutableStateOf(true) }
     var boxName by remember { mutableStateOf("Vocab Box") }
 
@@ -1518,18 +1523,27 @@ fun BoxStudyScreen(
     var currentIndex by remember { mutableIntStateOf(0) }
     var isFlipped by remember { mutableStateOf(false) }
     var sessionFinished by remember { mutableStateOf(false) }
+    var showLeveledUpDialog by remember { mutableStateOf(false) }
 
     // Setup the unified session queue engine dynamically once cards load
-    val engine = remember(cardsToReview) {
+    val engine = remember(cardsToReview, initialReviewLogs) {
         if (cardsToReview.isEmpty()) null else {
             val items = cardsToReview.map { word ->
-                val boxCircleStates = List(7) { idx ->
-                    if (idx < word.boxIndex) "Blue" else "Gray"
+                val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+                val initialCircleStates = List(7) { idx ->
+                    if (idx < wordReviewHistory.size) {
+                        when (wordReviewHistory[idx].rating) {
+                            4 -> "Green"
+                            3 -> "Blue"
+                            2 -> "Yellow"
+                            else -> "Red"
+                        }
+                    } else "Gray"
                 }
                 StudySessionItem(
                     id = word.id.toString(),
                     data = word.toFlashcardData(),
-                    circleStates = boxCircleStates,
+                    circleStates = initialCircleStates,
                     payload = word
                 )
             }
@@ -1551,13 +1565,21 @@ fun BoxStudyScreen(
 
     val activeItem = currentItem ?: if (cardsToReview.isNotEmpty()) {
         val word = cardsToReview.first()
-        val boxCircleStates = List(7) { idx ->
-            if (idx < word.boxIndex) "Blue" else "Gray"
+        val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+        val initialCircleStates = List(7) { idx ->
+            if (idx < wordReviewHistory.size) {
+                when (wordReviewHistory[idx].rating) {
+                    4 -> "Green"
+                    3 -> "Blue"
+                    2 -> "Yellow"
+                    else -> "Red"
+                }
+            } else "Gray"
         }
         StudySessionItem(
             id = word.id.toString(),
             data = word.toFlashcardData(),
-            circleStates = boxCircleStates,
+            circleStates = initialCircleStates,
             payload = word
         )
     } else null
@@ -1568,214 +1590,290 @@ fun BoxStudyScreen(
         BoxWordEntity(boxId = 0, wordId = 0, word = "")
     }
 
-    // Reload list based on toggle and box details
-    LaunchedEffect(boxId, activeReviewsOnly) {
+    // Reload list on start
+    LaunchedEffect(boxId) {
         isLoading = true
         val box = boxRepo.getCustomBoxById(boxId)
         if (box != null) boxName = box.name
 
+        initialReviewLogs = repo.getReviewHistoryOnce()
+
         val list = boxRepo.getWordsInCustomBoxOnce(boxId)
         allCardsInBox = list
 
-        val now = System.currentTimeMillis()
-        val filtered = if (activeReviewsOnly) {
-            list.filter { it.dueDate <= now }
-        } else {
-            list
-        }
-        cardsToReview = filtered
+        cardsToReview = list
         currentIndex = 0
         isFlipped = false
         sessionFinished = false
         isLoading = false
     }
 
-    // Connect Leitner circles calculations
-    val leitnerDistribution = remember(allCardsInBox) {
-        val dist = IntArray(7) { 0 }
-        allCardsInBox.forEach {
-            val idx = it.boxIndex.coerceIn(1, 7) - 1
-            dist[idx]++
-        }
-        dist
-    }
+    // Soft moving gradient background animation
+    val infiniteTransition = rememberInfiniteTransition(label = "background_flow")
+    val bgShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 100f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gradient_shift"
+    )
 
-    Column(
+    val animatedBgBrush = Brush.linearGradient(
+        colors = listOf(
+            Color(0xFF060713),
+            Color(0xFF090D26).copy(alpha = 0.9f + (bgShift / 1000f)),
+            Color(0xFF1D0A30).copy(alpha = 0.85f - (bgShift / 1000f)),
+            Color(0xFF060713)
+        ),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(1000f + bgShift * 3f, 1500f - bgShift * 2f)
+    )
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = boxName,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* Help */ }) {
+                        Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        },
+        containerColor = Color.Transparent,
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Session Top Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Column {
-                    Text(boxName, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text("Independent Leitner Review", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
-                }
-            }
-
-            // Options: Toggle Reviews Only
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { activeReviewsOnly = !activeReviewsOnly }) {
-                Checkbox(
-                    checked = activeReviewsOnly,
-                    onCheckedChange = { activeReviewsOnly = it },
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF00FFD2))
-                )
-                Text("Due Only", color = Color.White, fontSize = 11.sp)
-            }
-        }
-
-        // --- SEVEN CIRCLES LEITNER INDICATOR UI ---
-        Row(
+            .background(animatedBgBrush)
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0x06FFFFFF))
-                .padding(vertical = 8.dp, horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 22.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            for (boxNum in 1..7) {
-                val isActiveCardBox = !sessionFinished && currentWord.id != 0 && currentWord.boxIndex == boxNum
-                val cardCount = leitnerDistribution[boxNum - 1]
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isActiveCardBox) Brush.radialGradient(listOf(Color(0xFF00FFD2), Color(0xFF00C2FF)))
-                                else Brush.radialGradient(listOf(Color(0x11FFFFFF), Color(0x08FFFFFF)))
-                            )
-                            .border(1.dp, if (isActiveCardBox) Color.White else Color(0x12FFFFFF), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = boxNum.toString(),
-                            color = if (isActiveCardBox) Color.Black else Color.White.copy(alpha = 0.7f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Text(text = "$cardCount card", color = Color.White.copy(alpha = 0.3f), fontSize = 7.sp)
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color(0xFF00C2FF))
                 }
-            }
-        }
-
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF00C2FF))
-            }
-        } else if (sessionFinished || cardsToReview.isEmpty()) {
-            // FINISHED / EMPTY STATE
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                TickyCard(
-                    message = if (cardsToReview.isEmpty() && activeReviewsOnly) {
-                        "Congratulations! No due cards found inside $boxName! Try reviewing all words or create some new ones."
-                    } else {
-                        "Superb job! You finished your Leitner reviews for this custom box. Your memory is now highly calibrated!"
-                    },
-                    sizeDp = 80,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                PremiumGlassButton(
-                    text = "Return to Box",
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        } else {
-            // CARD STUDY ACTIVE VIEW
-            val progressText = "${activeIndex + 1} / ${cardsToReview.size} cards"
-
-            val boxCircleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
-                val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
-                val overlayIdx = engine?.temporaryOverlayIndex ?: -1
-                val overlayRating = engine?.temporaryOverlayRating ?: ""
-                if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
-                    baseCircles.toMutableList().apply {
-                        this[overlayIdx] = overlayRating
-                    }
-                } else {
-                    baseCircles
+            } else if (sessionFinished || cardsToReview.isEmpty()) {
+                // FINISHED / EMPTY STATE
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    TickyCard(
+                        message = "Superb job! You finished reviewing words inside $boxName! Your memory is now highly calibrated!",
+                        sizeDp = 80,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PremiumGlassButton(
+                        text = "Return to Box",
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            }
-
-            fun handleBoxRating(rating: ReviewRatingModel) {
-                val activeEngine = engine ?: return
-                val item = activeItem ?: return
-                val word = item.payload as? BoxWordEntity ?: return
-
-                isFlipped = false
-
-                activeEngine.submitRating(
-                    rating = rating,
-                    currentCircleIndex = (word.boxIndex - 1).coerceIn(0, 6),
-                    xpAmount = when (rating) {
-                        ReviewRatingModel.AGAIN -> 5
-                        ReviewRatingModel.HARD -> 10
-                        ReviewRatingModel.GOOD -> 15
-                        ReviewRatingModel.EASY -> 20
-                        else -> 15
-                    },
-                    onSaveDb = {
-                        coroutineScope.launch {
-                            repo.reviewCard(
-                                cardId = word.id,
-                                isBoxWord = true,
-                                rating = rating
-                            )
-                        }
-                    }
-                )
-            }
-
-            val wordDetails = remember(currentWord) {
-                currentWord.toWordDetails()
-            }
-
-            com.example.core.ui.components.flashcard.FlashcardScreen(
-                wordDetails = wordDetails,
-                isFlipped = isFlipped,
-                onFlip = { isFlipped = !isFlipped },
-                onRatingClick = { handleBoxRating(it) },
-                circleStates = boxCircleStates,
-                againSubtext = "",
-                hardSubtext = "",
-                goodSubtext = "",
-                easySubtext = "",
-                tikiMessage = engine?.tikiReactionMessage ?: "Keep going! You're doing amazing!",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                progressContent = {
+            } else {
+                // 1. Session Header Progress Bar
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(progressText, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text("Box index: ${currentWord.boxIndex}", color = Color(0xFFE040FB), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Level ${userProgress?.level ?: 1} | +${engine?.xpEarned ?: 0} XP",
+                            color = Color(0xFFFFD600),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Card ${activeIndex + 1} of ${cardsToReview.size}",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { if (cardsToReview.isNotEmpty()) (activeIndex + 1).toFloat() / cardsToReview.size.toFloat() else 0f },
+                        color = Color(0xFF00FFD2),
+                        trackColor = Color(0x1AFFFFFF),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // State Breakdown Badges
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val newCount = cardsToReview.count { it.state == 0 }
+                        val learnCount = cardsToReview.count { it.state == 1 }
+                        val relearnCount = cardsToReview.count { it.state == 3 }
+                        val dueCount = cardsToReview.count { it.state == 2 }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00E5FF)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFFFEA00)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFFF9100)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00E676)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                    }
+
+                    // Upcoming Cards Preview
+                    val nextCards = cardsToReview.drop(activeIndex + 1).take(2)
+                    if (nextCards.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Next: " + nextCards.joinToString(", ") { it.word },
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 11.sp,
+                            fontStyle = FontStyle.Italic,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                     }
                 }
-            )
+
+                // 2. High-fidelity Unified Spaced Repetition Flashcard
+                val boxCircleStates = remember(activeItem, initialReviewLogs, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
+                    val activeWord = activeItem?.payload as? BoxWordEntity
+                    val baseCircles = if (activeWord != null) {
+                        val wordReviewHistory = initialReviewLogs.filter { it.wordId == activeWord.wordId }.sortedBy { it.timestamp }
+                        List(7) { i ->
+                            if (i < wordReviewHistory.size) {
+                                when (wordReviewHistory[i].rating) {
+                                    4 -> "Green"
+                                    3 -> "Blue"
+                                    2 -> "Yellow"
+                                    else -> "Red"
+                                }
+                            } else "Gray"
+                        }
+                    } else List(7) { "Gray" }
+
+                    val overlayIdx = engine?.temporaryOverlayIndex ?: -1
+                    val overlayRating = engine?.temporaryOverlayRating ?: ""
+                    if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
+                        baseCircles.toMutableList().apply {
+                            this[overlayIdx] = overlayRating
+                        }
+                    } else {
+                        baseCircles
+                    }
+                }
+
+                fun handleBoxRating(rating: ReviewRatingModel) {
+                    val activeEngine = engine ?: return
+                    val item = activeItem ?: return
+                    val word = item.payload as? BoxWordEntity ?: return
+
+                    isFlipped = false
+
+                    activeEngine.submitRating(
+                        rating = rating,
+                        currentCircleIndex = (word.boxIndex - 1).coerceIn(0, 6),
+                        xpAmount = when (rating) {
+                            ReviewRatingModel.AGAIN -> 5
+                            ReviewRatingModel.HARD -> 10
+                            ReviewRatingModel.GOOD -> 15
+                            ReviewRatingModel.EASY -> 20
+                        },
+                        onSaveDb = {
+                            coroutineScope.launch {
+                                val leveledUp = repo.reviewCard(
+                                    cardId = word.id,
+                                    isBoxWord = true,
+                                    rating = rating
+                                )
+                                if (leveledUp) {
+                                    showLeveledUpDialog = true
+                                }
+                            }
+                        }
+                    )
+                }
+
+                val wordDetails = remember(currentWord) {
+                    currentWord.toWordDetails()
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                com.example.core.ui.components.flashcard.FlashcardScreen(
+                    wordDetails = wordDetails,
+                    isFlipped = isFlipped,
+                    onFlip = { isFlipped = !isFlipped },
+                    onRatingClick = { handleBoxRating(it) },
+                    circleStates = boxCircleStates,
+                    againSubtext = "",
+                    hardSubtext = "",
+                    goodSubtext = "",
+                    easySubtext = "",
+                    tikiMessage = engine?.tikiReactionMessage ?: "Keep going! You're doing amazing!",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
         }
+    }
+
+    // Leveled Up Dialog
+    if (showLeveledUpDialog) {
+        val level = userProgress?.level ?: 1
+        AlertDialog(
+            onDismissRequest = { showLeveledUpDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showLeveledUpDialog = false }) {
+                    Text("Awesome!", color = Color(0xFF00FFD2))
+                }
+            },
+            title = { Text("Level Up! 🌟", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("Congratulations! You've leveled up to Level ${level + 1}!", color = Color.White.copy(alpha = 0.8f)) },
+            containerColor = Color(0xFF0F1026)
+        )
     }
 }
 
