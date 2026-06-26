@@ -29,7 +29,7 @@ import com.example.core.learning.engine.SmartSessionDao
         SmartDailyStatsEntity::class,
         SmartSessionStatsEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class UserDatabase : RoomDatabase() {
