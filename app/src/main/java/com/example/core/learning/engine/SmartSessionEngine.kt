@@ -37,6 +37,7 @@ class SmartSessionEngine(
 
         // 2. Calculate dynamic capacity based on average speed
         val capacity = capacityCalculator.calculateCapacity(studySeconds, rollingAverage)
+        val targetActiveCards = capacityCalculator.getTargetActiveCards(durationMinutes)
 
         // 3. Fetch user progress and unlocked CEFR levels
         val progress = userDao.getUserProgressOnce()
@@ -48,7 +49,7 @@ class SmartSessionEngine(
         val filteredLocalCards = sessionSelector.filterCardsByCefr(allLocalCards, allowedLevels)
 
         // 5. Build session list in priority order
-        val initialSelected = sessionBuilder.buildSession(filteredLocalCards, capacity, currentTime)
+        val initialSelected = sessionBuilder.buildSession(filteredLocalCards, capacity, currentTime, targetActiveCards)
         val selectedList = initialSelected.toMutableList()
 
         val remainingCapacity = capacity - selectedList.size
@@ -56,13 +57,21 @@ class SmartSessionEngine(
         // 6. Reviews Always Win check: if Again + Due already meet/exceed capacity, do not add new cards.
         val totalReviewsCount = filteredLocalCards.count { it.state == 3 || (it.state == 2 && it.dueDate <= currentTime) }
         
-        if (remainingCapacity > 0 && totalReviewsCount < capacity) {
+        // Calculate the current active cards across the deck
+        val activeCardsCount = filteredLocalCards.count { card ->
+            val isMatureAndDistant = card.state == 2 && card.boxIndex >= 5 && (card.dueDate - currentTime > 14L * 24 * 60 * 60 * 1000L)
+            (card.state == 1 || card.state == 2 || card.state == 3) && !isMatureAndDistant
+        }
+        val deficit = (targetActiveCards - activeCardsCount).coerceAtLeast(0)
+        val newCardsToCreateCount = minOf(deficit, remainingCapacity)
+
+        if (newCardsToCreateCount > 0 && totalReviewsCount < capacity) {
             // Find brand new dictionary words of allowed CEFR levels
             val allLocalWordIds = allLocalCards.map { it.wordId }.toSet()
             val newWordsFromDb = vocabDbManager.getWordsByLevels(allowedLevels, limit = -1)
                 .filter { !allLocalWordIds.contains(it.id) }
                 .shuffled()
-                .take(remainingCapacity)
+                .take(newCardsToCreateCount)
 
             for (word in newWordsFromDb) {
                 val newCard = CardEntity(

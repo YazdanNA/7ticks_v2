@@ -22,6 +22,7 @@ data class SimulationResult(
     val simulatedRetentionRate: Double,
     val boxDistributionOverTime: List<IntArray>, // List of size [days], each array has 7 elements
     val dailyReviewsOverTime: List<Int>, // List of size [days]
+    val activeVocabularyOverTime: List<Int>, // List of size [days]
     val validationPassed: Boolean,
     val validationMessages: List<String>,
     val reportText: String
@@ -51,6 +52,7 @@ object AlgorithmSimulator {
 
         val boxDistributionOverTime = ArrayList<IntArray>()
         val dailyReviewsOverTime = ArrayList<Int>()
+        val activeVocabularyOverTime = ArrayList<Int>()
 
         // Boundary/Accuracy checks during execution
         var hasNegativeIntervals = false
@@ -69,6 +71,17 @@ object AlgorithmSimulator {
         val avgSecondsPerCard = 10.0
         val studySeconds = dailyStudyMinutes * 60
         val dailyCapacity = Math.max(1, (studySeconds / avgSecondsPerCard).toInt())
+
+        // Target active vocabulary size mapping
+        val targetActiveCards = when {
+            dailyStudyMinutes <= 5 -> 120
+            dailyStudyMinutes <= 10 -> 250
+            dailyStudyMinutes <= 15 -> 400
+            dailyStudyMinutes <= 20 -> 600
+            dailyStudyMinutes <= 30 -> 900
+            dailyStudyMinutes <= 45 -> 1500
+            else -> 2200
+        }
 
         for (day in 1..days) {
             // Move time forward by 1 day
@@ -124,7 +137,14 @@ object AlgorithmSimulator {
 
                 // Priority 4: Introduce New cards (on-demand creation up to max deck size)
                 if (remaining > 0) {
-                    val availableNewCardsToCreate = minOf(remaining, numCards - (activeCards.size + newCards.size))
+                    // Count active cards today (excluding mature cards with distant due dates)
+                    val activeCardsCount = activeCards.count { card ->
+                        val isMatureAndDistant = card.state == 2 && (boxIndices[card.wordId] ?: 1) >= 5 && (card.dueDate.time - currentSimulatedTimeMs > 14L * 24 * 60 * 60 * 1000L)
+                        (card.state == 1 || card.state == 2 || card.state == 3) && !isMatureAndDistant
+                    }
+                    val deficit = (targetActiveCards - activeCardsCount).coerceAtLeast(0)
+                    val availableNewCardsToCreate = minOf(deficit, remaining, numCards - (activeCards.size + newCards.size))
+                    
                     for (i in 1..availableNewCardsToCreate) {
                         val newId = currentWordIdSource++
                         val newCard = FsrsCardModel(
@@ -218,7 +238,7 @@ object AlgorithmSimulator {
                 }
             }
 
-            // Record box distribution for today
+            // Record box distribution and active cards for today
             val distribution = IntArray(7)
             for (card in activeCards) {
                 val box = boxIndices[card.wordId] ?: 1
@@ -226,6 +246,12 @@ object AlgorithmSimulator {
             }
             boxDistributionOverTime.add(distribution)
             dailyReviewsOverTime.add(reviewsTodayCount)
+
+            val dailyActiveCount = activeCards.count { card ->
+                val isMatureAndDistant = card.state == 2 && (boxIndices[card.wordId] ?: 1) >= 5 && (card.dueDate.time - currentSimulatedTimeMs > 14L * 24 * 60 * 60 * 1000L)
+                (card.state == 1 || card.state == 2 || card.state == 3) && !isMatureAndDistant
+            }
+            activeVocabularyOverTime.add(dailyActiveCount)
         }
 
         // Final aggregate diagnostics
@@ -234,6 +260,25 @@ object AlgorithmSimulator {
         val peakDailyReviews = dailyReviewsOverTime.maxOrNull() ?: 0
         val averageDailyReviews = if (days > 0) totalReviewsCount.toDouble() / days else 0.0
         val simulatedRetentionRate = if (totalReviewsCount > 0) totalCorrectReviews.toDouble() / totalReviewsCount else 0.0
+
+        val averageActiveVocabulary = if (days > 0) activeVocabularyOverTime.average() else 0.0
+        val peakActiveVocabulary = activeVocabularyOverTime.maxOrNull() ?: 0
+        val finalActiveVocabulary = activeVocabularyOverTime.lastOrNull() ?: 0
+
+        // Estimated years required to finish introducing the entire vocabulary
+        val completionRate = learnedCount.toDouble() / days
+        val estimatedYears = if (completionRate > 0.0) {
+            (numCards / completionRate) / 365.0
+        } else {
+            Double.POSITIVE_INFINITY
+        }
+        val estimatedYearsText = if (learnedCount >= numCards) {
+            "Already fully completed within simulated timeframe!"
+        } else if (estimatedYears == Double.POSITIVE_INFINITY) {
+            "Infinite (vocabulary learning stalled)"
+        } else {
+            String.format("%.2f Years", estimatedYears)
+        }
 
         // Validation Checks
         val validationMessages = ArrayList<String>()
@@ -277,22 +322,28 @@ object AlgorithmSimulator {
         // Generate complete text report (Markdown style)
         val reportBuilder = StringBuilder()
         reportBuilder.append("=========================================================\n")
-        reportBuilder.append("             7TICKS ALGORITHMIC SIMULATION REPORT        \n")
+        reportBuilder.append("          ADAPTIVE ACTIVE VOCABULARY SIMULATION REPORT   \n")
         reportBuilder.append("=========================================================\n\n")
         reportBuilder.append("## SIMULATION CONFIGURATION:\n")
         reportBuilder.append("- Simulated Vocabulary Volume: $numCards words\n")
         reportBuilder.append("- Study Track Duration: $days Days (approx. ${String.format("%.1f", days.toDouble() / 365.0)} years)\n")
         reportBuilder.append("- Target Student Success Rate (Recall Prob): ${(userRecallProbability * 100).toInt()}%\n")
         reportBuilder.append("- Daily Study Duration: $dailyStudyMinutes minutes\n")
-        reportBuilder.append("- Session Capacity Limit: $dailyCapacity cards/day (at 10s per card)\n\n")
+        reportBuilder.append("- Session Capacity Limit: $dailyCapacity cards/day (at 10s per card)\n")
+        reportBuilder.append("- Target Active Vocabulary Cap: $targetActiveCards cards\n\n")
 
         reportBuilder.append("## METRICS SUMMARY:\n")
-        reportBuilder.append("- Total Simulated Reviews: $totalReviewsCount iterations\n")
-        reportBuilder.append("- Total Words Studied/Learned: $learnedCount cards\n")
-        reportBuilder.append("- Fully Matured Words (Box 7): $maturedCount cards (${String.format("%.1f", (maturedCount.toDouble() / numCards) * 100)}% of deck)\n")
-        reportBuilder.append("- Actual Achieved Memory Retention Rate: ${String.format("%.2f", simulatedRetentionRate * 100)}%\n")
-        reportBuilder.append("- Average Daily Reviews Workload: ${String.format("%.1f", averageDailyReviews)} reviews/day\n")
-        reportBuilder.append("- Peak Daily Reviews Queue: $peakDailyReviews reviews (occurred on day ${dailyReviewsOverTime.indexOf(peakDailyReviews) + 1})\n\n")
+        reportBuilder.append("- **Total Words Introduced**: $learnedCount words\n")
+        reportBuilder.append("- **Total Reviews**: $totalReviewsCount iterations\n")
+        reportBuilder.append("- **Average Daily Workload**: ${String.format("%.1f", averageDailyReviews)} reviews/day\n")
+        reportBuilder.append("- **Peak Workload**: $peakDailyReviews reviews (on day ${dailyReviewsOverTime.indexOf(peakDailyReviews) + 1})\n")
+        reportBuilder.append("- **Active Vocabulary over Time**:\n")
+        reportBuilder.append("  - *Average Active Vocabulary*: ${String.format("%.1f", averageActiveVocabulary)} cards\n")
+        reportBuilder.append("  - *Peak Active Vocabulary*: $peakActiveVocabulary cards\n")
+        reportBuilder.append("  - *Final Active Vocabulary*: $finalActiveVocabulary cards\n")
+        reportBuilder.append("- **Estimated Years to Finish Entire Vocabulary**: $estimatedYearsText\n")
+        reportBuilder.append("- **Fully Matured Words (Box 7)**: $maturedCount cards (${String.format("%.1f", (maturedCount.toDouble() / numCards) * 100)}% of deck)\n")
+        reportBuilder.append("- **Actual Achieved Memory Retention Rate**: ${String.format("%.2f", simulatedRetentionRate * 100)}%\n\n")
 
         reportBuilder.append("## FINAL DECK BOX DISTRIBUTION:\n")
         val finalDist = boxDistributionOverTime.lastOrNull() ?: IntArray(7)
@@ -311,7 +362,7 @@ object AlgorithmSimulator {
 
         reportBuilder.append("## PERFORMANCE DIAGNOSTIC CONTEXT:\n")
         if (validationPassed && simulatedRetentionRate >= userRecallProbability - 0.05) {
-            reportBuilder.append("STATUS: [OPTIMAL] The FSRS spacing intervals are smoothing daily workload spikes perfectly. Leitner boxes 1-7 show healthy promotion rate without review pileups.\n")
+            reportBuilder.append("STATUS: [OPTIMAL] Adaptive Active Vocabulary is smoothing workload spikes perfectly! Target active sizes prevent reviews from exploding while ensuring consistent vocabulary ingestion.\n")
         } else {
             reportBuilder.append("STATUS: [WARNING] Spaced interval configurations might require tuning to avoid early workload saturation.\n")
         }
@@ -330,6 +381,7 @@ object AlgorithmSimulator {
             simulatedRetentionRate = simulatedRetentionRate,
             boxDistributionOverTime = boxDistributionOverTime,
             dailyReviewsOverTime = dailyReviewsOverTime,
+            activeVocabularyOverTime = activeVocabularyOverTime,
             validationPassed = validationPassed,
             validationMessages = validationMessages,
             reportText = reportBuilder.toString()

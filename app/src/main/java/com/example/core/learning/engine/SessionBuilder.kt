@@ -17,7 +17,8 @@ class SessionBuilder {
     fun buildSession(
         allCards: List<CardEntity>,
         capacity: Int,
-        currentTime: Long = System.currentTimeMillis()
+        currentTime: Long = System.currentTimeMillis(),
+        targetActiveCards: Int = 120
     ): List<CardEntity> {
         if (capacity <= 0) return emptyList()
 
@@ -56,11 +57,20 @@ class SessionBuilder {
             remaining -= takenLearning.size
         }
 
-        // Priority 4: New cards
-        if (remaining > 0) {
-            val takenNew = newCards.take(remaining)
-            selected.addAll(takenNew)
-            remaining -= takenNew.size
+        // Priority 4: New cards - bounded by the Adaptive Active Vocabulary target limit
+        if (remaining > 0 && newCards.isNotEmpty()) {
+            val activeCardsCount = allCards.count { card ->
+                val isMatureAndDistant = card.state == 2 && card.boxIndex >= 5 && (card.dueDate - currentTime > 14L * 24 * 60 * 60 * 1000L)
+                (card.state == 1 || card.state == 2 || card.state == 3) && !isMatureAndDistant
+            }
+            val deficit = (targetActiveCards - activeCardsCount).coerceAtLeast(0)
+            val newCardsToTakeCount = minOf(deficit, remaining)
+
+            if (newCardsToTakeCount > 0) {
+                val takenNew = newCards.take(newCardsToTakeCount)
+                selected.addAll(takenNew)
+                remaining -= takenNew.size
+            }
         }
 
         return selected

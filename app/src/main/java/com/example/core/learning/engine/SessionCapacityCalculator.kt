@@ -10,4 +10,19 @@ class SessionCapacityCalculator {
         // Calculate capacity, ensuring a minimum of 1 card
         return Math.max(1, (studySeconds / avg).toInt())
     }
+
+    /**
+     * Determines the target active vocabulary size based on study session minutes.
+     */
+    fun getTargetActiveCards(durationMinutes: Int): Int {
+        return when {
+            durationMinutes <= 5 -> 120
+            durationMinutes <= 10 -> 250
+            durationMinutes <= 15 -> 400
+            durationMinutes <= 20 -> 600
+            durationMinutes <= 30 -> 900
+            durationMinutes <= 45 -> 1500
+            else -> 2200
+        }
+    }
 }
