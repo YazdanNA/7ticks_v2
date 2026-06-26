@@ -400,6 +400,43 @@ open class VocabularyDatabaseManager @Inject constructor(private val context: Co
         return result
     }
 
+    open fun getWordByString(word: String): DictWord? {
+        if (isTestMode) {
+            return testWords.find { it.word.equals(word, ignoreCase = true) }
+        }
+        if (!isDatabaseDownloaded()) return null
+        var result: DictWord? = null
+        var db: SQLiteDatabase? = null
+        try {
+            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            val tableName = getFirstUserTable(db) ?: return null
+            val columns = getColumns(db, tableName)
+
+            val wordCol = columns.find { it.equals("word", ignoreCase = true) || it.contains("term", ignoreCase = true) } ?: ""
+            if (wordCol.isEmpty()) return null
+
+            val cursor = db.query(
+                tableName,
+                null,
+                "LOWER($wordCol) = ?",
+                arrayOf(word.lowercase().trim()),
+                null,
+                null,
+                null
+            )
+
+            if (cursor.moveToFirst()) {
+                result = mapCursorToDictWord(cursor, columns)
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e("VocabDbManager", "Error getting word by string", e)
+        } finally {
+            db?.close()
+        }
+        return result
+    }
+
     private fun getStringOrEmpty(cursor: Cursor, columns: List<String>, vararg names: String): String {
         for (name in names) {
             val col = columns.find { it.equals(name, ignoreCase = true) }

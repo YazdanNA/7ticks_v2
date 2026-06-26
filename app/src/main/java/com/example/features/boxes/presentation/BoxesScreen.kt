@@ -41,13 +41,12 @@ import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
-import com.example.core.ui.components.flashcard.FlashCardWidget
 import com.example.core.learning.*
 import com.example.core.fsrs.ReviewRatingModel
 import com.example.core.database.BoxWordEntity
+import com.example.core.database.toWordDetails
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.SearchResult
-import com.example.core.database.VocabularyWord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1710,15 +1709,6 @@ fun BoxStudyScreen(
             // CARD STUDY ACTIVE VIEW
             val progressText = "${activeIndex + 1} / ${cardsToReview.size} cards"
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(progressText, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("Box index: ${currentWord.boxIndex}", color = Color(0xFFE040FB), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-
-            val currentWordData = remember(currentWord) {
-                currentWord.toFlashcardData()
-            }
-
             val boxCircleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
                 val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
                 val overlayIdx = engine?.temporaryOverlayIndex ?: -1
@@ -1730,14 +1720,6 @@ fun BoxStudyScreen(
                 } else {
                     baseCircles
                 }
-            }
-
-            val flashcardState = remember(currentWordData, isFlipped, boxCircleStates) {
-                FlashCardState(
-                    data = currentWordData,
-                    isFlipped = isFlipped,
-                    circleStates = boxCircleStates
-                )
             }
 
             fun handleBoxRating(rating: ReviewRatingModel) {
@@ -1769,29 +1751,34 @@ fun BoxStudyScreen(
                 )
             }
 
-            FlashCardWidget(
-                state = flashcardState,
+            val wordDetails = remember(currentWord) {
+                currentWord.toWordDetails()
+            }
+
+            com.example.core.ui.components.flashcard.FlashcardScreen(
+                wordDetails = wordDetails,
+                isFlipped = isFlipped,
                 onFlip = { isFlipped = !isFlipped },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(vertical = 12.dp),
-                onAgainClick = {
-                    handleBoxRating(ReviewRatingModel.AGAIN)
-                },
-                onHardClick = {
-                    handleBoxRating(ReviewRatingModel.HARD)
-                },
-                onGoodClick = {
-                    handleBoxRating(ReviewRatingModel.GOOD)
-                },
-                onEasyClick = {
-                    handleBoxRating(ReviewRatingModel.EASY)
-                },
+                onRatingClick = { handleBoxRating(it) },
+                circleStates = boxCircleStates,
                 againSubtext = "",
                 hardSubtext = "",
                 goodSubtext = "",
-                easySubtext = ""
+                easySubtext = "",
+                tikiMessage = engine?.tikiReactionMessage ?: "Keep going! You're doing amazing!",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                progressContent = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(progressText, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Box index: ${currentWord.boxIndex}", color = Color(0xFFE040FB), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             )
         }
     }

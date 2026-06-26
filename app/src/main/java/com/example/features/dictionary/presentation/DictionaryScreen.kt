@@ -38,7 +38,7 @@ import com.example.core.database.CustomBoxEntity
 import com.example.core.database.FavoriteWordEntity
 import com.example.core.database.RecentSearchEntity
 import com.example.core.database.SearchResult
-import com.example.core.database.VocabularyWord
+import com.example.core.database.WordDetails
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -67,7 +67,7 @@ fun DictionaryScreen() {
     var isSearching by remember { mutableStateOf(false) }
 
     // Word Details Modal State
-    var selectedWord by remember { mutableStateOf<VocabularyWord?>(null) }
+    var selectedWord by remember { mutableStateOf<WordDetails?>(null) }
     var showDetailsModal by remember { mutableStateOf(false) }
     var isWordFavorite by remember { mutableStateOf(false) }
 
@@ -376,19 +376,22 @@ fun DictionaryScreen() {
                                     dictRepo.getWordDetails(result.word)
                                 }
                                 val isFav = boxRepo.isFavoriteWord(result.word)
-                                selectedWord = details ?: VocabularyWord(
+                                selectedWord = details ?: WordDetails(
                                     word = result.word,
                                     level = result.level,
-                                    type = result.type,
-                                    topic = result.topic,
-                                    phoneticsUs = null,
-                                    phoneticsUk = null,
+                                    phonetics = "",
                                     definitions = if (result.shortMeaning.isNotEmpty()) listOf(result.shortMeaning) else emptyList(),
-                                    meanings = emptyList(),
+                                    translations = emptyList(),
                                     examples = emptyList(),
+                                    exampleTranslations = emptyList(),
                                     synonyms = emptyList(),
                                     antonyms = emptyList(),
-                                    wordFamily = emptyList()
+                                    wordFamily = emptyList(),
+                                    collocations = emptyList(),
+                                    phrases = emptyList(),
+                                    notes = emptyList(),
+                                    types = listOf(result.type),
+                                    topics = listOf(result.topic)
                                 )
                                 isWordFavorite = isFav
                                 showDetailsModal = true

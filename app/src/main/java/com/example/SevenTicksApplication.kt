@@ -44,9 +44,10 @@ class SevenTicksApplication : Application() {
             userDatabase.smartSessionDao(),
             vocabDatabaseManager
         )
+        val vocabularyRepository = com.example.core.database.VocabularyRepository(vocabDatabaseManager)
         userRepository = UserRepository(this, userDatabase.userDao(), vocabDatabaseManager, preferencesManager, smartSessionEngine)
         boxRepository = BoxRepository(userDatabase.userDao())
-        dictionaryRepository = DictionaryRepository(this)
+        dictionaryRepository = DictionaryRepository(this, vocabularyRepository)
         searchRepository = SearchRepository(this)
     }
 

@@ -30,7 +30,6 @@ import com.example.core.components.SevenCircles
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
 import com.example.core.database.BoxWordEntity
-import com.example.features.smartlearn.presentation.getWordDetails
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

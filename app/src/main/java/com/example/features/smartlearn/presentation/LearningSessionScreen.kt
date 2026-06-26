@@ -44,9 +44,9 @@ import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
-import com.example.core.ui.components.flashcard.FlashCardWidget
 import com.example.core.learning.*
 import com.example.core.database.CardEntity
+import com.example.core.database.toWordDetails
 import com.example.core.database.DictWord
 import com.example.core.database.ReviewHistoryEntity
 import com.example.core.fsrs.FsrsCardModel
@@ -56,70 +56,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Date
 
-// Linguistic Analytics Helper Model
-data class WordDetails(
-    val synonyms: List<String>,
-    val antonyms: List<String>,
-    val wordFamily: List<String>,
-    val notes: String
-)
-
-// Linguistic Database lookup with custom descriptions for advanced English words
-fun getWordDetails(word: String): WordDetails {
-    return when (word.lowercase().trim()) {
-        "eloquent" -> WordDetails(
-            synonyms = listOf("articulate", "persuasive", "expressive", "fluent"),
-            antonyms = listOf("inarticulate", "unexpressive", "mute", "hesitant"),
-            wordFamily = listOf("eloquence (noun)", "eloquently (adverb)"),
-            notes = "Commonly used to describe speeches, writing, or individuals who speak with poise and clarity."
-        )
-        "aesthetic" -> WordDetails(
-            synonyms = listOf("artistic", "visual", "gorgeous", "stylish"),
-            antonyms = listOf("unsightly", "ugly", "unattractive"),
-            wordFamily = listOf("aesthetically (adverb)", "aesthetician (noun)", "aestheticism (noun)"),
-            notes = "Originates from the Greek word 'aisthesis' meaning sensation or perception."
-        )
-        "ephemeral" -> WordDetails(
-            synonyms = listOf("transitory", "fleeting", "short-lived", "momentary"),
-            antonyms = listOf("permanent", "eternal", "lasting", "enduring"),
-            wordFamily = listOf("ephemerally (adverb)", "ephemerality (noun)"),
-            notes = "Originally used in medical contexts to describe fevers that lasted only a day."
-        )
-        "benevolent" -> WordDetails(
-            synonyms = listOf("kind", "generous", "altruistic", "charitable"),
-            antonyms = listOf("malevolent", "spiteful", "unkind", "mean"),
-            wordFamily = listOf("benevolence (noun)", "benevolently (adverb)"),
-            notes = "Formed from Latin 'bene' (well) and 'velle' (to wish)."
-        )
-        "melancholy" -> WordDetails(
-            synonyms = listOf("sadness", "sorrow", "gloom", "pensive"),
-            antonyms = listOf("happiness", "joy", "cheerfulness", "exuberance"),
-            wordFamily = listOf("melancholic (adjective)"),
-            notes = "Historically linked to the ancient concept of four bodily humors ('black bile')."
-        )
-        else -> {
-            // High-quality deterministic fallback based on word structure
-            val isEven = word.length % 2 == 0
-            val derivedSynonyms = if (isEven) {
-                listOf("refined", "precise", "remarkable", "cultivated")
-            } else {
-                listOf("vivid", "expressive", "profound", "distinctive")
-            }
-            val derivedAntonyms = if (isEven) {
-                listOf("ordinary", "vague", "commonplace")
-            } else {
-                listOf("superficial", "unremarkable", "plain")
-            }
-            WordDetails(
-                synonyms = derivedSynonyms,
-                antonyms = derivedAntonyms,
-                wordFamily = listOf("${word}ness (noun)", "${word}ly (adverb)"),
-                notes = "This academic term is widely applicable across formal discussion, advanced readings, and literature."
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LearningSessionScreen(navController: NavController) {
@@ -127,14 +63,6 @@ fun LearningSessionScreen(navController: NavController) {
     val fsrsRepo = remember { FsrsRepository() }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val ttsManager = remember { com.example.core.tts.SevenTicksTtsManager(context) }
-    DisposableEffect(Unit) {
-        onDispose {
-            ttsManager.shutdown()
-        }
-    }
 
     // Helpers to convert between CardEntity and FsrsCardModel
     fun CardEntity.toFsrsModel() = FsrsCardModel(
@@ -847,42 +775,23 @@ fun LearningSessionScreen(navController: NavController) {
             }
 
             // 2. High-fidelity Unified Universal Spaced Repetition Flashcard
-            val flashcardData = remember(currentCard, currentWord) {
-                (currentCard to currentWord).toFlashcardData()
+            val wordDetails = remember(currentWord) {
+                currentWord.toWordDetails()
             }
 
-            val flashcardState = remember(flashcardData, isFlipped, circleStates) {
-                FlashCardState(
-                    data = flashcardData,
-                    isFlipped = isFlipped,
-                    circleStates = circleStates
-                )
-            }
-
-            FlashCardWidget(
-                state = flashcardState,
+            com.example.core.ui.components.flashcard.FlashcardScreen(
+                wordDetails = wordDetails,
+                isFlipped = isFlipped,
                 onFlip = {
                     onCardFlip()
                     isFlipped = !isFlipped
                 },
+                onRatingClick = { handleRating(it) },
+                circleStates = circleStates,
+                tikiMessage = engine?.tikiReactionMessage ?: tikiReactionMessage,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .offset(y = cardFloatY.dp)
-                    .padding(vertical = 12.dp),
-                onAgainClick = { handleRating(ReviewRatingModel.AGAIN) },
-                onHardClick = { handleRating(ReviewRatingModel.HARD) },
-                onGoodClick = { handleRating(ReviewRatingModel.GOOD) },
-                onEasyClick = { handleRating(ReviewRatingModel.EASY) },
-                onMoreDetailsClick = { showBottomSheet = true },
-                onPronounceClick = { text, isMale -> ttsManager.speak(text, isMale) }
-            )
-
-            // 3. Unified Global Ticky Mascot Helper Card
-            TickyCard(
-                message = engine?.tikiReactionMessage ?: tikiReactionMessage,
-                sizeDp = 50,
-                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
     }
@@ -901,289 +810,6 @@ fun LearningSessionScreen(navController: NavController) {
             text = { Text("Congratulations! You've leveled up to Level ${level + 1}!", color = Color.White.copy(alpha = 0.8f)) },
             containerColor = Color(0xFF0F1026)
         )
-    }
-
-    // Expandable Linguistic Bottom Sheet Drawer
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheet = false },
-            containerColor = Color(0xFF090D26).copy(alpha = 0.98f),
-            scrimColor = Color.Black.copy(alpha = 0.7f),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Header Line
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = currentWord.word.uppercase(),
-                            color = Color(0xFF00FFD2),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
-                            // Part of Speech
-                            Text(
-                                text = currentWord.partOfSpeech.uppercase(),
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "•",
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 11.sp
-                            )
-                            // CEFR Level
-                            Text(
-                                text = "CEFR ${currentWord.level}",
-                                color = Color(0xFFFFD600),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0x1A00FFD2))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "Linguistic Details",
-                            color = Color(0xFF00FFD2),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
-
-                // Extra context: Topic & Label
-                if (currentWord.topic.isNotEmpty() || currentWord.label.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (currentWord.topic.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0x12FFFFFF))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Topic: ${currentWord.topic}",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        if (currentWord.label.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0x12FFFFFF))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Tag: ${currentWord.label}",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Synonyms Section
-                if (currentWord.synonyms.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Synonyms",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            currentWord.synonyms.take(5).forEach { syn ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x1A00FFD2))
-                                        .border(1.dp, Color(0x3300FFD2), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(text = syn, color = Color(0xFF00FFD2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Antonyms Section
-                if (currentWord.antonyms.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Antonyms",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            currentWord.antonyms.take(5).forEach { ant ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x1AFF1744))
-                                        .border(1.dp, Color(0x33FF1744), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(text = ant, color = Color(0xFFFF1744), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Word Family Section
-                if (currentWord.word_family.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Word Family",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            currentWord.word_family.forEach { fam ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .background(Color(0xFF00FFD2), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = fam, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Collocations Section
-                if (currentWord.collocations.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Collocations",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            currentWord.collocations.forEach { coll ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .background(Color(0xFF00C2FF), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = coll, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Phrases Section
-                if (currentWord.phrases.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Useful Phrases",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            currentWord.phrases.forEach { phrase ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .background(Color(0xFFFFD600), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = phrase, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Notes Section
-                if (currentWord.notes.isNotEmpty()) {
-                    Column {
-                        Text(
-                            text = "Usage Note & Origin",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        currentWord.notes.forEach { note ->
-                            Text(
-                                text = note,
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                modifier = Modifier.padding(top = 6.dp, bottom = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
     }
 }
 
