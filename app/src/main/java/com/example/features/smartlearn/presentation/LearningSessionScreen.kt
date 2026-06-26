@@ -47,8 +47,10 @@ import com.example.core.ui.components.flashcard.FlashCardState
 import com.example.core.learning.*
 import com.example.core.database.CardEntity
 import com.example.core.database.toWordDetails
+import com.example.core.database.WordDetails
 import com.example.core.database.DictWord
 import com.example.core.database.ReviewHistoryEntity
+import com.example.core.database.BoxWordEntity
 import com.example.core.fsrs.FsrsCardModel
 import com.example.core.fsrs.FsrsRepository
 import com.example.core.fsrs.ReviewRatingModel
@@ -58,8 +60,13 @@ import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LearningSessionScreen(navController: NavController) {
+fun LearningSessionScreen(
+    navController: NavController,
+    isBoxSession: Boolean = false,
+    boxId: Int = -1
+) {
     val repo = remember { SevenTicksApplication.instance.userRepository }
+    val boxRepo = remember { SevenTicksApplication.instance.boxRepository }
     val fsrsRepo = remember { FsrsRepository() }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -117,6 +124,8 @@ fun LearningSessionScreen(navController: NavController) {
 
     var currentCardIndex by remember { mutableStateOf(0) }
     var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
+    var boxName by remember { mutableStateOf("Vocab Box") }
+    var boxCards by remember { mutableStateOf<List<BoxWordEntity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isFlipped by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -136,39 +145,74 @@ fun LearningSessionScreen(navController: NavController) {
     var initialReviewLogs by remember { mutableStateOf<List<ReviewHistoryEntity>>(emptyList()) }
 
     // Setup the unified session queue engine dynamically once cards load
-    val engine = remember(loadedCards) {
-        if (loadedCards.isEmpty()) null else {
-            val items = loadedCards.map { (card, word) ->
-                val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
-                val initialCircleStates = List(7) { i ->
-                    if (i < wordReviewHistory.size) {
-                        val ratingVal = wordReviewHistory[i].rating
-                        when (ratingVal) {
-                            4 -> "Green"
-                            3 -> "Blue"
-                            2 -> "Yellow"
-                            else -> "Red"
-                        }
-                    } else "Gray"
+    val engine = remember(loadedCards, boxCards, initialReviewLogs, isBoxSession) {
+        if (isBoxSession) {
+            if (boxCards.isEmpty()) null else {
+                val items = boxCards.map { word ->
+                    val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+                    val initialCircleStates = List(7) { idx ->
+                        if (idx < wordReviewHistory.size) {
+                            when (wordReviewHistory[idx].rating) {
+                                4 -> "Green"
+                                3 -> "Blue"
+                                2 -> "Yellow"
+                                else -> "Red"
+                            }
+                        } else "Gray"
+                    }
+                    StudySessionItem(
+                        id = word.id.toString(),
+                        data = word.toFlashcardData(),
+                        circleStates = initialCircleStates,
+                        payload = word
+                    )
                 }
-                StudySessionItem(
-                    id = card.id.toString(),
-                    data = (card to word).toFlashcardData(),
-                    circleStates = initialCircleStates,
-                    payload = card to word
+                val startIdx = currentCardIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+                val queueManager = SessionQueueManager(items)
+                repeat(startIdx) { queueManager.next() }
+                StudySessionEngine(
+                    queueManager = queueManager,
+                    scope = coroutineScope,
+                    initialStreak = currentStreakCount,
+                    onCorrectHook = { onCorrectAnswer() },
+                    onWrongHook = { onWrongAnswer() },
+                    onSessionFinished = { isSessionCompleted = true }
                 )
             }
-            val startIdx = currentCardIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
-            val queueManager = SessionQueueManager(items)
-            repeat(startIdx) { queueManager.next() }
-            StudySessionEngine(
-                queueManager = queueManager,
-                scope = coroutineScope,
-                initialStreak = currentStreakCount,
-                onCorrectHook = { onCorrectAnswer() },
-                onWrongHook = { onWrongAnswer() },
-                onSessionFinished = { isSessionCompleted = true }
-            )
+        } else {
+            if (loadedCards.isEmpty()) null else {
+                val items = loadedCards.map { (card, word) ->
+                    val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
+                    val initialCircleStates = List(7) { i ->
+                        if (i < wordReviewHistory.size) {
+                            val ratingVal = wordReviewHistory[i].rating
+                            when (ratingVal) {
+                                4 -> "Green"
+                                3 -> "Blue"
+                                2 -> "Yellow"
+                                else -> "Red"
+                            }
+                        } else "Gray"
+                    }
+                    StudySessionItem(
+                        id = card.id.toString(),
+                        data = (card to word).toFlashcardData(),
+                        circleStates = initialCircleStates,
+                        payload = card to word
+                    )
+                }
+                val startIdx = currentCardIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+                val queueManager = SessionQueueManager(items)
+                repeat(startIdx) { queueManager.next() }
+                StudySessionEngine(
+                    queueManager = queueManager,
+                    scope = coroutineScope,
+                    initialStreak = currentStreakCount,
+                    onCorrectHook = { onCorrectAnswer() },
+                    onWrongHook = { onWrongAnswer() },
+                    onSessionFinished = { isSessionCompleted = true }
+                )
+            }
         }
     }
 
@@ -181,28 +225,40 @@ fun LearningSessionScreen(navController: NavController) {
     var temporaryOverlayRating by remember { mutableStateOf("") }
 
     // Load active session card list
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isBoxSession, boxId) {
         isLoading = true
         repo.updateStreakOnActivity()
-        val state = repo.getSessionStateOnce()
         initialReviewLogs = repo.getReviewHistoryOnce()
-        if (state != null && state.active && state.cardIds.isNotEmpty()) {
-            val ids = state.cardIds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }
-            val cardsList = mutableListOf<Pair<CardEntity, DictWord>>()
-            for (id in ids) {
-                val card = repo.getCardById(id)
-                if (card != null) {
-                    val wordDetails = SevenTicksApplication.instance.vocabDatabaseManager.getWordById(card.wordId)
-                    if (wordDetails != null) {
-                        cardsList.add(Pair(card, wordDetails))
-                    }
-                }
+
+        if (isBoxSession) {
+            val box = boxRepo.getCustomBoxById(boxId)
+            if (box != null) {
+                boxName = box.name
             }
-            loadedCards = cardsList
-            currentCardIndex = state.currentIndex.coerceIn(0, (cardsList.size - 1).coerceAtLeast(0))
+            val list = boxRepo.getWordsInCustomBoxOnce(boxId)
+            boxCards = list
+            currentCardIndex = 0
             isLoading = false
         } else {
-            isLoading = false
+            val state = repo.getSessionStateOnce()
+            if (state != null && state.active && state.cardIds.isNotEmpty()) {
+                val ids = state.cardIds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }
+                val cardsList = mutableListOf<Pair<CardEntity, DictWord>>()
+                for (id in ids) {
+                    val card = repo.getCardById(id)
+                    if (card != null) {
+                        val wordDetails = SevenTicksApplication.instance.vocabDatabaseManager.getWordById(card.wordId)
+                        if (wordDetails != null) {
+                            cardsList.add(Pair(card, wordDetails))
+                        }
+                    }
+                }
+                loadedCards = cardsList
+                currentCardIndex = state.currentIndex.coerceIn(0, (cardsList.size - 1).coerceAtLeast(0))
+                isLoading = false
+            } else {
+                isLoading = false
+            }
         }
     }
 
@@ -252,7 +308,7 @@ fun LearningSessionScreen(navController: NavController) {
         return
     }
 
-    if (loadedCards.isEmpty()) {
+    if (if (isBoxSession) boxCards.isEmpty() else loadedCards.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -266,7 +322,7 @@ fun LearningSessionScreen(navController: NavController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "No active session found.",
+                        text = if (isBoxSession) "No terms inside this box yet." else "No active session found.",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -550,31 +606,48 @@ fun LearningSessionScreen(navController: NavController) {
         return
     }
 
-    val activeItem = currentItem ?: if (loadedCards.isNotEmpty()) {
-        val wordReviewHistory = initialReviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
-        val initialCircleStates = List(7) { i ->
-            if (i < wordReviewHistory.size) {
-                val ratingVal = wordReviewHistory[i].rating
-                when (ratingVal) {
-                    4 -> "Green"
-                    3 -> "Blue"
-                    2 -> "Yellow"
-                    else -> "Red"
-                }
-            } else "Gray"
-        }
-        StudySessionItem(
-            id = loadedCards.first().first.id.toString(),
-            data = (loadedCards.first().first to loadedCards.first().second).toFlashcardData(),
-            circleStates = initialCircleStates,
-            payload = loadedCards.first()
-        )
-    } else null
-
-    val (currentCard, currentWord) = activeItem?.payload as? Pair<CardEntity, DictWord> ?: if (loadedCards.isNotEmpty()) {
-        loadedCards.first()
+    val activeItem = currentItem ?: if (isBoxSession) {
+        if (boxCards.isNotEmpty()) {
+            val word = boxCards.first()
+            val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+            val initialCircleStates = List(7) { idx ->
+                if (idx < wordReviewHistory.size) {
+                    when (wordReviewHistory[idx].rating) {
+                        4 -> "Green"
+                        3 -> "Blue"
+                        2 -> "Yellow"
+                        else -> "Red"
+                    }
+                } else "Gray"
+            }
+            StudySessionItem(
+                id = word.id.toString(),
+                data = word.toFlashcardData(),
+                circleStates = initialCircleStates,
+                payload = word
+            )
+        } else null
     } else {
-        CardEntity(wordId = 0, word = "") to DictWord(0, "", "", "", "", "", "", "")
+        if (loadedCards.isNotEmpty()) {
+            val wordReviewHistory = initialReviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
+            val initialCircleStates = List(7) { i ->
+                if (i < wordReviewHistory.size) {
+                    val ratingVal = wordReviewHistory[i].rating
+                    when (ratingVal) {
+                        4 -> "Green"
+                        3 -> "Blue"
+                        2 -> "Yellow"
+                        else -> "Red"
+                    }
+                } else "Gray"
+            }
+            StudySessionItem(
+                id = loadedCards.first().first.id.toString(),
+                data = (loadedCards.first().first to loadedCards.first().second).toFlashcardData(),
+                circleStates = initialCircleStates,
+                payload = loadedCards.first()
+            )
+        } else null
     }
 
     // Active review states calculated on the fly
@@ -582,16 +655,21 @@ fun LearningSessionScreen(navController: NavController) {
         val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
         baseCircles.count { it != "Gray" }.coerceAtMost(6)
     }
-    val circleStates = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
-        val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
-        val overlayIdx = engine?.temporaryOverlayIndex ?: -1
-        val overlayRating = engine?.temporaryOverlayRating ?: ""
-        if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
-            baseCircles.toMutableList().apply {
-                this[overlayIdx] = overlayRating
-            }
+    val circleStatesToShow = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating, isBoxSession) {
+        if (isBoxSession) {
+            // "هفت دایره بالی اسکرین برداشته بشه" -> Remove progress circles in custom box reviews
+            null
         } else {
-            baseCircles
+            val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
+            val overlayIdx = engine?.temporaryOverlayIndex ?: -1
+            val overlayRating = engine?.temporaryOverlayRating ?: ""
+            if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
+                baseCircles.toMutableList().apply {
+                    this[overlayIdx] = overlayRating
+                }
+            } else {
+                baseCircles
+            }
         }
     }
 
@@ -599,51 +677,78 @@ fun LearningSessionScreen(navController: NavController) {
     fun handleRating(rating: ReviewRatingModel) {
         val activeEngine = engine ?: return
         val item = activeItem ?: return
-        val (card, word) = item.payload as? Pair<CardEntity, DictWord> ?: return
-
-        val xpAmount = when (rating) {
-            ReviewRatingModel.AGAIN -> 5
-            ReviewRatingModel.HARD -> 10
-            ReviewRatingModel.GOOD -> 15
-            ReviewRatingModel.EASY -> 20
-        }
 
         // Instantly reset flip state and update UI parameters
         isFlipped = false
 
-        activeEngine.submitRating(
-            rating = rating,
-            currentCircleIndex = currentCircleIndex,
-            xpAmount = xpAmount,
-            onSaveDb = {
-                coroutineScope.launch {
-                    val leveledUp = repo.reviewCard(
-                        cardId = card.id,
-                        isBoxWord = false,
-                        rating = rating
-                    )
-                    if (leveledUp) {
-                        showLeveledUpDialog = true
-                    }
-
-                    // Update session state in database
-                    val nextIdx = (engine?.queueManager?.currentIndex?.value ?: 0) + 1
-                    if (nextIdx < loadedCards.size) {
-                        repo.updateSessionState(
-                            active = true,
-                            cardIds = loadedCards.map { it.first.id },
-                            currentIndex = nextIdx
+        if (isBoxSession) {
+            val boxWord = item.payload as? BoxWordEntity ?: return
+            
+            activeEngine.submitRating(
+                rating = rating,
+                currentCircleIndex = (boxWord.boxIndex - 1).coerceIn(0, 6),
+                xpAmount = when (rating) {
+                    ReviewRatingModel.AGAIN -> 5
+                    ReviewRatingModel.HARD -> 10
+                    ReviewRatingModel.GOOD -> 15
+                    ReviewRatingModel.EASY -> 20
+                },
+                onSaveDb = {
+                    coroutineScope.launch {
+                        val leveledUp = repo.reviewCard(
+                            cardId = boxWord.id,
+                            isBoxWord = true,
+                            rating = rating
                         )
-                    } else {
-                        repo.updateSessionState(
-                            active = false,
-                            cardIds = emptyList(),
-                            currentIndex = 0
-                        )
+                        if (leveledUp) {
+                            showLeveledUpDialog = true
+                        }
                     }
                 }
+            )
+        } else {
+            val (card, word) = item.payload as? Pair<CardEntity, DictWord> ?: return
+            val xpAmount = when (rating) {
+                ReviewRatingModel.AGAIN -> 5
+                ReviewRatingModel.HARD -> 10
+                ReviewRatingModel.GOOD -> 15
+                ReviewRatingModel.EASY -> 20
             }
-        )
+
+            activeEngine.submitRating(
+                rating = rating,
+                currentCircleIndex = currentCircleIndex,
+                xpAmount = xpAmount,
+                onSaveDb = {
+                    coroutineScope.launch {
+                        val leveledUp = repo.reviewCard(
+                            cardId = card.id,
+                            isBoxWord = false,
+                            rating = rating
+                        )
+                        if (leveledUp) {
+                            showLeveledUpDialog = true
+                        }
+
+                        // Update session state in database
+                        val nextIdx = (engine?.queueManager?.currentIndex?.value ?: 0) + 1
+                        if (nextIdx < loadedCards.size) {
+                            repo.updateSessionState(
+                                active = true,
+                                cardIds = loadedCards.map { it.first.id },
+                                currentIndex = nextIdx
+                            )
+                        } else {
+                            repo.updateSessionState(
+                                active = false,
+                                cardIds = emptyList(),
+                                currentIndex = 0
+                            )
+                        }
+                    }
+                }
+            )
+        }
     }
 
     // Camera 3D rotation rotation angle
@@ -661,7 +766,7 @@ fun LearningSessionScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Smart Learn Session",
+                        text = if (isBoxSession) boxName else "Smart Learn Session",
                         color = Color.White,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
@@ -709,14 +814,17 @@ fun LearningSessionScreen(navController: NavController) {
                         fontSize = 12.sp
                     )
                     Text(
-                        text = "Card ${activeIndex + 1} of ${loadedCards.size}",
+                        text = "Card ${activeIndex + 1} of ${if (isBoxSession) boxCards.size else loadedCards.size}",
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { if (loadedCards.isNotEmpty()) (activeIndex + 1).toFloat() / loadedCards.size.toFloat() else 0f },
+                    progress = {
+                        val total = if (isBoxSession) boxCards.size else loadedCards.size
+                        if (total > 0) (activeIndex + 1).toFloat() / total.toFloat() else 0f
+                    },
                     color = Color(0xFF00FFD2),
                     trackColor = Color(0x1AFFFFFF),
                     modifier = Modifier
@@ -725,58 +833,65 @@ fun LearningSessionScreen(navController: NavController) {
                         .clip(RoundedCornerShape(3.dp))
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (!isBoxSession) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // State Breakdown Badges
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val newCount = loadedCards.count { it.first.state == 0 }
-                    val learnCount = loadedCards.count { it.first.state == 1 }
-                    val relearnCount = loadedCards.count { it.first.state == 3 }
-                    val dueCount = loadedCards.count { it.first.state == 2 }
+                    // State Breakdown Badges
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val newCount = loadedCards.count { it.first.state == 0 }
+                        val learnCount = loadedCards.count { it.first.state == 1 }
+                        val relearnCount = loadedCards.count { it.first.state == 3 }
+                        val dueCount = loadedCards.count { it.first.state == 2 }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E5FF)))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E5FF)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFFEA00)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFF9100)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E676)))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFFEA00)))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFF9100)))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E676)))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                    }
-                }
 
-                // Upcoming Cards Preview
-                val nextCards = loadedCards.drop(activeIndex + 1).take(2)
-                if (nextCards.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Next: " + nextCards.joinToString(", ") { it.second.word },
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 11.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
+                    // Upcoming Cards Preview
+                    val nextCards = loadedCards.drop(activeIndex + 1).take(2)
+                    if (nextCards.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Next: " + nextCards.joinToString(", ") { it.second.word },
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 11.sp,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
 
             // 2. High-fidelity Unified Universal Spaced Repetition Flashcard
-            val wordDetails = remember(currentWord) {
-                currentWord.toWordDetails()
+            val wordDetails = remember(activeItem, isBoxSession) {
+                if (isBoxSession) {
+                    (activeItem?.payload as? BoxWordEntity)?.toWordDetails() ?: WordDetails(word = "", level = "", phonetics = "", definitions = emptyList(), translations = emptyList(), examples = emptyList(), exampleTranslations = emptyList(), synonyms = emptyList(), antonyms = emptyList(), wordFamily = emptyList(), collocations = emptyList(), phrases = emptyList(), notes = emptyList(), types = emptyList(), topics = emptyList())
+                } else {
+                    val pair = activeItem?.payload as? Pair<CardEntity, DictWord>
+                    pair?.second?.toWordDetails() ?: WordDetails(word = "", level = "", phonetics = "", definitions = emptyList(), translations = emptyList(), examples = emptyList(), exampleTranslations = emptyList(), synonyms = emptyList(), antonyms = emptyList(), wordFamily = emptyList(), collocations = emptyList(), phrases = emptyList(), notes = emptyList(), types = emptyList(), topics = emptyList())
+                }
             }
 
             com.example.core.ui.components.flashcard.FlashcardScreen(
@@ -787,7 +902,7 @@ fun LearningSessionScreen(navController: NavController) {
                     isFlipped = !isFlipped
                 },
                 onRatingClick = { handleRating(it) },
-                circleStates = circleStates,
+                circleStates = circleStatesToShow,
                 tikiMessage = engine?.tikiReactionMessage ?: tikiReactionMessage,
                 modifier = Modifier
                     .weight(1f)

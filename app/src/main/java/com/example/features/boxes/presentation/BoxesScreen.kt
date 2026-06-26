@@ -72,7 +72,7 @@ sealed class BoxesSubScreen {
 }
 
 @Composable
-fun BoxesScreen() {
+fun BoxesScreen(navController: androidx.navigation.NavController? = null) {
     var currentSubScreen by remember { mutableStateOf<BoxesSubScreen>(BoxesSubScreen.Dashboard) }
     val backstack = remember { mutableStateListOf<BoxesSubScreen>() }
 
@@ -137,10 +137,12 @@ fun BoxesScreen() {
                 )
             }
             is BoxesSubScreen.BoxStudy -> {
-                BoxStudyScreen(
-                    boxId = screen.boxId,
-                    onBack = { navigateBack() }
-                )
+                LaunchedEffect(screen.boxId) {
+                    val route = com.example.core.navigation.Screen.LearningSession.createRoute(isBoxSession = true, boxId = screen.boxId)
+                    navController?.navigate(route)
+                    navigateBack()
+                }
+                Box(modifier = Modifier.fillMaxSize())
             }
             is BoxesSubScreen.ImportBackup -> {
                 ImportBackupScreen(

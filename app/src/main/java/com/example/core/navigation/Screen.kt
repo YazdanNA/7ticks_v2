@@ -4,7 +4,11 @@ sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Onboarding : Screen("onboarding")
     object Main : Screen("main")
-    object LearningSession : Screen("learning_session")
+    object LearningSession : Screen("learning_session?isBoxSession={isBoxSession}&boxId={boxId}") {
+        fun createRoute(isBoxSession: Boolean, boxId: Int): String {
+            return "learning_session?isBoxSession=$isBoxSession&boxId=$boxId"
+        }
+    }
     object Dictionary : Screen("dictionary")
 }
 

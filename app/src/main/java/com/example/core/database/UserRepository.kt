@@ -712,14 +712,9 @@ class UserRepository @Inject constructor(
             // FSRS calculate
             val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
 
-            // SevenTicks progression logic
+            // SevenTicks progression logic (For custom box words under FSRS-only mode, Leitner box indices are ignored/constant)
             val currentBoxIndex = boxWord.boxIndex
-            val nextBoxIndex = when (rating) {
-                com.example.core.fsrs.ReviewRatingModel.AGAIN -> 1
-                com.example.core.fsrs.ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
-                com.example.core.fsrs.ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
-                com.example.core.fsrs.ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
-            }
+            val nextBoxIndex = currentBoxIndex
 
             val updatedBoxWord = boxWord.copy(
                 boxIndex = nextBoxIndex,

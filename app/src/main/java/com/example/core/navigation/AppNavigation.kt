@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.example.features.analysis.presentation.AnalysisScreen
 import com.example.features.boxes.presentation.BoxesScreen
 import com.example.features.dictionary.presentation.DictionaryScreen
@@ -49,8 +51,26 @@ fun AppNavigation() {
         composable(Screen.Main.route) {
             MainScreen(navController = navController)
         }
-        composable(Screen.LearningSession.route) {
-            LearningSessionScreen(navController = navController)
+        composable(
+            route = Screen.LearningSession.route,
+            arguments = listOf(
+                navArgument("isBoxSession") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+                navArgument("boxId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val isBoxSession = backStackEntry.arguments?.getBoolean("isBoxSession") ?: false
+            val boxId = backStackEntry.arguments?.getInt("boxId") ?: -1
+            LearningSessionScreen(
+                navController = navController,
+                isBoxSession = isBoxSession,
+                boxId = boxId
+            )
         }
         composable(Screen.Dictionary.route) {
             // Accessible directly if navigated
@@ -210,7 +230,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         ) { targetTab ->
                             when (targetTab) {
                                 TabScreen.SmartLearn -> SmartLearnScreen(navController = navController)
-                                TabScreen.Boxes -> BoxesScreen()
+                                TabScreen.Boxes -> BoxesScreen(navController = navController)
                                 TabScreen.Analysis -> AnalysisScreen()
                                 TabScreen.Profile -> ProfileScreen()
                             }
