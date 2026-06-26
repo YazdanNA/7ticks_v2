@@ -14,14 +14,33 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 data class DictWord(
-    val id: Int,
-    val word: String,
-    val phonetics: String,
-    val definition: String,
-    val faDefinition: String,
-    val example: String,
-    val partOfSpeech: String,
-    val level: String
+    val id: Int = 0,
+    val word: String = "",
+    val phonetics: String = "",
+    val definition: String = "",
+    val faDefinition: String = "",
+    val example: String = "",
+    val partOfSpeech: String = "Noun",
+    val level: String = "A1",
+    
+    // Real JSON structure and detailed fields
+    val phonetics_us: String = "",
+    val phonetics_uk: String = "",
+    val sense_id: String = "1",
+    val type: String = "Noun",
+    val label: String = "General",
+    val topic: String = "General",
+    val definition_en: String = "",
+    val definition_fa: String = "",
+    val translations: List<String> = emptyList(),
+    val examples_en: List<String> = emptyList(),
+    val examples_fa: List<String> = emptyList(),
+    val synonyms: List<String> = emptyList(),
+    val antonyms: List<String> = emptyList(),
+    val word_family: List<String> = emptyList(),
+    val collocations: List<String> = emptyList(),
+    val phrases: List<String> = emptyList(),
+    val notes: List<String> = emptyList()
 )
 
 @Singleton
@@ -366,14 +385,56 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         return result
     }
 
+    private fun getStringOrEmpty(cursor: Cursor, columns: List<String>, vararg names: String): String {
+        for (name in names) {
+            val col = columns.find { it.equals(name, ignoreCase = true) }
+            if (col != null) {
+                val idx = cursor.getColumnIndex(col)
+                if (idx != -1) {
+                    val raw = cursor.getString(idx)
+                    if (raw != null) return raw
+                }
+            }
+        }
+        return ""
+    }
+
+    private fun getListOrEmpty(cursor: Cursor, columns: List<String>, vararg names: String): List<String> {
+        for (name in names) {
+            val col = columns.find { it.equals(name, ignoreCase = true) }
+            if (col != null) {
+                val idx = cursor.getColumnIndex(col)
+                if (idx != -1) {
+                    val raw = cursor.getString(idx)
+                    if (raw != null && raw.isNotEmpty()) {
+                        return parseJsonOrList(raw)
+                    }
+                }
+            }
+        }
+        return emptyList()
+    }
+
+    private fun parseJsonOrList(raw: String): List<String> {
+        val trimmed = raw.trim()
+        if (trimmed.startsWith("[")) {
+            try {
+                val array = org.json.JSONArray(trimmed)
+                val list = mutableListOf<String>()
+                for (i in 0 until array.length()) {
+                    list.add(array.getString(i))
+                }
+                return list
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+        return trimmed.split(Regex("[,;|\\n]")).map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
     private fun mapCursorToDictWord(cursor: Cursor, columns: List<String>): DictWord {
         val idCol = columns.find { it.equals("id", ignoreCase = true) || it.equals("key", ignoreCase = true) } ?: columns.firstOrNull() ?: ""
         val wordCol = columns.find { it.equals("word", ignoreCase = true) || it.contains("term", ignoreCase = true) } ?: columns.firstOrNull() ?: ""
-        val defCol = columns.find { it.equals("definition", ignoreCase = true) || it.contains("meaning", ignoreCase = true) } ?: ""
-        val faDefCol = columns.find { it.equals("fa_definition", ignoreCase = true) || it.equals("faDefinition", ignoreCase = true) || it.contains("farsi", ignoreCase = true) || it.contains("persian", ignoreCase = true) } ?: ""
-        val phoneticCol = columns.find { it.equals("phonetics", ignoreCase = true) || it.equals("phonetic", ignoreCase = true) || it.contains("pron", ignoreCase = true) } ?: ""
-        val posCol = columns.find { it.equals("part_of_speech", ignoreCase = true) || it.equals("partOfSpeech", ignoreCase = true) || it.equals("pos", ignoreCase = true) } ?: ""
-        val exampleCol = columns.find { it.equals("example", ignoreCase = true) || it.contains("sample", ignoreCase = true) || it.contains("sentence", ignoreCase = true) } ?: ""
         val levelCol = columns.find { it.equals("level", ignoreCase = true) || it.contains("difficulty", ignoreCase = true) } ?: ""
 
         val idVal = if (idCol.isNotEmpty()) {
@@ -383,48 +444,64 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
 
         val wordVal = if (wordCol.isNotEmpty()) {
             val idx = cursor.getColumnIndex(wordCol)
-            if (idx != -1) cursor.getString(idx) else ""
-        } else ""
-
-        val defVal = if (defCol.isNotEmpty()) {
-            val idx = cursor.getColumnIndex(defCol)
-            if (idx != -1) cursor.getString(idx) else ""
-        } else ""
-
-        val faDefVal = if (faDefCol.isNotEmpty()) {
-            val idx = cursor.getColumnIndex(faDefCol)
-            if (idx != -1) cursor.getString(idx) else ""
-        } else ""
-
-        val phoneticVal = if (phoneticCol.isNotEmpty()) {
-            val idx = cursor.getColumnIndex(phoneticCol)
-            if (idx != -1) cursor.getString(idx) else ""
-        } else ""
-
-        val posVal = if (posCol.isNotEmpty()) {
-            val idx = cursor.getColumnIndex(posCol)
-            if (idx != -1) cursor.getString(idx) else "Noun"
-        } else "Noun"
-
-        val exampleVal = if (exampleCol.isNotEmpty()) {
-            val idx = cursor.getColumnIndex(exampleCol)
-            if (idx != -1) cursor.getString(idx) else ""
+            if (idx != -1) cursor.getString(idx) ?: "" else ""
         } else ""
 
         val levelVal = if (levelCol.isNotEmpty()) {
             val idx = cursor.getColumnIndex(levelCol)
-            if (idx != -1) cursor.getString(idx) else "A1"
+            if (idx != -1) cursor.getString(idx) ?: "A1" else "A1"
         } else "A1"
+
+        // Real production SQLite database mapping
+        val phoneticsUs = getStringOrEmpty(cursor, columns, "phonetics_us", "phonetic_us", "us_phonetic", "phonetics", "phonetic")
+        val phoneticsUk = getStringOrEmpty(cursor, columns, "phonetics_uk", "phonetic_uk", "uk_phonetic")
+        val senseId = getStringOrEmpty(cursor, columns, "sense_id", "senseId")
+        val type = getStringOrEmpty(cursor, columns, "type", "part_of_speech", "partOfSpeech", "pos")
+        val label = getStringOrEmpty(cursor, columns, "label", "tag")
+        val topic = getStringOrEmpty(cursor, columns, "topic", "category")
+        val definitionEn = getStringOrEmpty(cursor, columns, "definition_en", "definitions_json", "definition", "definitions")
+        val definitionFa = getStringOrEmpty(cursor, columns, "definition_fa", "translations_json", "fa_definition", "faDefinition", "meaning", "meanings")
+
+        val translations = getListOrEmpty(cursor, columns, "translations_json", "translations", "meaning", "meanings")
+        val examplesEn = getListOrEmpty(cursor, columns, "examples_json", "examples_en", "examples", "example")
+        val examplesFa = getListOrEmpty(cursor, columns, "example_translations_json", "examples_fa", "example_translation")
+        val synonyms = getListOrEmpty(cursor, columns, "synonyms_json", "synonyms", "synonym")
+        val antonyms = getListOrEmpty(cursor, columns, "antonyms_json", "antonyms", "antonym")
+        val wordFamily = getListOrEmpty(cursor, columns, "word_family_json", "word_family", "wordFamily")
+        val collocations = getListOrEmpty(cursor, columns, "collocations_json", "collocations")
+        val phrases = getListOrEmpty(cursor, columns, "phrases_json", "phrases")
+        val notes = getListOrEmpty(cursor, columns, "notes_json", "notes")
+
+        // Map to backward-compatible fields
+        val firstEx = examplesEn.firstOrNull() ?: ""
+        val posClean = if (type.isNotEmpty()) type else "Noun"
 
         return DictWord(
             id = idVal,
             word = wordVal,
-            phonetics = phoneticVal,
-            definition = defVal,
-            faDefinition = faDefVal,
-            example = exampleVal,
-            partOfSpeech = posVal,
-            level = levelVal ?: "A1"
+            phonetics = if (phoneticsUs.isNotEmpty()) phoneticsUs else "N/A",
+            definition = if (definitionEn.isNotEmpty()) definitionEn else "No english definition",
+            faDefinition = if (definitionFa.isNotEmpty()) definitionFa else "No Persian translation",
+            example = firstEx,
+            partOfSpeech = posClean,
+            level = levelVal,
+            phonetics_us = phoneticsUs,
+            phonetics_uk = phoneticsUk,
+            sense_id = if (senseId.isNotEmpty()) senseId else "1",
+            type = posClean,
+            label = label,
+            topic = topic,
+            definition_en = definitionEn,
+            definition_fa = definitionFa,
+            translations = translations,
+            examples_en = examplesEn,
+            examples_fa = examplesFa,
+            synonyms = synonyms,
+            antonyms = antonyms,
+            word_family = wordFamily,
+            collocations = collocations,
+            phrases = phrases,
+            notes = notes
         )
     }
 }

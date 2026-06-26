@@ -22,7 +22,6 @@ sealed class SetupStep {
     object Validating : SetupStep()
     object Indexing : SetupStep()
     object InitializingUserDb : SetupStep()
-    object PreparingLearnEngine : SetupStep()
     object Finalizing : SetupStep()
     data class Success(val message: String) : SetupStep()
     data class Failure(val error: String) : SetupStep()
@@ -134,12 +133,7 @@ class UserRepository @Inject constructor(
         delay(800)
         initializeUserDataProfile()
 
-        // Step 5: Preparing Smart Learn
-        emit(SetupStep.PreparingLearnEngine)
-        delay(800)
-        prepareSmartLearnEngine()
-
-        // Step 6: Finalizing Setup
+        // Step 5: Finalizing Setup
         emit(SetupStep.Finalizing)
         delay(600)
 
@@ -342,11 +336,7 @@ class UserRepository @Inject constructor(
         userDao.insertChallenges(defaultChallenges)
     }
 
-    suspend fun prepareSmartLearnEngine() = withContext(Dispatchers.IO) {
-        // Under refactored architecture, automatic pre-population is removed.
-        // Smart Learn is the sole authority for creating new cards on-demand.
-        Log.d("UserRepository", "prepareSmartLearnEngine: Automatic card pre-population is disabled.")
-    }
+
 
     // Award XP and handle leveling up
     suspend fun awardXp(amount: Int, category: String = "learning"): Boolean = withContext(Dispatchers.IO) {
@@ -548,16 +538,7 @@ class UserRepository @Inject constructor(
         val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
 
         levels.map { levelStr ->
-            val dbCount = vocabDbManager.getWordCountByLevels(listOf(levelStr))
-            val totalInLevel = if (dbCount > 0) dbCount else when (levelStr) {
-                "A1" -> 150
-                "A2" -> 200
-                "B1" -> 250
-                "B2" -> 300
-                "C1" -> 350
-                "C2" -> 400
-                else -> 200
-            }
+            val totalInLevel = vocabDbManager.getWordCountByLevels(listOf(levelStr)).coerceAtLeast(1)
 
             // Filter cards belonging to this CEFR level
             val levelCards = allCards.filter { card ->
@@ -568,9 +549,26 @@ class UserRepository @Inject constructor(
             val levelWordIds = levelCards.map { it.wordId }.toSet()
             val levelLogs = allLogs.filter { levelWordIds.contains(it.wordId) }
 
-            // SevenTicks definitions: 3 Ticks = Learned, 7 Ticks = Mastered
-            val wordsLearned = levelCards.count { it.boxIndex >= 3 }
-            val wordsRetained = levelCards.count { it.boxIndex >= 7 }
+            // Weighted Mastery System: Green = 1.0, Blue = 0.8, Yellow = 0.4
+            // 5 Green (5.0) ranks higher than 3 Green + 2 Blue (4.6)
+            val cardScores = levelCards.associate { card ->
+                val cardLogs = levelLogs.filter { it.wordId == card.wordId }
+                val greenTicks = cardLogs.count { it.rating == 3 }
+                val yellowTicks = cardLogs.count { it.rating == 2 }
+                val blueTicks = cardLogs.count { it.rating == 4 }
+                val score = greenTicks * 1.0f + blueTicks * 0.8f + yellowTicks * 0.4f
+                card.wordId to score
+            }
+
+            // SevenTicks definitions: score >= 3.0 = Learned, score >= 5.0 = Mastered
+            val wordsLearned = levelCards.count { card ->
+                val score = cardScores[card.wordId] ?: 0.0f
+                score >= 3.0f
+            }
+            val wordsRetained = levelCards.count { card ->
+                val score = cardScores[card.wordId] ?: 0.0f
+                score >= 5.0f
+            }
 
             val reviewAccuracy = if (levelLogs.isEmpty()) {
                 0.0f
@@ -579,7 +577,7 @@ class UserRepository @Inject constructor(
                 successful.toFloat() / levelLogs.size.toFloat()
             }
 
-            // Mastery percentage is defined as the ratio of words that have reached at least 3 Ticks (Learned)
+            // Mastery percentage is defined as the ratio of words that have reached Learned (>= 3.0 weighted score)
             val masteryPercentage = (wordsLearned.toFloat() / totalInLevel.toFloat()).coerceIn(0.0f, 1.0f)
 
             val levelInt = when (levelStr) {
@@ -618,29 +616,30 @@ class UserRepository @Inject constructor(
         val currentLevelStr = getLevelString(currentLevelInt)
         
         // Find total words in this level from vocabulary database
-        val dbCount = vocabDbManager.getWordCountByLevels(listOf(currentLevelStr))
-        val totalInLevel = if (dbCount > 0) dbCount else when (currentLevelStr) {
-            "A1" -> 150
-            "A2" -> 200
-            "B1" -> 250
-            "B2" -> 300
-            "C1" -> 350
-            "C2" -> 400
-            else -> 200
-        }
+        val totalWordsInLevel = vocabDbManager.getWordCountByLevels(listOf(currentLevelStr))
+        if (totalWordsInLevel <= 0) return@withContext false
 
         // Filter local cards belonging to this CEFR level
         val allCards = userDao.getAllCardsOnce()
+        val allLogs = userDao.getReviewHistoryOnce()
+        
         val levelCards = allCards.filter { card ->
             val cachedLevel = vocabDbManager.getWordById(card.wordId)?.level ?: "A1"
             cachedLevel.equals(currentLevelStr, ignoreCase = true)
         }
 
-        // Count how many cards in this level have boxIndex >= 3 (Learned state / >= 3 Ticks)
-        val learnedCount = levelCards.count { it.boxIndex >= 3 }
+        // Count how many cards in this level have a weighted score >= 3.0
+        val learnedCount = levelCards.count { card ->
+            val cardLogs = allLogs.filter { it.wordId == card.wordId }
+            val greenTicks = cardLogs.count { it.rating == 3 }
+            val yellowTicks = cardLogs.count { it.rating == 2 }
+            val blueTicks = cardLogs.count { it.rating == 4 }
+            val score = greenTicks * 1.0f + blueTicks * 0.8f + yellowTicks * 0.4f
+            score >= 3.0f
+        }
 
-        // Promotion Rule: 90% of words in current level must have reached >= 3 Ticks (Learned)
-        val requiredLearned = (totalInLevel * 0.9).toInt()
+        // Promotion Rule: 90% of words in entire vocabulary database for this level
+        val requiredLearned = kotlin.math.ceil(totalWordsInLevel * 0.90).toInt()
 
         if (learnedCount >= requiredLearned) {
             val nextLevelInt = currentLevelInt + 1

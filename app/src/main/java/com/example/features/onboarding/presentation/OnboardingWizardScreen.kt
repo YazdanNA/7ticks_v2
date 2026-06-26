@@ -1617,12 +1617,11 @@ fun OnboardingSetupView(
                     }
                 }
             }
-            SetupStep.Validating, SetupStep.Indexing, SetupStep.InitializingUserDb, SetupStep.PreparingLearnEngine, SetupStep.Finalizing -> {
+            SetupStep.Validating, SetupStep.Indexing, SetupStep.InitializingUserDb, SetupStep.Finalizing -> {
                 val label = when (setupState) {
                     SetupStep.Validating -> "Getting everything ready..."
                     SetupStep.Indexing -> "Preparing search indices..."
                     SetupStep.InitializingUserDb -> "Initializing profile indices..."
-                    SetupStep.PreparingLearnEngine -> "Preparing Smart Learn..."
                     else -> "Finishing details..."
                 }
                 StaggeredItem(index = 0, totalItems = 1, isExiting = isExiting) {

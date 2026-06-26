@@ -771,14 +771,14 @@ fun LearningSessionScreen(navController: NavController) {
                         fontSize = 12.sp
                     )
                     Text(
-                        text = "Remaining: ${loadedCards.size - activeIndex}",
+                        text = "Card ${activeIndex + 1} of ${loadedCards.size}",
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { (activeIndex + 1).toFloat() / loadedCards.size.toFloat() },
+                    progress = { if (loadedCards.isNotEmpty()) (activeIndex + 1).toFloat() / loadedCards.size.toFloat() else 0f },
                     color = Color(0xFF00FFD2),
                     trackColor = Color(0x1AFFFFFF),
                     modifier = Modifier
@@ -786,6 +786,54 @@ fun LearningSessionScreen(navController: NavController) {
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp))
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // State Breakdown Badges
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val newCount = loadedCards.count { it.first.state == 0 }
+                    val learnCount = loadedCards.count { it.first.state == 1 }
+                    val relearnCount = loadedCards.count { it.first.state == 3 }
+                    val dueCount = loadedCards.count { it.first.state == 2 }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E5FF)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFFEA00)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFF9100)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E676)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    }
+                }
+
+                // Upcoming Cards Preview
+                val nextCards = loadedCards.drop(activeIndex + 1).take(2)
+                if (nextCards.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Next: " + nextCards.joinToString(", ") { it.second.word },
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 11.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
             }
 
             // 2. High-fidelity Unified Universal Spaced Repetition Flashcard

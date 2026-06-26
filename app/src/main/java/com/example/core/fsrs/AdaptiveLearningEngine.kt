@@ -277,47 +277,37 @@ class AdaptiveLearningEngine {
     }
 
     /**
-     * Sorts cards according to spaced repetition priority rules:
-     * 1. Due reviews: sorted by overdue ratio (currentTime - dueDate) / stability
-     * 2. Learning cards: active reviews, high priority to keep them in focus
-     * 3. New cards: never reviewed
-     * 4. Frequently forgotten / Weak words: high lapses, high difficulty
+     * Sorts cards according to spaced repetition priority rules using a strict tier-based priority queue:
+     * - Tier 1: Overdue Reviews (sorted by overdueRatio descending)
+     * - Tier 2: Learning Cards (sorted by elapsed days/time since last review ascending)
+     * - Tier 3: Relearning Cards (sorted by difficulty descending)
+     * - Tier 4: New Cards (sorted by word ID ascending)
      */
     fun prioritizeCards(
         cards: List<CardEntity>,
         currentTime: Long
     ): List<CardEntity> {
-        return cards.sortedWith { c1, c2 ->
-            val score1 = calculatePriorityScore(c1, currentTime)
-            val score2 = calculatePriorityScore(c2, currentTime)
-            score2.compareTo(score1) // descending order of priority score
-        }
-    }
+        val tier1 = cards.filter { it.state == 2 && it.dueDate <= currentTime }
+            .sortedByDescending { card ->
+                val delay = (currentTime - card.dueDate).toDouble()
+                val stabilityFactor = if (card.stability > 0.0) card.stability else 0.1
+                delay / stabilityFactor
+            }
 
-    private fun calculatePriorityScore(card: CardEntity, currentTime: Long): Double {
-        var score = 0.0
+        val tier2 = cards.filter { it.state == 1 }
+            .sortedBy { it.lastReviewed }
 
-        // 1. Overdue Review Priority
-        if (card.dueDate <= currentTime && card.reps > 0) {
-            score += 1000.0
-            val delay = (currentTime - card.dueDate).toDouble() / (24.0 * 60.0 * 60.0 * 1000.0)
-            val stabilityFactor = max(card.stability, 0.1)
-            // Cards that are very overdue relative to their stability need urgent reviews
-            score += (delay / stabilityFactor) * 100.0
-        }
+        val tier3 = cards.filter { it.state == 3 }
+            .sortedByDescending { it.difficulty }
 
-        // 2. State Priority
-        when (card.state) {
-            1, 3 -> score += 500.0 // Learning/Relearning states take priority over purely new words
-            2 -> if (card.dueDate <= currentTime) score += 300.0 // Active reviews
-            0 -> score += 100.0 // New words
-        }
+        val tier4 = cards.filter { it.state == 0 }
+            .sortedBy { it.wordId }
 
-        // 3. Weakness / Forgotten factor
-        // Penalize or highlight frequently forgotten words
-        score += card.lapses * 50.0
-        score += card.difficulty * 10.0
+        // Any other cards (e.g. non-due review cards)
+        val remaining = cards.filter { card ->
+            card !in tier1 && card !in tier2 && card !in tier3 && card !in tier4
+        }.sortedBy { it.dueDate }
 
-        return score
+        return tier1 + tier2 + tier3 + tier4 + remaining
     }
 }
