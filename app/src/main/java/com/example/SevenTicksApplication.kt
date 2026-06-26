@@ -39,7 +39,12 @@ class SevenTicksApplication : Application() {
         preferencesManager = PreferencesManager(this)
         vocabDatabaseManager = VocabularyDatabaseManager(this)
         userDatabase = UserDatabase.getDatabase(this)
-        userRepository = UserRepository(this, userDatabase.userDao(), vocabDatabaseManager, preferencesManager)
+        val smartSessionEngine = com.example.core.learning.engine.SmartSessionEngine(
+            userDatabase.userDao(),
+            userDatabase.smartSessionDao(),
+            vocabDatabaseManager
+        )
+        userRepository = UserRepository(this, userDatabase.userDao(), vocabDatabaseManager, preferencesManager, smartSessionEngine)
         boxRepository = BoxRepository(userDatabase.userDao())
         dictionaryRepository = DictionaryRepository(this)
         searchRepository = SearchRepository(this)

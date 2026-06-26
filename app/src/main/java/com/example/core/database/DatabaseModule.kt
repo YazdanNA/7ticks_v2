@@ -1,6 +1,8 @@
 package com.example.core.database
 
 import android.content.Context
+import com.example.core.learning.engine.SmartSessionDao
+import com.example.core.learning.engine.SmartSessionEngine
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,5 +36,21 @@ object DatabaseModule {
     @Singleton
     fun provideVocabularyDatabaseManager(@ApplicationContext context: Context): VocabularyDatabaseManager {
         return VocabularyDatabaseManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSmartSessionDao(userDatabase: UserDatabase): SmartSessionDao {
+        return userDatabase.smartSessionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSmartSessionEngine(
+        userDao: UserDao,
+        smartSessionDao: SmartSessionDao,
+        vocabDbManager: VocabularyDatabaseManager
+    ): SmartSessionEngine {
+        return SmartSessionEngine(userDao, smartSessionDao, vocabDbManager)
     }
 }

@@ -15,6 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.example.core.gamification.GamificationEngine
 import com.example.core.gamification.XpConfig
+import com.example.core.learning.engine.SmartSessionEngine
 
 sealed class SetupStep {
     object Idle : SetupStep()
@@ -32,7 +33,8 @@ class UserRepository @Inject constructor(
     private val context: Context,
     private val userDao: UserDao,
     private val vocabDbManager: VocabularyDatabaseManager,
-    private val prefs: PreferencesManager
+    private val prefs: PreferencesManager,
+    val smartSessionEngine: SmartSessionEngine
 ) {
     val userProgress: Flow<UserProgressEntity?> = userDao.getUserProgress()
     val allCards: Flow<List<CardEntity>> = userDao.getAllCards()
@@ -649,117 +651,18 @@ class UserRepository @Inject constructor(
         return@withContext false
     }
 
+    fun getGoalMinutes(goal: String): Int {
+        val regex = "(\\d+)".toRegex()
+        val match = regex.find(goal)
+        return match?.value?.toIntOrNull() ?: 10
+    }
+
     suspend fun generateSmartLearnSession(): List<CardEntity> = withContext(Dispatchers.IO) {
         val progress = userDao.getUserProgressOnce() ?: return@withContext emptyList()
-        val currentTime = System.currentTimeMillis()
+        val goalMinutes = getGoalMinutes(progress.dailyGoal)
 
-        // Get daily goals based on onboarding study-time mapping
-        val goalLower = progress.dailyGoal.lowercase()
-        val (dailyNewLimit, dailyReviewLimit) = when {
-            goalLower.contains("5 min") || goalLower.contains("5-min") -> Pair(2, 8)
-            goalLower.contains("10 min") -> Pair(3, 10)
-            goalLower.contains("15 min") -> Pair(4, 15)
-            goalLower.contains("20 min") -> Pair(5, 20)
-            goalLower.contains("30 min") -> Pair(8, 30)
-            goalLower.contains("45 min") -> Pair(12, 45)
-            goalLower.contains("60 min") -> Pair(15, 60)
-            else -> Pair(8, 30)
-        }
-
-        // Fetch stats for today
-        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val todayStats = userDao.getStatisticsForDate(dateStr)
-        val reviewedToday = todayStats?.wordsReviewed ?: 0
-        val learnedToday = todayStats?.wordsLearned ?: 0
-
-        val remainingReviewsCapacity = (dailyReviewLimit - reviewedToday).coerceAtLeast(0)
-        val remainingNewWordsCapacity = (dailyNewLimit - learnedToday).coerceAtLeast(0)
-
-        // Fetch reviews logs from today to compute adaptive parameters if needed
-        val allLogs = userDao.getReviewHistoryOnce()
-        val todayStart = try {
-            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)?.time ?: 0L
-        } catch (e: Exception) {
-            0L
-        }
-        val todayLogs = allLogs.filter { it.timestamp >= todayStart }
-        val fatigueState = adaptiveEngine.calculateFatigue(todayLogs)
-        val sessionConfig = adaptiveEngine.determineSessionConfig(todayLogs, todayStats, fatigueState, progress.dailyGoal)
-
-        val allLocalCards = userDao.getAllCardsOnce()
-
-        // 1. Gather Overdue Reviews (Priority #1)
-        val overdueReviews = allLocalCards.filter { card ->
-            card.reps > 0 && card.dueDate <= currentTime && card.state == 2
-        }.sortedBy { it.dueDate } // Oldest due first
-
-        // 2. Gather Learning Cards (Priority #2)
-        val learningCards = allLocalCards.filter { card ->
-            card.reps > 0 && card.state == 1
-        }
-
-        // 3. Gather Relearning Cards (Priority #3)
-        val relearningCards = allLocalCards.filter { card ->
-            card.reps > 0 && card.state == 3
-        }
-
-        val totalReviewWorkload = overdueReviews.size + learningCards.size + relearningCards.size
-
-        val totalSelected = mutableListOf<CardEntity>()
-
-        if (totalReviewWorkload > 0) {
-            // We have review workload! Build session with reviews ONLY (up to remaining review capacity).
-            // "Never prioritize new words over reviews. Never create new words if review workload exists."
-            val reviewsToTake = overdueReviews.take(remainingReviewsCapacity)
-            val learningToTake = learningCards.take(remainingReviewsCapacity - reviewsToTake.size)
-            val relearningToTake = relearningCards.take(remainingReviewsCapacity - reviewsToTake.size - learningToTake.size)
-
-            totalSelected.addAll(reviewsToTake)
-            totalSelected.addAll(learningToTake)
-            totalSelected.addAll(relearningToTake)
-        } else {
-            // No due reviews, learning, or relearning cards! We can introduce new words up to the remaining capacity.
-            if (remainingNewWordsCapacity > 0) {
-                // First, look for any pre-existing new cards in review_cards (reps == 0)
-                val preExistingNew = allLocalCards.filter { it.reps == 0 }
-                val newCardsToTake = preExistingNew.take(remainingNewWordsCapacity)
-                totalSelected.addAll(newCardsToTake)
-
-                val neededNewFromDb = remainingNewWordsCapacity - totalSelected.size
-                if (neededNewFromDb > 0) {
-                    val allowedLevels = getAllowedLevels(progress.level)
-                    val allLocalWordIds = allLocalCards.map { it.wordId }.toSet()
-
-                    // Fetch brand new words of allowed levels without any artificial limit/ceiling
-                    val newWordsFromDb = vocabDbManager.getWordsByLevels(allowedLevels, limit = -1)
-                        .filter { !allLocalWordIds.contains(it.id) }
-                        .shuffled()
-                        .take(neededNewFromDb)
-
-                    for (word in newWordsFromDb) {
-                        val newCard = CardEntity(
-                            wordId = word.id,
-                            word = word.word,
-                            boxIndex = 1,
-                            stability = 1.0,
-                            difficulty = 3.0,
-                            elapsedDays = 0,
-                            scheduledDays = 1,
-                            reps = 0,
-                            lapses = 0,
-                            state = 0,
-                            lastReviewed = 0,
-                            dueDate = System.currentTimeMillis()
-                        )
-                        userDao.insertCard(newCard)
-                        val inserted = userDao.getCardByWordId(word.id)
-                        if (inserted != null) {
-                            totalSelected.add(inserted)
-                        }
-                    }
-                }
-            }
-        }
+        // Build session 100% dynamically via SmartSessionEngine based on study duration and statistics
+        val totalSelected = smartSessionEngine.buildSmartSession(durationMinutes = goalMinutes)
 
         // Save session state to database
         val cardIds = totalSelected.map { it.id }

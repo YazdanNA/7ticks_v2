@@ -68,36 +68,34 @@ fun SmartLearnScreen(navController: NavController) {
 
     val dailyGoal = userProgress?.dailyGoal ?: prefs.dailyGoal
     val goalLower = dailyGoal.lowercase()
-    val dailyNewLimit = when {
-        goalLower.contains("5 min") || goalLower.contains("5-min") -> 2
-        goalLower.contains("10 min") -> 3
-        goalLower.contains("15 min") -> 4
-        goalLower.contains("20 min") -> 5
-        goalLower.contains("30 min") -> 8
-        goalLower.contains("45 min") -> 12
-        goalLower.contains("60 min") -> 15
-        else -> 8
+
+    // Retrieve goal minutes dynamically from the goal string
+    val goalMinutes = remember(goalLower) {
+        val regex = "(\\d+)".toRegex()
+        val match = regex.find(goalLower)
+        match?.value?.toIntOrNull() ?: 10
     }
-    val dailyReviewLimit = when {
-        goalLower.contains("5 min") || goalLower.contains("5-min") -> 8
-        goalLower.contains("10 min") -> 10
-        goalLower.contains("15 min") -> 15
-        goalLower.contains("20 min") -> 20
-        goalLower.contains("30 min") -> 30
-        goalLower.contains("45 min") -> 45
-        goalLower.contains("60 min") -> 60
-        else -> 30
+
+    // Retrieve rolling average and calculate estimated dynamic capacity
+    var rollingAverageSeconds by remember { mutableStateOf(20.0) }
+    LaunchedEffect(repo) {
+        rollingAverageSeconds = repo.smartSessionEngine.getStatsManager().getRollingAverageSeconds()
     }
+
+    val estimatedCapacity = remember(goalMinutes, rollingAverageSeconds) {
+        val studySeconds = goalMinutes * 60
+        com.example.core.learning.engine.SessionCapacityCalculator().calculateCapacity(studySeconds, rollingAverageSeconds)
+    }
+
     val learnedToday = todayStats?.wordsLearned ?: 0
     val reviewedToday = todayStats?.wordsReviewed ?: 0
+    val totalStudiedToday = learnedToday + reviewedToday
 
-    val remainingReviewsCapacity = (dailyReviewLimit - reviewedToday).coerceAtLeast(0)
-    val remainingNewWordsCapacity = (dailyNewLimit - learnedToday).coerceAtLeast(0)
+    val remainingCapacity = (estimatedCapacity - totalStudiedToday).coerceAtLeast(0)
 
     val hasDueReviews = allCards.any { it.reps > 0 && it.dueDate <= System.currentTimeMillis() && it.state == 2 }
     val hasLearningCards = allCards.any { it.reps > 0 && it.state == 1 }
     val hasRelearningCards = allCards.any { it.reps > 0 && it.state == 3 }
-    val isBudgetExhausted = learnedToday >= dailyNewLimit
 
     val overdueReviewsCount = allCards.count { it.reps > 0 && it.dueDate <= System.currentTimeMillis() && it.state == 2 }
     val learningCardsCount = allCards.count { it.reps > 0 && it.state == 1 }
@@ -109,16 +107,16 @@ fun SmartLearnScreen(navController: NavController) {
     val newCount: Int
 
     if (totalReviewWorkload > 0) {
-        dueCount = overdueReviewsCount.coerceAtMost(remainingReviewsCapacity)
-        learningCount = (learningCardsCount + relearningCardsCount).coerceAtMost((remainingReviewsCapacity - dueCount).coerceAtLeast(0))
-        newCount = 0
+        dueCount = overdueReviewsCount.coerceAtMost(remainingCapacity)
+        learningCount = (learningCardsCount + relearningCardsCount).coerceAtMost((remainingCapacity - dueCount).coerceAtLeast(0))
+        newCount = (remainingCapacity - dueCount - learningCount).coerceAtLeast(0)
     } else {
         dueCount = 0
         learningCount = 0
-        newCount = remainingNewWordsCapacity
+        newCount = remainingCapacity
     }
 
-    val isFinishedForToday = (!hasDueReviews && !hasLearningCards && !hasRelearningCards && isBudgetExhausted) || (dueCount == 0 && learningCount == 0 && newCount == 0)
+    val isFinishedForToday = remainingCapacity <= 0 || (!hasDueReviews && !hasLearningCards && !hasRelearningCards && totalStudiedToday >= estimatedCapacity) || (dueCount == 0 && learningCount == 0 && newCount == 0)
 
     val isSessionActive = sessionState?.active == true && !isFinishedForToday
 
