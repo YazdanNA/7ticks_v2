@@ -12,14 +12,14 @@ class AlgorithmSimulatorTest {
         val numCards = 500
         val days = 90
         val userRecall = 0.90
-        val dailyNewLimit = 15
+        val dailyStudyMinutes = 20
 
         val startTime = System.nanoTime()
         val result = AlgorithmSimulator.run(
             numCards = numCards,
             days = days,
             userRecallProbability = userRecall,
-            dailyNewLimit = dailyNewLimit
+            dailyStudyMinutes = dailyStudyMinutes
         )
         val endTime = System.nanoTime()
         val durationMs = (endTime - startTime) / 1_000_000.0

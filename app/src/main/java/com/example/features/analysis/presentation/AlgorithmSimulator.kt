@@ -13,7 +13,7 @@ data class SimulationResult(
     val numCards: Int,
     val days: Int,
     val targetRetention: Double,
-    val dailyNewLimit: Int,
+    val dailyStudyMinutes: Int,
     val totalReviews: Int,
     val learnedCount: Int,
     val maturedCount: Int, // Box 7
@@ -29,7 +29,7 @@ data class SimulationResult(
 
 /**
  * High-performance, memory-only simulator for the Leitner + FSRS Spaced Repetition Engine.
- * Simulates daily student learning behaviors over years in fractions of a second.
+ * Replicates the exact priority and scheduling of SmartSessionEngine over years.
  */
 object AlgorithmSimulator {
 
@@ -37,12 +37,12 @@ object AlgorithmSimulator {
         numCards: Int = 1000,
         days: Int = 180,
         userRecallProbability: Double = 0.88, // 88% chance of success per review
-        dailyNewLimit: Int = 20
+        dailyStudyMinutes: Int = 20
     ): SimulationResult {
         val fsrsService = FsrsService()
         val random = Random(42) // Seeded for deterministic and reproducible test results
 
-        // In-memory representation of cards
+        // In-memory representation of cards (Initially empty, created on-demand)
         val activeCards = ArrayList<FsrsCardModel>()
         val boxIndices = HashMap<Int, Int>() // wordId -> BoxIndex (1 to 7)
 
@@ -65,41 +65,93 @@ object AlgorithmSimulator {
 
         var currentWordIdSource = 1
 
+        // Average thinking time per card is 10.0s (used to calculate daily capacity)
+        val avgSecondsPerCard = 10.0
+        val studySeconds = dailyStudyMinutes * 60
+        val dailyCapacity = Math.max(1, (studySeconds / avgSecondsPerCard).toInt())
+
         for (day in 1..days) {
             // Move time forward by 1 day
             currentSimulatedTimeMs += msInDay
 
-            // Introduce new cards
-            val cardsToIntroduceToday = minOf(dailyNewLimit, numCards - activeCards.size)
-            for (i in 1..cardsToIntroduceToday) {
-                val newId = currentWordIdSource++
-                val newCard = FsrsCardModel(
-                    wordId = newId,
-                    word = "sim_word_$newId",
-                    state = 0, // New
-                    reps = 0,
-                    lapses = 0,
-                    stability = 0.0,
-                    difficulty = 0.0,
-                    scheduledDays = 0,
-                    elapsedDays = 0,
-                    lastReviewed = null,
-                    dueDate = Date(currentSimulatedTimeMs) // available immediately
-                )
-                activeCards.add(newCard)
-                boxIndices[newId] = 1
+            // 1. Categorize all existing in-memory cards according to FSRS states
+            val againCards = ArrayList<FsrsCardModel>()
+            val dueCards = ArrayList<FsrsCardModel>()
+            val learningCards = ArrayList<FsrsCardModel>()
+            val newCards = ArrayList<FsrsCardModel>()
+
+            for (card in activeCards) {
+                when (card.state) {
+                    3 -> againCards.add(card)
+                    2 -> {
+                        if (card.dueDate.time <= currentSimulatedTimeMs) {
+                            dueCards.add(card)
+                        }
+                    }
+                    1 -> learningCards.add(card)
+                    0 -> newCards.add(card)
+                }
             }
 
-            // Determine cards due today
-            val queueToday = activeCards.filter { card ->
-                card.dueDate.time <= currentSimulatedTimeMs
+            // 2. Select cards today using the EXACT SmartSessionEngine SessionBuilder rules
+            val selectedToday = ArrayList<FsrsCardModel>()
+            var remaining = dailyCapacity
+
+            // Priority 1: Again cards
+            val takenAgain = againCards.take(remaining)
+            selectedToday.addAll(takenAgain)
+            remaining -= takenAgain.size
+
+            // Priority 2: Due Review cards
+            if (remaining > 0) {
+                val takenDue = dueCards.take(remaining)
+                selectedToday.addAll(takenDue)
+                remaining -= takenDue.size
+            }
+
+            // Reviews Always Win constraint check:
+            // "If Again + Due already meet or exceed capacity, DO NOT introduce any new cards."
+            val totalReviewsCountToday = againCards.size + dueCards.size
+            val allowNewAndLearning = totalReviewsCountToday < dailyCapacity
+
+            if (allowNewAndLearning) {
+                // Priority 3: Learning cards
+                if (remaining > 0) {
+                    val takenLearning = learningCards.take(remaining)
+                    selectedToday.addAll(takenLearning)
+                    remaining -= takenLearning.size
+                }
+
+                // Priority 4: Introduce New cards (on-demand creation up to max deck size)
+                if (remaining > 0) {
+                    val availableNewCardsToCreate = minOf(remaining, numCards - (activeCards.size + newCards.size))
+                    for (i in 1..availableNewCardsToCreate) {
+                        val newId = currentWordIdSource++
+                        val newCard = FsrsCardModel(
+                            wordId = newId,
+                            word = "sim_word_$newId",
+                            state = 0, // New
+                            reps = 0,
+                            lapses = 0,
+                            stability = 0.0,
+                            difficulty = 0.0,
+                            scheduledDays = 0,
+                            elapsedDays = 0,
+                            lastReviewed = null,
+                            dueDate = Date(currentSimulatedTimeMs)
+                        )
+                        activeCards.add(newCard)
+                        boxIndices[newId] = 1
+                        selectedToday.add(newCard)
+                    }
+                }
             }
 
             var reviewsTodayCount = 0
 
-            // Review queue execution
-            for (cardIndex in queueToday.indices) {
-                val originalCard = queueToday[cardIndex]
+            // 3. Execute daily learning/reviews for selected cards
+            for (cardIndex in selectedToday.indices) {
+                val originalCard = selectedToday[cardIndex]
                 val currentBoxIndex = boxIndices[originalCard.wordId] ?: 1
 
                 // Simulate student response using userRecallProbability
@@ -229,9 +281,10 @@ object AlgorithmSimulator {
         reportBuilder.append("=========================================================\n\n")
         reportBuilder.append("## SIMULATION CONFIGURATION:\n")
         reportBuilder.append("- Simulated Vocabulary Volume: $numCards words\n")
-        reportBuilder.append("- Study Track Duration: $days Days (approx. ${days / 30} months)\n")
+        reportBuilder.append("- Study Track Duration: $days Days (approx. ${String.format("%.1f", days.toDouble() / 365.0)} years)\n")
         reportBuilder.append("- Target Student Success Rate (Recall Prob): ${(userRecallProbability * 100).toInt()}%\n")
-        reportBuilder.append("- Daily New Words Cap: $dailyNewLimit words/day\n\n")
+        reportBuilder.append("- Daily Study Duration: $dailyStudyMinutes minutes\n")
+        reportBuilder.append("- Session Capacity Limit: $dailyCapacity cards/day (at 10s per card)\n\n")
 
         reportBuilder.append("## METRICS SUMMARY:\n")
         reportBuilder.append("- Total Simulated Reviews: $totalReviewsCount iterations\n")
@@ -268,7 +321,7 @@ object AlgorithmSimulator {
             numCards = numCards,
             days = days,
             targetRetention = userRecallProbability,
-            dailyNewLimit = dailyNewLimit,
+            dailyStudyMinutes = dailyStudyMinutes,
             totalReviews = totalReviewsCount,
             learnedCount = learnedCount,
             maturedCount = maturedCount,

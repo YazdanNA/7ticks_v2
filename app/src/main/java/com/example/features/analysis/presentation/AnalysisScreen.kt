@@ -1638,7 +1638,7 @@ fun TabSimulator(
     var numCards by remember { mutableStateOf(1000f) }
     var simDays by remember { mutableStateOf(180f) }
     var userRecall by remember { mutableStateOf(0.88f) }
-    var dailyNewLimit by remember { mutableStateOf(20f) }
+    var dailyStudyMinutes by remember { mutableStateOf(20f) }
 
     var isSimulating by remember { mutableStateOf(false) }
     var simulationResult by remember { mutableStateOf<SimulationResult?>(null) }
@@ -1672,14 +1672,14 @@ fun TabSimulator(
                         )
                     }
                     Text(
-                        text = "Algorithmic Spacing Simulator",
+                        text = "SmartSessionEngine Simulator",
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    text = "This utility runs an ultra-fast in-memory simulation of the complete Leitner box and FSRS v4.5 spacing engine. Customize the student parameters below to see how intervals mature and reviews are distributed.",
+                    text = "This utility runs an ultra-fast in-memory simulation of the complete Leitner box and FSRS v4.5 spacing engine, strictly using the SmartSessionEngine prioritization and capacity rules. Customize the parameters below to run the simulation.",
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 12.sp,
                     lineHeight = 16.sp
@@ -1712,8 +1712,8 @@ fun TabSimulator(
                     Slider(
                         value = numCards,
                         onValueChange = { numCards = it },
-                        valueRange = 100f..3000f,
-                        steps = 29,
+                        valueRange = 100f..10000f,
+                        steps = 99,
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF00C2FF),
                             activeTrackColor = Color(0xFF00C2FF),
@@ -1728,14 +1728,18 @@ fun TabSimulator(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        val durationText = when {
+                            simDays >= 365f -> "${String.format("%.1f", simDays / 365.0)} Years (${simDays.toInt()} Days)"
+                            else -> "${simDays.toInt()} Days"
+                        }
                         Text("Simulation Duration", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                        Text("${simDays.toInt()} Days", color = Color(0xFF9D00FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(durationText, color = Color(0xFF9D00FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = simDays,
                         onValueChange = { simDays = it },
-                        valueRange = 30f..365f,
-                        steps = 11,
+                        valueRange = 30f..1825f,
+                        steps = 59,
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF9D00FF),
                             activeTrackColor = Color(0xFF9D00FF),
@@ -1744,20 +1748,20 @@ fun TabSimulator(
                     )
                 }
 
-                // 3. Daily New Words Intake
+                // 3. Daily Study Duration Minutes
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Daily New Words Cap", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                        Text("${dailyNewLimit.toInt()} words/day", color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Daily Study Session", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                        Text("${dailyStudyMinutes.toInt()} minutes/day", color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
-                        value = dailyNewLimit,
-                        onValueChange = { dailyNewLimit = it },
-                        valueRange = 5f..100f,
-                        steps = 19,
+                        value = dailyStudyMinutes,
+                        onValueChange = { dailyStudyMinutes = it },
+                        valueRange = 5f..60f,
+                        steps = 11,
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF00FFD2),
                             activeTrackColor = Color(0xFF00FFD2),
@@ -1801,7 +1805,7 @@ fun TabSimulator(
                         numCards = numCards.toInt(),
                         days = simDays.toInt(),
                         userRecallProbability = userRecall.toDouble(),
-                        dailyNewLimit = dailyNewLimit.toInt()
+                        dailyStudyMinutes = dailyStudyMinutes.toInt()
                     )
                     isSimulating = false
                     Toast.makeText(context, "Simulation compiled! Verified with 100% accuracy.", Toast.LENGTH_SHORT).show()
