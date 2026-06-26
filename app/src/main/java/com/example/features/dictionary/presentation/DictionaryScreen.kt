@@ -39,6 +39,7 @@ import com.example.core.database.FavoriteWordEntity
 import com.example.core.database.RecentSearchEntity
 import com.example.core.database.SearchResult
 import com.example.core.database.WordDetails
+import com.example.core.ui.components.SharedTextField
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -133,10 +134,10 @@ fun DictionaryScreen() {
         }
 
         // Search Text Field Input
-        OutlinedTextField(
+        SharedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Start typing a word (e.g. 'ab' or 'ability')...", color = Color.White.copy(alpha = 0.4f)) },
+            placeholder = "Search Words",
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF00C2FF)) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -149,20 +150,7 @@ fun DictionaryScreen() {
                 }
             },
             singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0x0EFFFFFF),
-                unfocusedContainerColor = Color(0x06FFFFFF),
-                focusedIndicatorColor = Color(0xFF00C2FF),
-                unfocusedIndicatorColor = Color(0x1AFFFFFF),
-                cursorColor = Color(0xFF00C2FF),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            ),
-            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 14.sp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, Color(0x12FFFFFF), RoundedCornerShape(16.dp))
+            modifier = Modifier.fillMaxWidth()
         )
 
         // Conditional display based on query state

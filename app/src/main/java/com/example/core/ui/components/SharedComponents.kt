@@ -1,5 +1,7 @@
 package com.example.core.ui.components
 
+import androidx.compose.ui.composed
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -248,6 +250,30 @@ fun SharedPrimaryButton(
 }
 
 /**
+ * Shake modifier for warning/error feedback.
+ */
+fun Modifier.shake(trigger: Boolean, onAnimationFinished: () -> Unit = {}): Modifier = composed {
+    val translationX = remember { Animatable(0f) }
+    
+    LaunchedEffect(trigger) {
+        if (trigger) {
+            val shakeSpeeds = listOf(10f, -10f, 7f, -7f, 4f, -4f, 2f, -2f, 0f)
+            for (offset in shakeSpeeds) {
+                translationX.animateTo(
+                    targetValue = offset,
+                    animationSpec = tween(durationMillis = 50, easing = LinearEasing)
+                )
+            }
+            onAnimationFinished()
+        }
+    }
+    
+    this.graphicsLayer {
+        this.translationX = translationX.value
+    }
+}
+
+/**
  * SECTION 12. TEXT FIELD REDESIGN
  * Custom styled text fields with rounded corners, frosted glass background,
  * glow border on focus, and smooth focus indicator animations.
@@ -264,10 +290,26 @@ fun SharedTextField(
     trailingIcon: (@Composable () -> Unit)? = null,
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    isError: Boolean = false
+    isError: Boolean = false,
+    triggerShake: Boolean = false,
+    onShakeFinished: () -> Unit = {}
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+
+    var localShakeTrigger by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isError) {
+        if (isError) {
+            localShakeTrigger = true
+        }
+    }
+
+    LaunchedEffect(triggerShake) {
+        if (triggerShake) {
+            localShakeTrigger = true
+        }
+    }
 
     // Animate indicator colors on focus
     val borderGlowColor by animateColorAsState(
@@ -295,29 +337,31 @@ fun SharedTextField(
     )
 
     Column(
-        modifier = modifier,
+        modifier = modifier.shake(localShakeTrigger) {
+            localShakeTrigger = false
+            onShakeFinished()
+        },
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        if (label != null) {
-            Text(
-                text = label,
-                color = labelColor,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-
+        val hintText = if (label != null && label.isNotEmpty()) label else placeholder
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    color = Color.White.copy(alpha = 0.35f),
-                    fontSize = 14.sp
-                )
-            },
+            label = if (hintText.isNotEmpty()) {
+                {
+                    Text(
+                        text = hintText,
+                        color = labelColor,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                initialDelayMillis = 1000
+                            )
+                    )
+                }
+            } else null,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
             singleLine = singleLine,

@@ -34,6 +34,7 @@ import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
+import com.example.core.ui.components.SharedTextField
 import com.example.core.components.AvatarManager
 import com.example.core.assessment.AssessmentSession
 import com.example.core.assessment.AssessmentItem
@@ -58,6 +59,8 @@ fun OnboardingWizardScreen(navController: NavController) {
 
     // User configuration states
     var userName by remember { mutableStateOf("") }
+    var nameError by remember { mutableStateOf(false) }
+    var nameShakeTrigger by remember { mutableStateOf(false) }
     var selectedAvatar by remember { mutableStateOf("") }
     var nativeLanguage by remember { mutableStateOf("Persian") }
     var targetLanguage by remember { mutableStateOf("English") }
@@ -290,19 +293,18 @@ fun OnboardingWizardScreen(navController: NavController) {
                                         .padding(14.dp),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    OutlinedTextField(
+                                    SharedTextField(
                                         value = userName,
-                                        onValueChange = { userName = it },
-                                        placeholder = { Text("Type your name here...", color = Color.White.copy(alpha = 0.4f)) },
-                                        textStyle = LocalTextStyle.current.copy(color = Color.White, fontWeight = FontWeight.Bold),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFF00C2FF),
-                                            unfocusedBorderColor = Color(0x33FFFFFF),
-                                            cursorColor = Color(0xFF00C2FF),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        shape = RoundedCornerShape(14.dp),
+                                        onValueChange = { 
+                                            userName = it 
+                                            if (it.trim().isNotEmpty()) {
+                                                nameError = false
+                                            }
+                                        },
+                                        placeholder = "Name",
+                                        isError = nameError,
+                                        triggerShake = nameShakeTrigger,
+                                        onShakeFinished = { nameShakeTrigger = false },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -691,7 +693,7 @@ fun OnboardingWizardScreen(navController: NavController) {
 
             // 4. Fixed Navigation Buttons (Always fixed at bottom)
             val isNextEnabled = when (step) {
-                1 -> userName.trim().isNotEmpty()
+                1 -> true // Always enabled to allow user to click and trigger shake/error feedback
                 2 -> selectedAvatar.isNotEmpty()
                 3 -> nativeLanguage.isNotEmpty()
                 4 -> targetLanguage.isNotEmpty()
@@ -743,15 +745,20 @@ fun OnboardingWizardScreen(navController: NavController) {
                             text = "Next",
                             enabled = isNextEnabled,
                             onClick = {
-                                when (step) {
-                                    1 -> prefs.userName = userName
-                                    2 -> prefs.avatar = selectedAvatar
-                                    3 -> prefs.nativeLanguage = nativeLanguage
-                                    4 -> prefs.targetLanguage = targetLanguage
-                                    5 -> prefs.dailyGoal = dailyGoal
-                                    6 -> prefs.reminderTime = if (reminderEnabled) reminderTime else "Disabled"
+                                if (step == 1 && userName.trim().isEmpty()) {
+                                    nameError = true
+                                    nameShakeTrigger = true
+                                } else {
+                                    when (step) {
+                                        1 -> prefs.userName = userName
+                                        2 -> prefs.avatar = selectedAvatar
+                                        3 -> prefs.nativeLanguage = nativeLanguage
+                                        4 -> prefs.targetLanguage = targetLanguage
+                                        5 -> prefs.dailyGoal = dailyGoal
+                                        6 -> prefs.reminderTime = if (reminderEnabled) reminderTime else "Disabled"
+                                    }
+                                    transitionToStep(step + 1)
                                 }
-                                transitionToStep(step + 1)
                             },
                             icon = {
                                 Icon(

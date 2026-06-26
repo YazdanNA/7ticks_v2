@@ -41,6 +41,7 @@ import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
+import com.example.core.ui.components.SharedTextField
 import com.example.core.learning.*
 import com.example.core.fsrs.ReviewRatingModel
 import com.example.core.database.BoxWordEntity
@@ -265,10 +266,10 @@ fun BoxesDashboardScreen(
             }
 
             // Search Bar
-            OutlinedTextField(
+            SharedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search boxes", color = Color.White.copy(alpha = 0.5f)) },
+                placeholder = "Search Boxes",
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
@@ -278,20 +279,7 @@ fun BoxesDashboardScreen(
                     }
                 },
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0x0AFFFFFF),
-                    unfocusedContainerColor = Color(0x0AFFFFFF),
-                    focusedIndicatorColor = Color(0xFF00C2FF),
-                    unfocusedIndicatorColor = Color(0x22FFFFFF),
-                    cursorColor = Color(0xFF00C2FF),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                ),
-                textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 14.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Color(0x12FFFFFF), RoundedCornerShape(16.dp))
+                modifier = Modifier.fillMaxWidth()
             )
 
         // Glassmorphic List or Empty State
@@ -581,6 +569,8 @@ fun CreateEditBoxScreen(
     val haptic = LocalHapticFeedback.current
 
     var name by remember { mutableStateOf("") }
+    var nameError by remember { mutableStateOf(false) }
+    var nameShakeTrigger by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("Folder") }
     var selectedColor by remember { mutableStateOf("#00C2FF") }
@@ -628,33 +618,30 @@ fun CreateEditBoxScreen(
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Name Input
-                OutlinedTextField(
+                SharedTextField(
                     value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Box Name") },
-                    placeholder = { Text("e.g. IELTS Vocabulary") },
+                    onValueChange = { 
+                        name = it 
+                        if (it.trim().isNotEmpty()) {
+                            nameError = false
+                        }
+                    },
+                    label = "Box Name",
+                    placeholder = "e.g. IELTS Vocabulary",
+                    isError = nameError,
+                    triggerShake = nameShakeTrigger,
+                    onShakeFinished = { nameShakeTrigger = false },
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedLabelColor = Color(0xFF00C2FF),
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
-                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Description Input
-                OutlinedTextField(
+                SharedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (Optional)") },
-                    placeholder = { Text("e.g. Challenging C1 academic vocabulary") },
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedLabelColor = Color(0xFF00C2FF),
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
-                    ),
+                    label = "Description (Optional)",
+                    placeholder = "e.g. Challenging C1 academic vocabulary",
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -721,7 +708,7 @@ fun CreateEditBoxScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Save button
+                 // Save button
                 PremiumGlassButton(
                     text = if (isEditing) "Save Changes" else "Create Box",
                     onClick = {
@@ -751,6 +738,9 @@ fun CreateEditBoxScreen(
                                 }
                                 onBack()
                             }
+                        } else {
+                            nameError = true
+                            nameShakeTrigger = true
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -879,20 +869,12 @@ fun BoxDetailScreen(
         }
 
         // Live list Search
-        OutlinedTextField(
+        SharedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search words inside this box...", color = Color.White.copy(alpha = 0.5f)) },
+            placeholder = "Search Words",
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
             singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0x0AFFFFFF),
-                unfocusedContainerColor = Color(0x0AFFFFFF),
-                focusedIndicatorColor = Color(0xFF00C2FF),
-                unfocusedIndicatorColor = Color(0x1AFFFFFF),
-                cursorColor = Color(0xFF00C2FF)
-            ),
-            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 13.sp),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -995,6 +977,8 @@ fun AddWordScreen(
     var isSearching by remember { mutableStateOf(false) }
 
     var word by remember { mutableStateOf("") }
+    var wordError by remember { mutableStateOf(false) }
+    var wordShakeTrigger by remember { mutableStateOf(false) }
     var meaning by remember { mutableStateOf("") }
     var definition by remember { mutableStateOf("") }
     var examples by remember { mutableStateOf("") }
@@ -1154,107 +1138,115 @@ fun AddWordScreen(
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 // Word
-                OutlinedTextField(
+                SharedTextField(
                     value = word,
-                    onValueChange = { word = it },
-                    label = { Text("Word") },
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    onValueChange = { 
+                        word = it 
+                        if (it.trim().isNotEmpty()) {
+                            wordError = false
+                        }
+                    },
+                    label = "Word",
+                    isError = wordError,
+                    triggerShake = wordShakeTrigger,
+                    onShakeFinished = { wordShakeTrigger = false },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Meanings / Translation
-                OutlinedTextField(
+                SharedTextField(
                     value = meaning,
                     onValueChange = { meaning = it },
-                    label = { Text("Meanings / Translations (one per line)") },
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    label = "Meanings / Translations (one per line)",
+                    singleLine = false,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Definition
-                OutlinedTextField(
+                SharedTextField(
                     value = definition,
                     onValueChange = { definition = it },
-                    label = { Text("Definitions (one per line)") },
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    label = "Definitions (one per line)",
+                    singleLine = false,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Examples
-                OutlinedTextField(
+                SharedTextField(
                     value = examples,
                     onValueChange = { examples = it },
-                    label = { Text("Examples (one per line)") },
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    label = "Examples (one per line)",
+                    singleLine = false,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Phonetics
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    SharedTextField(
                         value = phoneticsUs,
                         onValueChange = { phoneticsUs = it },
-                        label = { Text("Phonetics US") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Phonetics US",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    SharedTextField(
                         value = phoneticsUk,
                         onValueChange = { phoneticsUk = it },
-                        label = { Text("Phonetics UK") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Phonetics UK",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 // Synonyms & Antonyms
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    SharedTextField(
                         value = synonyms,
                         onValueChange = { synonyms = it },
-                        label = { Text("Synonyms (comma separated)") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Synonyms (comma separated)",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    SharedTextField(
                         value = antonyms,
                         onValueChange = { antonyms = it },
-                        label = { Text("Antonyms (comma separated)") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Antonyms (comma separated)",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 // Word Family
-                OutlinedTextField(
+                SharedTextField(
                     value = wordFamily,
                     onValueChange = { wordFamily = it },
-                    label = { Text("Word Family (comma separated)") },
-                    colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    label = "Word Family (comma separated)",
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Level, Topic, Type metadata
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    SharedTextField(
                         value = level,
                         onValueChange = { level = it },
-                        label = { Text("Level") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Level",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    SharedTextField(
                         value = type,
                         onValueChange = { type = it },
-                        label = { Text("Type") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Type",
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    SharedTextField(
                         value = topic,
                         onValueChange = { topic = it },
-                        label = { Text("Category") },
-                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                        label = "Category",
+                        singleLine = true,
                         modifier = Modifier.weight(1.2f)
                     )
                 }
@@ -1311,6 +1303,9 @@ fun AddWordScreen(
                                 }
                                 onBack()
                             }
+                        } else {
+                            wordError = true
+                            wordShakeTrigger = true
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
