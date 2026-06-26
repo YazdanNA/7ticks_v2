@@ -712,9 +712,14 @@ class UserRepository @Inject constructor(
             // FSRS calculate
             val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
 
-            // SevenTicks progression logic (For custom box words under FSRS-only mode, Leitner box indices are ignored/constant)
+            // SevenTicks progression logic
             val currentBoxIndex = boxWord.boxIndex
-            val nextBoxIndex = currentBoxIndex
+            val nextBoxIndex = when (rating) {
+                com.example.core.fsrs.ReviewRatingModel.AGAIN -> 1
+                com.example.core.fsrs.ReviewRatingModel.HARD -> (currentBoxIndex - 1).coerceAtLeast(1)
+                com.example.core.fsrs.ReviewRatingModel.GOOD -> (currentBoxIndex + 1).coerceAtMost(7)
+                com.example.core.fsrs.ReviewRatingModel.EASY -> (currentBoxIndex + 2).coerceAtMost(7)
+            }
 
             val updatedBoxWord = boxWord.copy(
                 boxIndex = nextBoxIndex,
@@ -731,13 +736,14 @@ class UserRepository @Inject constructor(
 
             userDao.updateBoxWord(updatedBoxWord)
 
-            // Record review log
+            // Record review log with isBoxReview = true, wordId = boxWord.id (unique primary key for box word, NOT dictionary ID to keep 100% separate)
             recordReviewLog(
-                wordId = boxWord.wordId,
+                wordId = boxWord.id,
                 word = boxWord.word,
                 rating = rating.value,
                 stability = updatedFsrsModel.stability,
-                difficulty = updatedFsrsModel.difficulty
+                difficulty = updatedFsrsModel.difficulty,
+                isBoxReview = true
             )
 
             val isNewWordLearned = boxWord.reps == 0
@@ -802,13 +808,14 @@ class UserRepository @Inject constructor(
 
             userDao.updateCard(updatedCard)
 
-            // Record review log
+            // Record review log with isBoxReview = false, wordId = card.wordId (the dictionary wordId to keep separate)
             recordReviewLog(
                 wordId = card.wordId,
                 word = card.word,
                 rating = rating.value,
                 stability = updatedFsrsModel.stability,
-                difficulty = updatedFsrsModel.difficulty
+                difficulty = updatedFsrsModel.difficulty,
+                isBoxReview = false
             )
 
             val isNewWordLearned = card.reps == 0
@@ -830,14 +837,22 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun recordReviewLog(wordId: Int, word: String, rating: Int, stability: Double, difficulty: Double) {
+    suspend fun recordReviewLog(
+        wordId: Int,
+        word: String,
+        rating: Int,
+        stability: Double,
+        difficulty: Double,
+        isBoxReview: Boolean = false
+    ) {
         val log = ReviewHistoryEntity(
             wordId = wordId,
             word = word,
             rating = rating,
             timestamp = System.currentTimeMillis(),
             stability = stability,
-            difficulty = difficulty
+            difficulty = difficulty,
+            isBoxReview = isBoxReview
         )
         userDao.insertReviewLog(log)
     }

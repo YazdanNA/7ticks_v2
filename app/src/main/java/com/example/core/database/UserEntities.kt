@@ -53,7 +53,8 @@ data class ReviewHistoryEntity(
     val rating: Int, // 1=Again, 2=Hard, 3=Good, 4=Easy
     val timestamp: Long = System.currentTimeMillis(),
     val stability: Double = 0.0,
-    val difficulty: Double = 0.0
+    val difficulty: Double = 0.0,
+    val isBoxReview: Boolean = false
 )
 
 @Entity(tableName = "custom_boxes")

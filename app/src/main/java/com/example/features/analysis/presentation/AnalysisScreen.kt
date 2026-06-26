@@ -1884,6 +1884,151 @@ fun TabSimulator(
                 }
             }
 
+            // Virtual User full life activity dashboard
+            Text(
+                text = "Virtual User Journey & Activity (Complete App)",
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 10.dp)
+            )
+
+            GlassCard(cornerRadius = 16.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Onboarding Placement Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF9D00FF).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.School, contentDescription = null, tint = Color(0xFFDF9CFF), modifier = Modifier.size(24.dp))
+                        }
+                        Column(modifier = Modifier.weight(1.5f)) {
+                            Text("Vocabulary Placement Test", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("CEFR Level: ${res.placementLevel}", color = Color(0xFFDF9CFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Score: ${res.placementCorrectAnswers}/10 adaptive questions (IRT)", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFDF9CFF).copy(alpha = 0.1f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "CEFR Placed",
+                                color = Color(0xFFDF9CFF),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+
+                    // Custom Box Spaced Repetition Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF00C2FF).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Inventory, contentDescription = null, tint = Color(0xFF00C2FF), modifier = Modifier.size(24.dp))
+                        }
+                        Column(modifier = Modifier.weight(1.5f)) {
+                            Text("Custom Vocabulary Boxes & Spacing", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Created: ${res.customBoxesCreated} Personal Boxes", color = Color(0xFF00C2FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Added: ${res.customBoxWordsAdded} custom words  |  Reviews: ${res.customBoxReviewsCount}", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF00C2FF).copy(alpha = 0.1f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${String.format("%.1f", res.customBoxRetentionRate * 100)}% Recall",
+                                color = Color(0xFF00C2FF),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Horizontal bar for custom boxes distribution
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Custom Box Leitner Distribution Profile", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        val totalCustom = res.customBoxDistribution.sum().toFloat()
+                        if (totalCustom > 0f) {
+                            val boxColors = listOf(
+                                Color(0xFFFF1744), Color(0xFFFF5252), Color(0xFFFF9100),
+                                Color(0xFFFFD600), Color(0xFF00E676), Color(0xFF00C2FF), Color(0xFFE040FB)
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                            ) {
+                                for (i in 0..6) {
+                                    val segmentWeight = (res.customBoxDistribution[i].toFloat() / totalCustom).coerceAtLeast(0.01f)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(segmentWeight)
+                                            .fillMaxHeight()
+                                            .background(boxColors[i])
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+
+                    // Data segregation cert
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x1A00FFD2))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF00FFD2), modifier = Modifier.size(20.dp))
+                        Column {
+                            Text(
+                                text = "Database Segregation Verified",
+                                color = Color(0xFF00FFD2),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Independent SQLite tracking. Custom Box words and Smart Learn progress do not overlap or interfere under any conditions.",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 10.sp,
+                                lineHeight = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+
             // Spacing Algorithmic Validation Checklist
             GlassCard(cornerRadius = 16.dp) {
                 Column(

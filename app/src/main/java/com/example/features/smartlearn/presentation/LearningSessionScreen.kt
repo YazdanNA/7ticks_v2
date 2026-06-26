@@ -149,7 +149,7 @@ fun LearningSessionScreen(
         if (isBoxSession) {
             if (boxCards.isEmpty()) null else {
                 val items = boxCards.map { word ->
-                    val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+                    val wordReviewHistory = initialReviewLogs.filter { it.isBoxReview && it.wordId == word.id }.sortedBy { it.timestamp }
                     val initialCircleStates = List(7) { idx ->
                         if (idx < wordReviewHistory.size) {
                             when (wordReviewHistory[idx].rating) {
@@ -182,7 +182,7 @@ fun LearningSessionScreen(
         } else {
             if (loadedCards.isEmpty()) null else {
                 val items = loadedCards.map { (card, word) ->
-                    val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.id }.sortedBy { it.timestamp }
+                    val wordReviewHistory = initialReviewLogs.filter { !it.isBoxReview && it.wordId == word.id }.sortedBy { it.timestamp }
                     val initialCircleStates = List(7) { i ->
                         if (i < wordReviewHistory.size) {
                             val ratingVal = wordReviewHistory[i].rating
@@ -609,7 +609,7 @@ fun LearningSessionScreen(
     val activeItem = currentItem ?: if (isBoxSession) {
         if (boxCards.isNotEmpty()) {
             val word = boxCards.first()
-            val wordReviewHistory = initialReviewLogs.filter { it.wordId == word.wordId }.sortedBy { it.timestamp }
+            val wordReviewHistory = initialReviewLogs.filter { it.isBoxReview && it.wordId == word.id }.sortedBy { it.timestamp }
             val initialCircleStates = List(7) { idx ->
                 if (idx < wordReviewHistory.size) {
                     when (wordReviewHistory[idx].rating) {
@@ -629,7 +629,7 @@ fun LearningSessionScreen(
         } else null
     } else {
         if (loadedCards.isNotEmpty()) {
-            val wordReviewHistory = initialReviewLogs.filter { it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
+            val wordReviewHistory = initialReviewLogs.filter { !it.isBoxReview && it.wordId == loadedCards.first().second.id }.sortedBy { it.timestamp }
             val initialCircleStates = List(7) { i ->
                 if (i < wordReviewHistory.size) {
                     val ratingVal = wordReviewHistory[i].rating
@@ -655,21 +655,16 @@ fun LearningSessionScreen(
         val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
         baseCircles.count { it != "Gray" }.coerceAtMost(6)
     }
-    val circleStatesToShow = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating, isBoxSession) {
-        if (isBoxSession) {
-            // "هفت دایره بالی اسکرین برداشته بشه" -> Remove progress circles in custom box reviews
-            null
-        } else {
-            val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
-            val overlayIdx = engine?.temporaryOverlayIndex ?: -1
-            val overlayRating = engine?.temporaryOverlayRating ?: ""
-            if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
-                baseCircles.toMutableList().apply {
-                    this[overlayIdx] = overlayRating
-                }
-            } else {
-                baseCircles
+    val circleStatesToShow = remember(activeItem, engine?.temporaryOverlayIndex, engine?.temporaryOverlayRating) {
+        val baseCircles = activeItem?.circleStates ?: List(7) { "Gray" }
+        val overlayIdx = engine?.temporaryOverlayIndex ?: -1
+        val overlayRating = engine?.temporaryOverlayRating ?: ""
+        if (overlayIdx in 0..6 && overlayRating.isNotEmpty()) {
+            baseCircles.toMutableList().apply {
+                this[overlayIdx] = overlayRating
             }
+        } else {
+            baseCircles
         }
     }
 
