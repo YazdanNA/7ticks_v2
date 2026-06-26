@@ -45,7 +45,12 @@ data class DictWord(
 )
 
 @Singleton
-class VocabularyDatabaseManager @Inject constructor(private val context: Context) {
+open class VocabularyDatabaseManager @Inject constructor(private val context: Context) {
+    companion object {
+        var isTestMode = false
+        var testWords = mutableListOf<DictWord>()
+    }
+
     private val dbFile: File = context.getDatabasePath("seventick.db")
     private val client = OkHttpClient()
 
@@ -54,7 +59,8 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         dbFile.parentFile?.mkdirs()
     }
 
-    fun isDatabaseDownloaded(): Boolean {
+    open fun isDatabaseDownloaded(): Boolean {
+        if (isTestMode) return true
         return dbFile.exists() && dbFile.length() > 1024 // reasonable size check
     }
 
@@ -253,7 +259,12 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         return results
     }
 
-    fun getWordsByLevels(levels: List<String>, limit: Int = -1, offset: Int = 0): List<DictWord> {
+    open fun getWordsByLevels(levels: List<String>, limit: Int = -1, offset: Int = 0): List<DictWord> {
+        if (isTestMode) {
+            val filtered = testWords.filter { levels.contains(it.level.uppercase()) }
+            val sliced = if (offset in 0..filtered.size) filtered.drop(offset) else filtered
+            return if (limit > 0) sliced.take(limit) else sliced
+        }
         if (!isDatabaseDownloaded()) return emptyList()
         val results = mutableListOf<DictWord>()
         var db: SQLiteDatabase? = null
@@ -352,7 +363,10 @@ class VocabularyDatabaseManager @Inject constructor(private val context: Context
         return count
     }
 
-    fun getWordById(id: Int): DictWord? {
+    open fun getWordById(id: Int): DictWord? {
+        if (isTestMode) {
+            return testWords.find { it.id == id }
+        }
         if (!isDatabaseDownloaded()) return null
         var result: DictWord? = null
         var db: SQLiteDatabase? = null

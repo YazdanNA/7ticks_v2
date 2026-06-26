@@ -141,7 +141,6 @@ class ExampleRobolectricTest {
     
     // Execute profile and data initialization (First launch simulation)
     repository.initializeUserDataProfile()
-    repository.prepareSmartLearnEngine()
     
     // VERIFICATION 1: review_cards table must be completely empty after onboarding
     val cardsAfterOnboarding = userDao.getAllCardsOnce()

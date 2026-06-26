@@ -5,6 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+import com.example.core.learning.engine.SmartReviewLogEntity
+import com.example.core.learning.engine.SmartDailyStatsEntity
+import com.example.core.learning.engine.SmartSessionStatsEntity
+import com.example.core.learning.engine.SmartSessionDao
+
 @Database(
     entities = [
         UserProgressEntity::class,
@@ -19,13 +24,17 @@ import androidx.room.RoomDatabase
         SettingEntity::class,
         RewardHistoryEntity::class,
         FavoriteWordEntity::class,
-        RecentSearchEntity::class
+        RecentSearchEntity::class,
+        SmartReviewLogEntity::class,
+        SmartDailyStatsEntity::class,
+        SmartSessionStatsEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class UserDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
+    abstract fun smartSessionDao(): SmartSessionDao
 
     companion object {
         @Volatile
