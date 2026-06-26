@@ -126,6 +126,7 @@ fun LearningSessionScreen(
     var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
     var boxName by remember { mutableStateOf("Vocab Box") }
     var boxCards by remember { mutableStateOf<List<BoxWordEntity>>(emptyList()) }
+    var totalBoxWordsCount by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
     var isFlipped by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -236,7 +237,9 @@ fun LearningSessionScreen(
                 boxName = box.name
             }
             val list = boxRepo.getWordsInCustomBoxOnce(boxId)
-            boxCards = list
+            totalBoxWordsCount = list.size
+            val currentTime = System.currentTimeMillis()
+            boxCards = list.filter { it.dueDate <= currentTime }
             currentCardIndex = 0
             isLoading = false
         } else {
@@ -319,15 +322,26 @@ fun LearningSessionScreen(
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = if (isBoxSession) "No terms inside this box yet." else "No active session found.",
+                        text = if (isBoxSession) {
+                            if (totalBoxWordsCount == 0) {
+                                "هنوز هیچ کلمه‌ای به این باکس اضافه نشده است."
+                            } else {
+                                "تمامی کلمات این باکس با موفقیت مرور شده‌اند! طبق الگوریتم زمان‌بندی مرور بعدی (FSRS)، در حال حاضر کلمه‌ای برای مرور وجود ندارد."
+                            }
+                        } else {
+                            "No active session found."
+                        },
                         color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 22.sp
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     PremiumGlassButton(
                         text = "Go Back",
                         onClick = { navController.popBackStack() }

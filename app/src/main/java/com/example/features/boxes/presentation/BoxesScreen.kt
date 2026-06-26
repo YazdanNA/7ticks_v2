@@ -212,6 +212,7 @@ fun BoxesDashboardScreen(
     // Map each box to its words to calculate counts dynamically
     val boxWordCounts = remember { mutableStateMapOf<Int, Int>() }
     val boxMasteredCounts = remember { mutableStateMapOf<Int, Int>() }
+    val boxDueCounts = remember { mutableStateMapOf<Int, Int>() }
 
     // Collect words stats for each box dynamically
     allBoxes.forEach { box ->
@@ -221,6 +222,8 @@ fun BoxesDashboardScreen(
             boxWordCounts[box.id] = wordsList.size
             // Leitner box 7 is "Mastered"
             boxMasteredCounts[box.id] = wordsList.count { it.boxIndex == 7 }
+            // FSRS due date check
+            boxDueCounts[box.id] = wordsList.count { it.dueDate <= System.currentTimeMillis() }
         }
     }
 
@@ -374,8 +377,9 @@ fun BoxesDashboardScreen(
                                 verticalAlignment = Alignment.Bottom
                             ) {
                                 Column {
+                                    val dueCount = boxDueCounts[box.id] ?: 0
                                     Text(
-                                        text = "$wordCount words total • $masteredCount mastered",
+                                        text = "$wordCount words total • $dueCount due • $masteredCount mastered",
                                         color = Color.White.copy(alpha = 0.4f),
                                         fontSize = 11.sp
                                     )
@@ -828,14 +832,44 @@ fun BoxDetailScreen(
                 }
             }
 
-            Row {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 // STUDY BUTTON
                 if (words.isNotEmpty()) {
-                    IconButton(onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigateToStudy(boxId)
-                    }) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Review Box", tint = Color(0xFF00FFD2))
+                    val currentTime = System.currentTimeMillis()
+                    val dueWordsCount = words.count { it.dueDate <= currentTime }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (dueWordsCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFF1744))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "$dueWordsCount due",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        IconButton(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigateToStudy(boxId)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Review Box",
+                                tint = if (dueWordsCount > 0) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.4f)
+                            )
+                        }
                     }
                 }
                 IconButton(onClick = { onNavigateToAddWord(boxId) }) {
