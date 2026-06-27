@@ -344,14 +344,7 @@ fun LearningSessionScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     PremiumGlassButton(
                         text = "Go Back",
-                        onClick = {
-                            if (isBoxSession) {
-                                navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "boxes")
-                            } else {
-                                navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "smart_learn")
-                            }
-                            navController.popBackStack()
-                        }
+                        onClick = { navController.popBackStack() }
                     )
                 }
             }
@@ -614,12 +607,7 @@ fun LearningSessionScreen(
                             text = "Continue",
                             onClick = {
                                 coroutineScope.launch {
-                                    if (isBoxSession) {
-                                        navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "boxes")
-                                    } else {
-                                        navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "smart_learn")
-                                        repo.updateSessionState(active = false, cardIds = emptyList(), currentIndex = 0)
-                                    }
+                                    repo.updateSessionState(active = false, cardIds = emptyList(), currentIndex = 0)
                                     navController.popBackStack()
                                 }
                             },
@@ -816,14 +804,7 @@ fun LearningSessionScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (isBoxSession) {
-                            navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "boxes")
-                        } else {
-                            navController.previousBackStackEntry?.savedStateHandle?.set("selected_tab", "smart_learn")
-                        }
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },

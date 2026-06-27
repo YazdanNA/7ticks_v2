@@ -976,9 +976,6 @@ fun BoxDetailScreen(
                             }
                         }
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(96.dp))
-                    }
                 }
             }
         }
@@ -987,7 +984,7 @@ fun BoxDetailScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 96.dp, end = 24.dp),
+                .padding(bottom = 24.dp, end = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
