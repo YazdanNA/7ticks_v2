@@ -378,7 +378,7 @@ fun SharedTextField(
             ),
             cursorBrush = SolidColor(Color(0xFF00FFD2)),
             decorationBox = @Composable { innerTextField ->
-                OutlinedTextFieldDefaults.DecorationBox(
+                TextFieldDefaults.DecorationBox(
                     value = value,
                     innerTextField = innerTextField,
                     enabled = true,
@@ -403,37 +403,26 @@ fun SharedTextField(
                     } else null,
                     leadingIcon = leadingIcon,
                     trailingIcon = trailingIcon,
-                    colors = OutlinedTextFieldDefaults.colors(
+                    colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         errorContainerColor = Color.Transparent,
-                        focusedBorderColor = borderGlowColor,
-                        unfocusedBorderColor = borderGlowColor,
-                        errorBorderColor = borderGlowColor,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent,
                         cursorColor = Color(0xFF00FFD2),
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         errorTextColor = Color.White
                     ),
                     container = {
-                        OutlinedTextFieldDefaults.Container(
-                            enabled = true,
-                            isError = isError,
-                            interactionSource = interactionSource,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                errorContainerColor = Color.Transparent,
-                                focusedBorderColor = borderGlowColor,
-                                unfocusedBorderColor = borderGlowColor,
-                                errorBorderColor = borderGlowColor
-                            ),
-                            shape = RoundedCornerShape(20.dp),
-                            focusedBorderThickness = 1.dp,
-                            unfocusedBorderThickness = 1.dp
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .border(1.dp, borderGlowColor, RoundedCornerShape(20.dp))
                         )
                     },
-                    contentPadding = OutlinedTextFieldDefaults.contentPadding(
+                    contentPadding = PaddingValues(
                         top = 10.dp,
                         bottom = 10.dp,
                         start = 16.dp,
