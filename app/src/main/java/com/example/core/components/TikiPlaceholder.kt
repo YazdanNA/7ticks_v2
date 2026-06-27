@@ -148,7 +148,7 @@ fun TikiPlaceholder(
         verticalArrangement = Arrangement.Center
     ) {
         Box(
-            modifier = Modifier.size(sizeDp.dp),
+            modifier = Modifier.requiredSize(sizeDp.dp),
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {

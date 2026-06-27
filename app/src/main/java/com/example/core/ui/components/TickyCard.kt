@@ -185,7 +185,7 @@ fun TickyCard(
         // 2. Large Tiki drawn on top of the card as a stack, sticking out of boundaries
         Box(
             modifier = Modifier
-                .size(resolvedSizeDp.dp)
+                .requiredSize(resolvedSizeDp.dp)
                 .offset(x = (-4).dp, y = (-20).dp) // letting Tiki stick out of the card organically
                 .scale(breatheScale),
             contentAlignment = Alignment.Center

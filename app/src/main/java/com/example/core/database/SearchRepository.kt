@@ -101,19 +101,40 @@ class SearchRepository @Inject constructor(
                 val topicIdx = if (topicCol.isNotEmpty()) cursor.getColumnIndex(topicCol) else -1
 
                 do {
-                    val wordVal = if (wordIdx != -1) cursor.getString(wordIdx) else ""
-                    val levelVal = if (levelIdx != -1) cursor.getString(levelIdx) else "B1"
-                    val defVal = if (defIdx != -1) cursor.getString(defIdx) else ""
-                    val typeVal = if (typeIdx != -1) cursor.getString(typeIdx) else "Noun"
-                    val topicVal = if (topicIdx != -1) cursor.getString(topicIdx) else "General"
+                    val wordVal = if (wordIdx != -1) cursor.getString(wordIdx) ?: "" else ""
+                    val levelVal = if (levelIdx != -1) cursor.getString(levelIdx) ?: "B1" else "B1"
+                    
+                    val defRaw = if (defIdx != -1) cursor.getString(defIdx) ?: "" else ""
+                    val defTrimmed = defRaw.trim()
+                    val defVal = if (defTrimmed.startsWith("[") || defTrimmed.startsWith("{")) {
+                        JsonParserUtils.parseJsonArray(defTrimmed).firstOrNull() ?: defTrimmed
+                    } else {
+                        defRaw
+                    }
+
+                    val typeRaw = if (typeIdx != -1) cursor.getString(typeIdx) ?: "Noun" else "Noun"
+                    val typeTrimmed = typeRaw.trim()
+                    val typeVal = if (typeTrimmed.startsWith("[") || typeTrimmed.startsWith("{")) {
+                        JsonParserUtils.parseJsonArray(typeTrimmed).firstOrNull() ?: typeTrimmed
+                    } else {
+                        typeRaw
+                    }
+
+                    val topicRaw = if (topicIdx != -1) cursor.getString(topicIdx) ?: "General" else "General"
+                    val topicTrimmed = topicRaw.trim()
+                    val topicVal = if (topicTrimmed.startsWith("[") || topicTrimmed.startsWith("{")) {
+                        JsonParserUtils.parseJsonArray(topicTrimmed).firstOrNull() ?: topicTrimmed
+                    } else {
+                        topicRaw
+                    }
 
                     results.add(
                         SearchResult(
-                            word = wordVal ?: "",
-                            level = levelVal ?: "B1",
-                            shortMeaning = defVal ?: "",
-                            type = typeVal ?: "Noun",
-                            topic = topicVal ?: "General"
+                            word = wordVal,
+                            level = levelVal,
+                            shortMeaning = defVal,
+                            type = typeVal,
+                            topic = topicVal
                         )
                     )
                 } while (cursor.moveToNext())

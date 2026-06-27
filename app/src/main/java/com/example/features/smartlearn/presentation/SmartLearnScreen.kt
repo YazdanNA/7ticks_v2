@@ -223,96 +223,7 @@ fun SmartLearnScreen(navController: NavController) {
                 )
             )
 
-            // ORDER 3: Active Challenge Card (Expandable card with seamless morph animation)
-            if (challengesList.isNotEmpty()) {
-                val challenge = challengesList.firstOrNull { !it.completed } ?: challengesList.first()
-                val progress = if (challenge.target > 0) challenge.current.toFloat() / challenge.target.toFloat() else 0f
-
-                SharedGlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showChallengePortal = true
-                    }
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (challenge.completed) Icons.Default.Check else Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Active Challenge",
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (challenge.completed) Color(0x3300E676) else Color(0x1F9D00FF))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = challenge.title,
-                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = challenge.description,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                trackColor = Color(0x1AFFFFFF),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                            )
-                            Text(
-                                text = "${challenge.current}/${challenge.target}",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Text(
-                            text = "Tap to expand Quests portal",
-                            color = Color(0xFF00C2FF).copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.align(Alignment.End)
-                        )
-                    }
-                }
-            }
-
-            // ORDER 4: English Workspace + Continue Learning Card (Merged into one intelligent dominant card)
+            // ORDER 3: English Workspace + Continue Learning Card (Merged into one intelligent dominant card)
             SharedGlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 24.dp
@@ -499,6 +410,95 @@ fun SmartLearnScreen(navController: NavController) {
                                 letterSpacing = 1.sp
                             )
                         }
+                    }
+                }
+            }
+
+            // ORDER 4: Active Challenge Card (Expandable card with seamless morph animation)
+            if (challengesList.isNotEmpty()) {
+                val challenge = challengesList.firstOrNull { !it.completed } ?: challengesList.first()
+                val progress = if (challenge.target > 0) challenge.current.toFloat() / challenge.target.toFloat() else 0f
+
+                SharedGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showChallengePortal = true
+                    }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (challenge.completed) Icons.Default.Check else Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Active Challenge",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (challenge.completed) Color(0x3300E676) else Color(0x1F9D00FF))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = challenge.title,
+                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = challenge.description,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
+                                trackColor = Color(0x1AFFFFFF),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                            )
+                            Text(
+                                text = "${challenge.current}/${challenge.target}",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text(
+                            text = "Tap to expand Quests portal",
+                            color = Color(0xFF00C2FF).copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.End)
+                        )
                     }
                 }
             }

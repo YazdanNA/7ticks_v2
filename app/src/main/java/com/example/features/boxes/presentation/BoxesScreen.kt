@@ -38,6 +38,7 @@ import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
+import com.example.core.ui.components.SevenTicksFAB
 import com.example.core.ui.components.UniversalFlashcard
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
@@ -72,9 +73,16 @@ sealed class BoxesSubScreen {
 }
 
 @Composable
-fun BoxesScreen(navController: androidx.navigation.NavController? = null) {
+fun BoxesScreen(
+    navController: androidx.navigation.NavController? = null,
+    onShowBottomBar: (Boolean) -> Unit = {}
+) {
     var currentSubScreen by remember { mutableStateOf<BoxesSubScreen>(BoxesSubScreen.Dashboard) }
     val backstack = remember { mutableStateListOf<BoxesSubScreen>() }
+
+    LaunchedEffect(currentSubScreen) {
+        onShowBottomBar(currentSubScreen is BoxesSubScreen.Dashboard)
+    }
 
     fun navigateTo(screen: BoxesSubScreen) {
         backstack.add(currentSubScreen)
@@ -510,49 +518,15 @@ fun BoxesDashboardScreen(
     }
 
         // Smart FAB at the bottom-right corner of the Box
-        Box(
+        SevenTicksFAB(
+            onClick = onNavigateToCreateBox,
+            icon = Icons.Default.Add,
+            label = "Create Box",
+            isExpanded = isFabExpanded,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 24.dp, end = 24.dp)
-        ) {
-            FloatingActionButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigateToCreateBox()
-                },
-                containerColor = Color.Transparent,
-                elevation = FloatingActionButtonDefaults.elevation(12.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)))
-                    )
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Box", tint = Color.White)
-                    AnimatedVisibility(
-                        visible = isFabExpanded,
-                        enter = expandHorizontally() + fadeIn(),
-                        exit = shrinkHorizontally() + fadeOut()
-                    ) {
-                        Row {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Create Box",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        )
     }
 }
 
@@ -800,192 +774,217 @@ fun BoxDetailScreen(
     val masteredCount = words.count { it.boxIndex == 7 }
     val progressPercent = if (words.isNotEmpty()) (masteredCount * 100) / words.size else 0
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Navigation Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(boxColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(imageVector = getBoxIcon(boxIcon), contentDescription = null, tint = boxColor, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(boxName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("${words.size} terms inside", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+            // Navigation Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(boxColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = getBoxIcon(boxIcon), contentDescription = null, tint = boxColor, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(boxName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text("${words.size} terms inside", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                    }
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // STUDY BUTTON
-                if (words.isNotEmpty()) {
-                    val currentTime = System.currentTimeMillis()
-                    val dueWordsCount = words.count { it.dueDate <= currentTime }
+            // Stats card showing Leitner distribution
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Leitner Box Progress", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("$masteredCount Mastered", color = Color(0xFF00E676), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("•", color = Color.White.copy(alpha = 0.3f))
+                            Text("${words.size - masteredCount} Learning", color = Color(0xFF00C2FF), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { if (words.isNotEmpty()) masteredCount.toFloat() / words.size.toFloat() else 0f },
+                            color = boxColor,
+                            trackColor = Color(0x11FFFFFF),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                        )
+                    }
+                    Text("$progressPercent%", color = boxColor, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                }
+            }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+            // Live list Search
+            SharedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = "Search Words",
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Custom list of words
+            if (filteredWords.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    TickyCard(
+                        message = "No words inside this box matched your search. Tap '+' to create/auto-fill new terms!",
+                        sizeDp = 60,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredWords) { item ->
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToWordDetail(boxId, item.id)
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(item.word, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0x1F00C2FF))
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(item.type, color = Color(0xFF00C2FF), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0x1FE040FB))
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text("Leitner ${item.boxIndex}", color = Color(0xFFE040FB), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    val firstMeaning = item.meanings.split("\n").firstOrNull { it.isNotEmpty() } ?: ""
+                                    if (firstMeaning.isNotEmpty()) {
+                                        Text(firstMeaning, color = Color(0xFFFFD600), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                Row {
+                                    IconButton(onClick = { onNavigateToEditWord(boxId, item.id) }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+                                    }
+                                    IconButton(onClick = {
+                                        coroutineScope.launch {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            boxRepo.removeBoxWordById(item.id)
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF5252).copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Floating Action Buttons (Round Play + Add Word FAB side-by-side)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 24.dp, end = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (words.isNotEmpty()) {
+                val currentTime = System.currentTimeMillis()
+                val dueWordsCount = words.count { it.dueDate <= currentTime }
+
+                FloatingActionButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToStudy(boxId)
+                    },
+                    containerColor = Color.Transparent,
+                    elevation = FloatingActionButtonDefaults.elevation(12.dp),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = if (dueWordsCount > 0) {
+                                    listOf(Color(0xFFFF5252), Color(0xFFFF1744))
+                                } else {
+                                    listOf(Color(0x33FFFFFF), Color(0x11FFFFFF))
+                                }
+                            )
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Review Box",
+                            tint = if (dueWordsCount > 0) Color.White else Color.White.copy(alpha = 0.5f)
+                        )
                         if (dueWordsCount > 0) {
                             Box(
                                 modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = (-4).dp, y = 4.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFFF1744))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .background(Color.White)
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "$dueWordsCount due",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                                    text = "$dueWordsCount",
+                                    color = Color(0xFFFF1744),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
                                 )
                             }
                         }
-                        IconButton(onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onNavigateToStudy(boxId)
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Review Box",
-                                tint = if (dueWordsCount > 0) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.4f)
-                            )
-                        }
-                    }
-                }
-                IconButton(onClick = { onNavigateToAddWord(boxId) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Word", tint = Color.White)
-                }
-            }
-        }
-
-        // Stats card showing Leitner distribution
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Leitner Box Progress", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("$masteredCount Mastered", color = Color(0xFF00E676), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Text("•", color = Color.White.copy(alpha = 0.3f))
-                        Text("${words.size - masteredCount} Learning", color = Color(0xFF00C2FF), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                    LinearProgressIndicator(
-                        progress = { if (words.isNotEmpty()) masteredCount.toFloat() / words.size.toFloat() else 0f },
-                        color = boxColor,
-                        trackColor = Color(0x11FFFFFF),
-                        modifier = Modifier
-                            .width(150.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                    )
-                }
-                Text("$progressPercent%", color = boxColor, fontSize = 24.sp, fontWeight = FontWeight.Black)
-            }
-        }
-
-        // Live list Search
-        SharedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = "Search Words",
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Custom list of words
-        if (filteredWords.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                TickyCard(
-                    message = "No words inside this box matched your search. Tap '+' to create/auto-fill new terms!",
-                    sizeDp = 60,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(filteredWords) { item ->
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onNavigateToWordDetail(boxId, item.id)
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(item.word, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(Color(0x1F00C2FF))
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(item.type, color = Color(0xFF00C2FF), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(Color(0x1FE040FB))
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                                    ) {
-                                        Text("Leitner ${item.boxIndex}", color = Color(0xFFE040FB), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                val firstMeaning = item.meanings.split("\n").firstOrNull { it.isNotEmpty() } ?: ""
-                                if (firstMeaning.isNotEmpty()) {
-                                    Text(firstMeaning, color = Color(0xFFFFD600), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-
-                            Row {
-                                IconButton(onClick = { onNavigateToEditWord(boxId, item.id) }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
-                                }
-                                IconButton(onClick = {
-                                    coroutineScope.launch {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        boxRepo.removeBoxWordById(item.id)
-                                    }
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF5252).copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
                     }
                 }
             }
+
+            SevenTicksFAB(
+                onClick = { onNavigateToAddWord(boxId) },
+                icon = Icons.Default.Add,
+                label = "Add Word",
+                isExpanded = true
+            )
         }
     }
 }
