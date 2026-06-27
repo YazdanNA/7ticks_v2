@@ -72,31 +72,82 @@ sealed class BoxesSubScreen {
     object ImportBackup : BoxesSubScreen()
 }
 
+private fun serializeSubScreen(screen: BoxesSubScreen): String {
+    return when (screen) {
+        is BoxesSubScreen.Dashboard -> "Dashboard"
+        is BoxesSubScreen.CreateEditBox -> "CreateEditBox:${screen.boxId ?: "null"}"
+        is BoxesSubScreen.BoxDetail -> "BoxDetail:${screen.boxId}"
+        is BoxesSubScreen.AddWord -> "AddWord:${screen.boxId}:${screen.boxWordId ?: "null"}"
+        is BoxesSubScreen.WordDetail -> "WordDetail:${screen.boxId}:${screen.boxWordId}"
+        is BoxesSubScreen.BoxStudy -> "BoxStudy:${screen.boxId}"
+        is BoxesSubScreen.ImportBackup -> "ImportBackup"
+    }
+}
+
+private fun deserializeSubScreen(str: String): BoxesSubScreen {
+    val parts = str.split(":")
+    if (parts.isEmpty()) return BoxesSubScreen.Dashboard
+    return when (parts[0]) {
+        "Dashboard" -> BoxesSubScreen.Dashboard
+        "CreateEditBox" -> {
+            val idStr = parts.getOrNull(1) ?: "null"
+            BoxesSubScreen.CreateEditBox(if (idStr == "null") null else idStr.toIntOrNull())
+        }
+        "BoxDetail" -> {
+            val id = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            BoxesSubScreen.BoxDetail(id)
+        }
+        "AddWord" -> {
+            val boxId = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            val wordIdStr = parts.getOrNull(2) ?: "null"
+            BoxesSubScreen.AddWord(boxId, if (wordIdStr == "null") null else wordIdStr.toIntOrNull())
+        }
+        "WordDetail" -> {
+            val boxId = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            val wordId = parts.getOrNull(2)?.toIntOrNull() ?: 0
+            BoxesSubScreen.WordDetail(boxId, wordId)
+        }
+        "BoxStudy" -> {
+            val id = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            BoxesSubScreen.BoxStudy(id)
+        }
+        "ImportBackup" -> BoxesSubScreen.ImportBackup
+        else -> BoxesSubScreen.Dashboard
+    }
+}
+
 @Composable
 fun BoxesScreen(
     navController: androidx.navigation.NavController? = null,
     onShowBottomBar: (Boolean) -> Unit = {}
 ) {
-    var currentSubScreen by remember { mutableStateOf<BoxesSubScreen>(BoxesSubScreen.Dashboard) }
-    val backstack = remember { mutableStateListOf<BoxesSubScreen>() }
-    var isBackNavigation by remember { mutableStateOf(false) }
+    var currentSubScreenStr by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("Dashboard") }
+    var backstackStr by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    var isBackNavigation by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(currentSubScreen) {
-        onShowBottomBar(currentSubScreen is BoxesSubScreen.Dashboard)
+    val currentSubScreen = remember(currentSubScreenStr) { deserializeSubScreen(currentSubScreenStr) }
+
+    LaunchedEffect(currentSubScreenStr) {
+        onShowBottomBar(deserializeSubScreen(currentSubScreenStr) is BoxesSubScreen.Dashboard)
     }
 
     fun navigateTo(screen: BoxesSubScreen) {
         isBackNavigation = false
-        backstack.add(currentSubScreen)
-        currentSubScreen = screen
+        val newBackstack = if (backstackStr.isEmpty()) currentSubScreenStr else "$backstackStr;$currentSubScreenStr"
+        backstackStr = newBackstack
+        currentSubScreenStr = serializeSubScreen(screen)
     }
 
     fun navigateBack() {
         isBackNavigation = true
-        if (backstack.isNotEmpty()) {
-            currentSubScreen = backstack.removeAt(backstack.size - 1)
+        if (backstackStr.isNotEmpty()) {
+            val list = backstackStr.split(";")
+            val lastIndex = list.size - 1
+            val previousScreenStr = list[lastIndex]
+            currentSubScreenStr = previousScreenStr
+            backstackStr = list.take(lastIndex).joinToString(";")
         } else {
-            currentSubScreen = BoxesSubScreen.Dashboard
+            currentSubScreenStr = "Dashboard"
         }
     }
 

@@ -93,11 +93,18 @@ fun AppNavigation() {
 
 @Composable
 fun MainScreen(navController: androidx.navigation.NavController) {
-    var selectedTab by remember { mutableStateOf<TabScreen>(TabScreen.SmartLearn) }
+    var selectedTabRoute by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(TabScreen.SmartLearn.route) }
+    val selectedTab = when (selectedTabRoute) {
+        TabScreen.SmartLearn.route -> TabScreen.SmartLearn
+        TabScreen.Boxes.route -> TabScreen.Boxes
+        TabScreen.Analysis.route -> TabScreen.Analysis
+        TabScreen.Profile.route -> TabScreen.Profile
+        else -> TabScreen.SmartLearn
+    }
     var showDictionaryOverlay by remember { mutableStateOf(false) }
     var isBottomBarVisibleBySubScreen by remember { mutableStateOf(true) }
 
-    LaunchedEffect(selectedTab, showDictionaryOverlay) {
+    LaunchedEffect(selectedTabRoute, showDictionaryOverlay) {
         isBottomBarVisibleBySubScreen = true
     }
 
@@ -182,7 +189,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.Star,
                             active = selectedTab == TabScreen.SmartLearn && !showDictionaryOverlay,
                             onClick = {
-                                selectedTab = TabScreen.SmartLearn
+                                selectedTabRoute = TabScreen.SmartLearn.route
                                 showDictionaryOverlay = false
                             }
                         )
@@ -193,7 +200,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.List,
                             active = selectedTab == TabScreen.Boxes && !showDictionaryOverlay,
                             onClick = {
-                                selectedTab = TabScreen.Boxes
+                                selectedTabRoute = TabScreen.Boxes.route
                                 showDictionaryOverlay = false
                             }
                         )
@@ -249,7 +256,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.PlayArrow, // Chart-like representation
                             active = selectedTab == TabScreen.Analysis && !showDictionaryOverlay,
                             onClick = {
-                                selectedTab = TabScreen.Analysis
+                                selectedTabRoute = TabScreen.Analysis.route
                                 showDictionaryOverlay = false
                             }
                         )
@@ -260,7 +267,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.Person,
                             active = selectedTab == TabScreen.Profile && !showDictionaryOverlay,
                             onClick = {
-                                selectedTab = TabScreen.Profile
+                                selectedTabRoute = TabScreen.Profile.route
                                 showDictionaryOverlay = false
                             }
                         )
