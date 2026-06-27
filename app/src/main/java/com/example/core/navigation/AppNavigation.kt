@@ -40,9 +40,138 @@ import androidx.compose.foundation.pager.rememberPagerState
 import kotlinx.coroutines.launch
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+
+private const val PROGRESSIVE_BLUR_SHADER = """
+    uniform shader inputTexture;
+    uniform float2 size;
+    
+    half4 main(float2 coords) {
+        float progress = coords.y / size.y;
+        
+        // Progressive blur begins around y = 0.82 (the bottom 18% of screen)
+        float startY = 0.82;
+        float blurProgress = max(0.0, (progress - startY) / (1.0 - startY));
+        
+        if (blurProgress <= 0.0) {
+            return inputTexture.eval(coords);
+        }
+        
+        // Apple Liquid Glass progressive blur radius up to 28 pixels at the bottom
+        float radius = blurProgress * 28.0;
+        
+        // Sampling grid for ultra-smooth optical diffusion (5x5 gaussian/box blur layout)
+        half4 color = half4(0.0);
+        float totalWeight = 0.0;
+        
+        for (float x = -2.0; x <= 2.0; x += 1.0) {
+            for (float y = -2.0; y <= 2.0; y += 1.0) {
+                float2 offset = float2(x, y) * (radius / 2.0);
+                color += inputTexture.eval(coords + offset);
+                totalWeight += 1.0;
+            }
+        }
+        
+        color /= totalWeight;
+        
+        // Linear mapping to match exact requested progressive alpha values
+        // Top (startY): 100% -> 95% -> 85% -> 70% -> 50% -> 35% -> 20% -> 10% -> 0% (bottom)
+        float alpha = 1.0;
+        if (blurProgress < 0.125) {
+            alpha = mix(1.0, 0.95, blurProgress / 0.125);
+        } else if (blurProgress < 0.25) {
+            alpha = mix(0.95, 0.85, (blurProgress - 0.125) / 0.125);
+        } else if (blurProgress < 0.375) {
+            alpha = mix(0.85, 0.70, (blurProgress - 0.25) / 0.125);
+        } else if (blurProgress < 0.5) {
+            alpha = mix(0.70, 0.50, (blurProgress - 0.375) / 0.125);
+        } else if (blurProgress < 0.625) {
+            alpha = mix(0.50, 0.35, (blurProgress - 0.5) / 0.125);
+        } else if (blurProgress < 0.75) {
+            alpha = mix(0.35, 0.20, (blurProgress - 0.625) / 0.125);
+        } else if (blurProgress < 0.875) {
+            alpha = mix(0.20, 0.10, (blurProgress - 0.75) / 0.125);
+        } else {
+            alpha = mix(0.10, 0.0, (blurProgress - 0.875) / 0.125);
+        }
+        
+        color.a *= alpha;
+        
+        // Apply vertical darkening (luminance reduction) - up to 10% at the very bottom
+        float darken = blurProgress * 0.10;
+        color.rgb *= (1.0 - darken);
+        
+        return color;
+    }
+"""
+
+fun Modifier.progressiveDissolveEffect(): Modifier = this
+    .graphicsLayer {
+        // We need offscreen rendering (CompositingStrategy.Offscreen) 
+        // to correctly blend/fade the alpha to transparent using BlendMode.DstIn/DstOut!
+        compositingStrategy = CompositingStrategy.Offscreen
+    }
+    .drawWithContent {
+        // Draw the main content
+        drawContent()
+        
+        // On Android 13+, the RenderEffect RuntimeShader does the job.
+        // For older Android versions (pre-33), we apply a progressive alpha and color gradient
+        // using BlendMode.DstOut to fade content to transparent, and then draw the dark blend.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            val startY = size.height * 0.82f
+            
+            // Fading alpha mask to fade the content smoothly to transparent
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent, // No fade at the top
+                        Color.Black.copy(alpha = 0.05f),
+                        Color.Black.copy(alpha = 0.15f),
+                        Color.Black.copy(alpha = 0.30f),
+                        Color.Black.copy(alpha = 0.50f),
+                        Color.Black.copy(alpha = 0.65f),
+                        Color.Black.copy(alpha = 0.80f),
+                        Color.Black.copy(alpha = 0.90f),
+                        Color.Black // Fully fade out at the very bottom
+                    ),
+                    startY = startY,
+                    endY = size.height
+                ),
+                blendMode = BlendMode.DstOut
+            )
+            
+            // Subtle darkening overlay (up to 10% luminance reduction at the bottom)
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0xFF060713).copy(alpha = 0.10f)
+                    ),
+                    startY = startY,
+                    endY = size.height
+                )
+            )
+        }
+    }
+    .graphicsLayer {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                val shader = RuntimeShader(PROGRESSIVE_BLUR_SHADER)
+                shader.setFloatUniform("size", size.width, size.height)
+                renderEffect = RenderEffect.createRuntimeShaderEffect(shader, "inputTexture")
+                    .asComposeRenderEffect()
+            } catch (e: Exception) {
+                // Safe fallback in case of any platform-specific shader compilation issues
+            }
+        }
+    }
 
 @Composable
 fun AppNavigation() {
@@ -182,6 +311,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
+                    .progressiveDissolveEffect()
             ) {
                 HorizontalPager(
                     state = pagerState,
