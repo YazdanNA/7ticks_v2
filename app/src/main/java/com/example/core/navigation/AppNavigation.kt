@@ -33,6 +33,10 @@ import com.example.features.smartlearn.presentation.LearningSessionScreen
 import com.example.features.smartlearn.presentation.SmartLearnScreen
 import com.example.features.splash.presentation.SplashScreen
 import com.example.core.ui.components.AnimatedBackground
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 
 @Composable
 fun AppNavigation() {
@@ -94,21 +98,52 @@ fun AppNavigation() {
 @Composable
 fun MainScreen(navController: androidx.navigation.NavController) {
     var selectedTabRoute by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(TabScreen.SmartLearn.route) }
-    val selectedTab = when (selectedTabRoute) {
-        TabScreen.SmartLearn.route -> TabScreen.SmartLearn
-        TabScreen.Boxes.route -> TabScreen.Boxes
-        TabScreen.Analysis.route -> TabScreen.Analysis
-        TabScreen.Profile.route -> TabScreen.Profile
-        else -> TabScreen.SmartLearn
-    }
-    var showDictionaryOverlay by remember { mutableStateOf(false) }
     var isBottomBarVisibleBySubScreen by remember { mutableStateOf(true) }
 
-    LaunchedEffect(selectedTabRoute, showDictionaryOverlay) {
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { 5 }
+    )
+
+    LaunchedEffect(selectedTabRoute) {
+        val targetPage = when (selectedTabRoute) {
+            "smart_learn" -> 0
+            "boxes" -> 1
+            "dictionary" -> 2
+            "analysis" -> 3
+            "profile" -> 4
+            else -> 0
+        }
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(
+                page = targetPage,
+                animationSpec = tween(
+                    durationMillis = 320,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val targetRoute = when (pagerState.currentPage) {
+            0 -> "smart_learn"
+            1 -> "boxes"
+            2 -> "dictionary"
+            3 -> "analysis"
+            4 -> "profile"
+            else -> "smart_learn"
+        }
+        if (selectedTabRoute != targetRoute) {
+            selectedTabRoute = targetRoute
+        }
+    }
+
+    LaunchedEffect(selectedTabRoute) {
         isBottomBarVisibleBySubScreen = true
     }
 
-    val bottomBarVisible = if (showDictionaryOverlay) true else (selectedTab != TabScreen.Boxes || isBottomBarVisibleBySubScreen)
+    val bottomBarVisible = if (selectedTabRoute == "dictionary") true else (selectedTabRoute != TabScreen.Boxes.route || isBottomBarVisibleBySubScreen)
 
     AnimatedBackground(
         modifier = Modifier.fillMaxSize()
@@ -116,39 +151,27 @@ fun MainScreen(navController: androidx.navigation.NavController) {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Main content container (full screen)
+            // Main content container (full screen with HorizontalPager)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
             ) {
-                AnimatedContent(
-                    targetState = showDictionaryOverlay,
-                    transitionSpec = {
-                        slideInVertically { h -> h } + fadeIn() togetherWith slideOutVertically { h -> h } + fadeOut()
-                    },
-                    label = "dictionary_toggle"
-                ) { overlayActive ->
-                    if (overlayActive) {
-                        DictionaryScreen()
-                    } else {
-                        AnimatedContent(
-                            targetState = selectedTab,
-                            transitionSpec = {
-                                fadeIn() togetherWith fadeOut()
-                            },
-                            label = "tab_switch"
-                        ) { targetTab ->
-                            when (targetTab) {
-                                TabScreen.SmartLearn -> SmartLearnScreen(navController = navController)
-                                TabScreen.Boxes -> BoxesScreen(
-                                    navController = navController,
-                                    onShowBottomBar = { isBottomBarVisibleBySubScreen = it }
-                                )
-                                TabScreen.Analysis -> AnalysisScreen()
-                                TabScreen.Profile -> ProfileScreen()
-                            }
-                        }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = true,
+                    beyondViewportPageCount = 4
+                ) { pageIndex ->
+                    when (pageIndex) {
+                        0 -> SmartLearnScreen(navController = navController)
+                        1 -> BoxesScreen(
+                            navController = navController,
+                            onShowBottomBar = { isBottomBarVisibleBySubScreen = it }
+                        )
+                        2 -> DictionaryScreen()
+                        3 -> AnalysisScreen()
+                        4 -> ProfileScreen()
                     }
                 }
             }
@@ -187,10 +210,9 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         BottomNavItem(
                             title = "Smart Learn",
                             icon = Icons.Default.Star,
-                            active = selectedTab == TabScreen.SmartLearn && !showDictionaryOverlay,
+                            active = selectedTabRoute == "smart_learn",
                             onClick = {
-                                selectedTabRoute = TabScreen.SmartLearn.route
-                                showDictionaryOverlay = false
+                                selectedTabRoute = "smart_learn"
                             }
                         )
 
@@ -198,18 +220,18 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         BottomNavItem(
                             title = "Boxes",
                             icon = Icons.Default.List,
-                            active = selectedTab == TabScreen.Boxes && !showDictionaryOverlay,
+                            active = selectedTabRoute == "boxes",
                             onClick = {
-                                selectedTabRoute = TabScreen.Boxes.route
-                                showDictionaryOverlay = false
+                                selectedTabRoute = "boxes"
                             }
                         )
 
                         // Center Quick Toggle: Dictionary
+                        val isDictionaryActive = selectedTabRoute == "dictionary"
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .clickable { showDictionaryOverlay = !showDictionaryOverlay }
+                                .clickable { selectedTabRoute = "dictionary" }
                                 .padding(horizontal = 8.dp)
                         ) {
                             Box(
@@ -217,7 +239,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     .size(46.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (showDictionaryOverlay) {
+                                        if (isDictionaryActive) {
                                             Brush.horizontalGradient(
                                                 colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
                                             )
@@ -229,7 +251,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = if (showDictionaryOverlay) Color.White else Color(0x33FFFFFF),
+                                        color = if (isDictionaryActive) Color.White else Color(0x33FFFFFF),
                                         shape = CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -237,14 +259,14 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Dictionary Toggle",
-                                    tint = if (showDictionaryOverlay) Color.White else Color(0xFF00FFD2),
+                                    tint = if (isDictionaryActive) Color.White else Color(0xFF00FFD2),
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Dictionary",
-                                color = if (showDictionaryOverlay) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
+                                color = if (isDictionaryActive) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -254,10 +276,9 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         BottomNavItem(
                             title = "Analysis",
                             icon = Icons.Default.PlayArrow, // Chart-like representation
-                            active = selectedTab == TabScreen.Analysis && !showDictionaryOverlay,
+                            active = selectedTabRoute == "analysis",
                             onClick = {
-                                selectedTabRoute = TabScreen.Analysis.route
-                                showDictionaryOverlay = false
+                                selectedTabRoute = "analysis"
                             }
                         )
 
@@ -265,10 +286,9 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         BottomNavItem(
                             title = "Profile",
                             icon = Icons.Default.Person,
-                            active = selectedTab == TabScreen.Profile && !showDictionaryOverlay,
+                            active = selectedTabRoute == "profile",
                             onClick = {
-                                selectedTabRoute = TabScreen.Profile.route
-                                showDictionaryOverlay = false
+                                selectedTabRoute = "profile"
                             }
                         )
                     }
