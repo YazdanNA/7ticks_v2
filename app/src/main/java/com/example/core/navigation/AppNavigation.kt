@@ -37,6 +37,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavigation() {
