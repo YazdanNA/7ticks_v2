@@ -38,6 +38,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import kotlinx.coroutines.launch
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun AppNavigation() {
@@ -211,7 +216,6 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0x1F7A88FF))
                         .border(
                             width = 1.dp,
                             brush = Brush.linearGradient(
@@ -220,6 +224,8 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             shape = RoundedCornerShape(24.dp)
                         )
                 ) {
+                    FrostedGlassBackground()
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -349,3 +355,120 @@ fun RowScope.BottomNavItem(
         )
     }
 }
+
+@Composable
+private fun BoxScope.FrostedGlassBackground() {
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Three-layer composite to create high-fidelity progressive / liquid glass blur:
+            
+            // Layer 1: Strong Blur (24f radius) at the bottom for dense diffusion of colors scrolling underneath
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        val blur = RenderEffect.createBlurEffect(
+                            24f, 24f, Shader.TileMode.CLAMP
+                        )
+                        renderEffect = blur.asComposeRenderEffect()
+                    }
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0x1A7A88FF)
+                            )
+                        )
+                    )
+            )
+
+            // Layer 2: Medium Blur (12f radius) in the center
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        val blur = RenderEffect.createBlurEffect(
+                            12f, 12f, Shader.TileMode.CLAMP
+                        )
+                        renderEffect = blur.asComposeRenderEffect()
+                    }
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0x0EFFFFFF),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            // Layer 3: Smooth Light Blur (4f radius) at the top to fade in the effect smoothly
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        val blur = RenderEffect.createBlurEffect(
+                            4f, 4f, Shader.TileMode.CLAMP
+                        )
+                        renderEffect = blur.asComposeRenderEffect()
+                    }
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x0CFFFFFF),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        } else {
+            // High-fidelity fallback gradient for older Android versions (pre-12)
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x14FFFFFF),
+                                Color(0x1F7A88FF)
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Static Overlay: Vertical Darkening gradient to optimize icon contrast/readability
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x0D060713), // 5% opacity of midnight dark background at the top
+                            Color(0x26060713)  // 15% opacity of midnight dark background at the bottom
+                        )
+                    )
+                )
+        )
+
+        // Subtle Optical Edge Highlight (Liquid Glass Shimmer) at the very top edge
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x17FFFFFF), // Elegant 9% white edge highlight
+                            Color.Transparent
+                        ),
+                        endY = 40f
+                    )
+                )
+        )
+    }
+}
+
