@@ -27,11 +27,15 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
                 Log.d("SevenTicksTts", "TTS Initialized successfully")
                 
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
+                    override fun onStart(utteranceId: String?) {
+                        com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(true)
+                    }
                     override fun onDone(utteranceId: String?) {
+                        com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
                         utteranceDoneCallback?.invoke()
                     }
                     override fun onError(utteranceId: String?) {
+                        com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
                         utteranceDoneCallback?.invoke()
                     }
                 })
@@ -128,6 +132,7 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun stop() {
         try {
+            com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
             utteranceDoneCallback = null
             tts?.stop()
         } catch (e: Exception) {
@@ -137,6 +142,7 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun shutdown() {
         try {
+            com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
             utteranceDoneCallback = null
             tts?.stop()
             tts?.shutdown()

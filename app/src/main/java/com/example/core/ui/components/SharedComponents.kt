@@ -300,6 +300,9 @@ fun SharedTextField(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
+
     var localShakeTrigger by remember { mutableStateOf(false) }
 
     LaunchedEffect(isError) {
@@ -357,7 +360,13 @@ fun SharedTextField(
 
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { newValue ->
+                if (newValue != value) {
+                    feedbackManager.vibrateLight()
+                    feedbackManager.playSound("typing")
+                }
+                onValueChange(newValue)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(containerColor, RoundedCornerShape(20.dp))

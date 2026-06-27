@@ -1,5 +1,7 @@
 package com.example.core.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -217,6 +219,7 @@ fun UniversalFlashcard(
     onMoreDetailsClick: () -> Unit = {},
     onPronounceClick: (text: String, isMale: Boolean) -> Unit = { _, _ -> }
 ) {
+    val context = LocalContext.current
     val rotationAngle by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
         animationSpec = spring(
@@ -228,6 +231,30 @@ fun UniversalFlashcard(
 
     // State to toggle translation display on the back side
     var showTranslation by remember { mutableStateOf(false) }
+
+    val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
+    val isPronouncing by feedbackManager.isPronunciationActive.collectAsState()
+
+    val highlightColor by animateColorAsState(
+        targetValue = if (isPronouncing) Color(0xFF00FFD2) else Color(0x1A00FFD2),
+        animationSpec = tween(250),
+        label = "pronounce_button_bg"
+    )
+    val highlightBorderColor by animateColorAsState(
+        targetValue = if (isPronouncing) Color.White else Color(0x3300FFD2),
+        animationSpec = tween(250),
+        label = "pronounce_button_border"
+    )
+    val highlightScale by animateFloatAsState(
+        targetValue = if (isPronouncing) 1.15f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessMedium),
+        label = "pronounce_button_scale"
+    )
+    val wordTextColor by animateColorAsState(
+        targetValue = if (isPronouncing) Color(0xFF00FFD2) else Color.White,
+        animationSpec = tween(250),
+        label = "pronounce_word_color"
+    )
 
     // Keep translation OFF by default when card changes or is flipped back
     LaunchedEffect(data.word) {
@@ -295,7 +322,7 @@ fun UniversalFlashcard(
                     ) {
                         Text(
                             text = data.word,
-                            color = Color.White,
+                            color = wordTextColor,
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Black,
                             textAlign = TextAlign.Center
@@ -333,9 +360,13 @@ fun UniversalFlashcard(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
+                                .graphicsLayer {
+                                    scaleX = highlightScale
+                                    scaleY = highlightScale
+                                }
                                 .clip(CircleShape)
-                                .background(Color(0x1A00FFD2))
-                                .border(1.dp, Color(0x3300FFD2), CircleShape)
+                                .background(highlightColor)
+                                .border(2.dp, highlightBorderColor, CircleShape)
                                 .clickable {
                                     // Speak Word (Male voice)
                                     onPronounceClick(data.word, true)
@@ -345,7 +376,7 @@ fun UniversalFlashcard(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Pronounce Word",
-                                tint = Color(0xFF00FFD2),
+                                tint = if (isPronouncing) Color.Black else Color(0xFF00FFD2),
                                 modifier = Modifier.size(28.dp)
                             )
                         }

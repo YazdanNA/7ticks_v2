@@ -70,6 +70,8 @@ fun LearningSessionScreen(
     val fsrsRepo = remember { FsrsRepository() }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
 
     // Helpers to convert between CardEntity and FsrsCardModel
     fun CardEntity.toFsrsModel() = FsrsCardModel(
@@ -690,6 +692,26 @@ fun LearningSessionScreen(
     fun handleRating(rating: ReviewRatingModel) {
         val activeEngine = engine ?: return
         val item = activeItem ?: return
+
+        // Trigger premium haptic and sound feedback
+        when (rating) {
+            ReviewRatingModel.AGAIN -> {
+                feedbackManager.vibrateHeavy()
+                feedbackManager.playSound("again")
+            }
+            ReviewRatingModel.HARD -> {
+                feedbackManager.vibrateMedium()
+                feedbackManager.playSound("hard")
+            }
+            ReviewRatingModel.GOOD -> {
+                feedbackManager.vibrateLight()
+                feedbackManager.playSound("good")
+            }
+            ReviewRatingModel.EASY -> {
+                feedbackManager.vibrateLight()
+                feedbackManager.playSound("easy")
+            }
+        }
 
         if (isBoxSession) {
             val boxWord = item.payload as? BoxWordEntity ?: return
