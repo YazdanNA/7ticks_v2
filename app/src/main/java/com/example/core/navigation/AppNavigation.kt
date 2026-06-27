@@ -40,7 +40,19 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route
+        startDestination = Screen.Splash.route,
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { it }) + fadeIn()
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -it }) + fadeIn()
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+        }
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(navController = navController)
@@ -94,131 +106,14 @@ fun MainScreen(navController: androidx.navigation.NavController) {
     AnimatedBackground(
         modifier = Modifier.fillMaxSize()
     ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            bottomBar = {
-                if (bottomBarVisible) {
-                    // Glassmorphic Bottom Navigation
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Color(0x1F7A88FF))
-                            .border(
-                                width = 1.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0x3DFFFFFF), Color(0x127A88FF))
-                                ),
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Tab 1: Smart Learn
-                            BottomNavItem(
-                                title = "Smart Learn",
-                                icon = Icons.Default.Star,
-                                active = selectedTab == TabScreen.SmartLearn && !showDictionaryOverlay,
-                                onClick = {
-                                    selectedTab = TabScreen.SmartLearn
-                                    showDictionaryOverlay = false
-                                }
-                            )
-
-                            // Tab 2: Boxes
-                            BottomNavItem(
-                                title = "Boxes",
-                                icon = Icons.Default.List,
-                                active = selectedTab == TabScreen.Boxes && !showDictionaryOverlay,
-                                onClick = {
-                                    selectedTab = TabScreen.Boxes
-                                    showDictionaryOverlay = false
-                                }
-                            )
-
-                            // Center Quick Toggle: Dictionary
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clickable { showDictionaryOverlay = !showDictionaryOverlay }
-                                    .padding(horizontal = 8.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (showDictionaryOverlay) {
-                                                Brush.horizontalGradient(
-                                                    colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
-                                                )
-                                            } else {
-                                                Brush.horizontalGradient(
-                                                    colors = listOf(Color(0x22FFFFFF), Color(0x0DFFFFFF))
-                                                )
-                                            }
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (showDictionaryOverlay) Color.White else Color(0x33FFFFFF),
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "Dictionary Toggle",
-                                        tint = if (showDictionaryOverlay) Color.White else Color(0xFF00FFD2),
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Dictionary",
-                                    color = if (showDictionaryOverlay) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            // Tab 3: Analysis
-                            BottomNavItem(
-                                title = "Analysis",
-                                icon = Icons.Default.PlayArrow, // Chart-like representation
-                                active = selectedTab == TabScreen.Analysis && !showDictionaryOverlay,
-                                onClick = {
-                                    selectedTab = TabScreen.Analysis
-                                    showDictionaryOverlay = false
-                                }
-                            )
-
-                            // Tab 4: Profile
-                            BottomNavItem(
-                                title = "Profile",
-                                icon = Icons.Default.Person,
-                                active = selectedTab == TabScreen.Profile && !showDictionaryOverlay,
-                                onClick = {
-                                    selectedTab = TabScreen.Profile
-                                    showDictionaryOverlay = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        ) { innerPadding ->
-            // Active view container
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Main content container (full screen)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .windowInsetsPadding(WindowInsets.statusBars)
             ) {
                 AnimatedContent(
                     targetState = showDictionaryOverlay,
@@ -247,6 +142,128 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                 TabScreen.Profile -> ProfileScreen()
                             }
                         }
+                    }
+                }
+            }
+
+            // Glassmorphic Bottom Navigation as a floating overlay at the bottom
+            AnimatedVisibility(
+                visible = bottomBarVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0x1F7A88FF))
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(Color(0x3DFFFFFF), Color(0x127A88FF))
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Tab 1: Smart Learn
+                        BottomNavItem(
+                            title = "Smart Learn",
+                            icon = Icons.Default.Star,
+                            active = selectedTab == TabScreen.SmartLearn && !showDictionaryOverlay,
+                            onClick = {
+                                selectedTab = TabScreen.SmartLearn
+                                showDictionaryOverlay = false
+                            }
+                        )
+
+                        // Tab 2: Boxes
+                        BottomNavItem(
+                            title = "Boxes",
+                            icon = Icons.Default.List,
+                            active = selectedTab == TabScreen.Boxes && !showDictionaryOverlay,
+                            onClick = {
+                                selectedTab = TabScreen.Boxes
+                                showDictionaryOverlay = false
+                            }
+                        )
+
+                        // Center Quick Toggle: Dictionary
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable { showDictionaryOverlay = !showDictionaryOverlay }
+                                .padding(horizontal = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (showDictionaryOverlay) {
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
+                                            )
+                                        } else {
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0x22FFFFFF), Color(0x0DFFFFFF))
+                                            )
+                                        }
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (showDictionaryOverlay) Color.White else Color(0x33FFFFFF),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Dictionary Toggle",
+                                    tint = if (showDictionaryOverlay) Color.White else Color(0xFF00FFD2),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Dictionary",
+                                color = if (showDictionaryOverlay) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Tab 3: Analysis
+                        BottomNavItem(
+                            title = "Analysis",
+                            icon = Icons.Default.PlayArrow, // Chart-like representation
+                            active = selectedTab == TabScreen.Analysis && !showDictionaryOverlay,
+                            onClick = {
+                                selectedTab = TabScreen.Analysis
+                                showDictionaryOverlay = false
+                            }
+                        )
+
+                        // Tab 4: Profile
+                        BottomNavItem(
+                            title = "Profile",
+                            icon = Icons.Default.Person,
+                            active = selectedTab == TabScreen.Profile && !showDictionaryOverlay,
+                            onClick = {
+                                selectedTab = TabScreen.Profile
+                                showDictionaryOverlay = false
+                            }
+                        )
                     }
                 }
             }

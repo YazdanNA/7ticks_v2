@@ -199,6 +199,7 @@ fun AnalysisScreen() {
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(96.dp))
             }
         }
     }

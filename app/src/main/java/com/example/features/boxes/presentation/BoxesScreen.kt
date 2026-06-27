@@ -79,17 +79,20 @@ fun BoxesScreen(
 ) {
     var currentSubScreen by remember { mutableStateOf<BoxesSubScreen>(BoxesSubScreen.Dashboard) }
     val backstack = remember { mutableStateListOf<BoxesSubScreen>() }
+    var isBackNavigation by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentSubScreen) {
         onShowBottomBar(currentSubScreen is BoxesSubScreen.Dashboard)
     }
 
     fun navigateTo(screen: BoxesSubScreen) {
+        isBackNavigation = false
         backstack.add(currentSubScreen)
         currentSubScreen = screen
     }
 
     fun navigateBack() {
+        isBackNavigation = true
         if (backstack.isNotEmpty()) {
             currentSubScreen = backstack.removeAt(backstack.size - 1)
         } else {
@@ -101,7 +104,13 @@ fun BoxesScreen(
     AnimatedContent(
         targetState = currentSubScreen,
         transitionSpec = {
-            slideInHorizontally { width -> width } + fadeIn() togetherWith slideOutHorizontally { width -> -width } + fadeOut()
+            if (isBackNavigation) {
+                (slideInHorizontally { width -> -width } + fadeIn())
+                    .togetherWith(slideOutHorizontally { width -> width } + fadeOut())
+            } else {
+                (slideInHorizontally { width -> width } + fadeIn())
+                    .togetherWith(slideOutHorizontally { width -> -width } + fadeOut())
+            }
         },
         label = "boxes_subscreen_switch"
     ) { screen ->
@@ -515,6 +524,7 @@ fun BoxesDashboardScreen(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(96.dp))
     }
 
         // Smart FAB at the bottom-right corner of the Box
@@ -525,7 +535,7 @@ fun BoxesDashboardScreen(
             isExpanded = isFabExpanded,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 24.dp, end = 24.dp)
+                .padding(bottom = 96.dp, end = 24.dp)
         )
     }
 }

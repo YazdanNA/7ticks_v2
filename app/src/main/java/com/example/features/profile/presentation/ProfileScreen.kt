@@ -518,6 +518,7 @@ fun ProfileScreen() {
                 sizeDp = 60,
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 

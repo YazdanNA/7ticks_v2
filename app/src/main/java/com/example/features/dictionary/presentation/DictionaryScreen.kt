@@ -451,6 +451,7 @@ fun DictionaryScreen() {
                 }
             }
         }
+        Spacer(modifier = Modifier.height(96.dp))
     }
 
     // --- WORD DETAILS PREMIUM DIALOG SHEET ---

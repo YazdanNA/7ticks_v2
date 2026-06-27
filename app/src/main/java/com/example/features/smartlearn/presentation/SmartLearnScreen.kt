@@ -502,6 +502,7 @@ fun SmartLearnScreen(navController: NavController) {
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(96.dp))
         }
 
         // SECTION 9: ACTIVE CHALLENGE CARD EXPANSION PORTAL (Seamless morph transition to fill the screen)
