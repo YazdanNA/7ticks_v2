@@ -798,6 +798,7 @@ fun CreateEditBoxScreen(
                 )
             }
         }
+        Spacer(modifier = Modifier.navigationBarsPadding().height(24.dp))
     }
 }
 
@@ -1165,18 +1166,11 @@ fun AddWordScreen(
         // --- Live Search Autofill (only in creation mode) ---
         if (!isEditing) {
             Text("Auto-Fill from Dictionary Source", color = Color(0xFF00FFD2), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            OutlinedTextField(
+            SharedTextField(
                 value = searchWordQuery,
                 onValueChange = { searchWordQuery = it },
-                placeholder = { Text("Type to lookup & auto-fill fields...", color = Color.White.copy(alpha = 0.4f)) },
+                placeholder = "Type to lookup & auto-fill fields...",
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF00C2FF)) },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0x0EFFFFFF),
-                    unfocusedContainerColor = Color(0x06FFFFFF),
-                    focusedIndicatorColor = Color(0xFF00C2FF),
-                    unfocusedIndicatorColor = Color(0x1AFFFFFF)
-                ),
                 modifier = Modifier.fillMaxWidth()
             )
 

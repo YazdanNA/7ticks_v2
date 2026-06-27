@@ -37,6 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -344,57 +347,100 @@ fun SharedTextField(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         val hintText = if (label != null && label.isNotEmpty()) label else placeholder
-        OutlinedTextField(
+        val containerColor = if (isError) {
+            Color(0x1AFF1744)
+        } else if (isFocused) {
+            Color(0x1A00C2FF)
+        } else {
+            Color(0x0CFFFFFF)
+        }
+
+        BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            label = if (hintText.isNotEmpty()) {
-                {
-                    Text(
-                        text = hintText,
-                        color = labelColor,
-                        maxLines = 1,
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                initialDelayMillis = 1000
-                            )
-                    )
-                }
-            } else null,
-            leadingIcon = leadingIcon,
-            trailingIcon = trailingIcon,
-            singleLine = singleLine,
-            keyboardOptions = keyboardOptions,
-            isError = isError,
-            interactionSource = interactionSource,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0x1A00C2FF),
-                unfocusedContainerColor = Color(0x0CFFFFFF),
-                errorContainerColor = Color(0x1AFF1744),
-                focusedBorderColor = borderGlowColor,
-                unfocusedBorderColor = borderGlowColor,
-                errorBorderColor = borderGlowColor,
-                cursorColor = Color(0xFF00FFD2),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                errorTextColor = Color.White
-            ),
-            textStyle = LocalTextStyle.current.copy(
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            shape = RoundedCornerShape(20.dp),
             modifier = Modifier
                 .fillMaxWidth()
+                .background(containerColor, RoundedCornerShape(20.dp))
                 .shadow(
                     elevation = if (isFocused) 8.dp else 0.dp,
                     shape = RoundedCornerShape(20.dp),
                     clip = false,
                     ambientColor = Color(0xFF00C2FF).copy(alpha = 0.15f),
                     spotColor = Color(0xFF9D00FF).copy(alpha = 0.25f)
+                ),
+            interactionSource = interactionSource,
+            singleLine = singleLine,
+            keyboardOptions = keyboardOptions,
+            textStyle = LocalTextStyle.current.copy(
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            cursorBrush = SolidColor(Color(0xFF00FFD2)),
+            decorationBox = @Composable { innerTextField ->
+                OutlinedTextFieldDefaults.DecorationBox(
+                    value = value,
+                    innerTextField = innerTextField,
+                    enabled = true,
+                    singleLine = singleLine,
+                    visualTransformation = VisualTransformation.None,
+                    interactionSource = interactionSource,
+                    isError = isError,
+                    label = if (hintText.isNotEmpty()) {
+                        {
+                            Text(
+                                text = hintText,
+                                color = labelColor,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .basicMarquee(
+                                        iterations = Int.MAX_VALUE,
+                                        initialDelayMillis = 1000
+                                    )
+                            )
+                        }
+                    } else null,
+                    leadingIcon = leadingIcon,
+                    trailingIcon = trailingIcon,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        errorContainerColor = Color.Transparent,
+                        focusedBorderColor = borderGlowColor,
+                        unfocusedBorderColor = borderGlowColor,
+                        errorBorderColor = borderGlowColor,
+                        cursorColor = Color(0xFF00FFD2),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        errorTextColor = Color.White
+                    ),
+                    container = {
+                        OutlinedTextFieldDefaults.Container(
+                            enabled = true,
+                            isError = isError,
+                            interactionSource = interactionSource,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                errorContainerColor = Color.Transparent,
+                                focusedBorderColor = borderGlowColor,
+                                unfocusedBorderColor = borderGlowColor,
+                                errorBorderColor = borderGlowColor
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            focusedBorderThickness = 1.dp,
+                            unfocusedBorderThickness = 1.dp
+                        )
+                    },
+                    contentPadding = OutlinedTextFieldDefaults.contentPadding(
+                        top = 10.dp,
+                        bottom = 10.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    )
                 )
+            }
         )
     }
 }

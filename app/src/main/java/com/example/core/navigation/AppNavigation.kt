@@ -311,7 +311,13 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .progressiveDissolveEffect()
+                    .then(
+                        if (bottomBarVisible) {
+                            Modifier.progressiveDissolveEffect()
+                        } else {
+                            Modifier
+                        }
+                    )
             ) {
                 HorizontalPager(
                     state = pagerState,
