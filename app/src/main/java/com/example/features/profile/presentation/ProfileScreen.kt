@@ -75,11 +75,10 @@ fun ProfileScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Profile Title & Settings Action
+            // 1. Profile Title & Settings Action (FIXED)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -105,8 +104,16 @@ fun ProfileScreen() {
                 }
             }
 
-            // 2. Interactive Avatar & Name Section (Inline Direct Editing)
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            // Scrollable Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 2. Interactive Avatar & Name Section (Inline Direct Editing)
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -518,7 +525,8 @@ fun ProfileScreen() {
                 sizeDp = 60,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(96.dp))
+            Spacer(modifier = Modifier.height(120.dp))
+            }
         }
     }
 

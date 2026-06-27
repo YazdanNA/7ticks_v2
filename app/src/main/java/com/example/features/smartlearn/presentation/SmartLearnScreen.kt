@@ -164,11 +164,10 @@ fun SmartLearnScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Welcome Header
+            // Welcome Header (FIXED)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -204,7 +203,7 @@ fun SmartLearnScreen(navController: NavController) {
                 }
             }
 
-            // ORDER 1: XP + Level + Streak cards (Single row, responsive, animated counters)
+            // ORDER 1: XP + Level + Streak cards (Single row, responsive, animated counters - FIXED)
             SharedProgressHeader(
                 streak = animStreak,
                 level = animLevel,
@@ -212,8 +211,16 @@ fun SmartLearnScreen(navController: NavController) {
                 badgeText = "Cognitive Guru"
             )
 
-            // ORDER 2: Ticky Card (Unified Ticky component)
-            TickyCard(
+            // Scrollable Body Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // ORDER 2: Ticky Card (Unified Ticky component)
+                TickyCard(
                 tikiState = "st-happy",
                 sizeDp = 80,
                 messages = listOf(
@@ -502,7 +509,8 @@ fun SmartLearnScreen(navController: NavController) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(96.dp))
+            Spacer(modifier = Modifier.height(120.dp))
+            }
         }
 
         // SECTION 9: ACTIVE CHALLENGE CARD EXPANSION PORTAL (Seamless morph transition to fill the screen)

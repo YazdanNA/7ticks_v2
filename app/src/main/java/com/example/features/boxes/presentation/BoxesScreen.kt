@@ -321,11 +321,10 @@ fun BoxesDashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Dashboard Title
+            // Dashboard Title (FIXED)
             Column {
                 Text(
                     text = "My Vocab Boxes",
@@ -340,7 +339,7 @@ fun BoxesDashboardScreen(
                 )
             }
 
-            // Search Bar
+            // Search Bar (FIXED)
             SharedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -357,8 +356,16 @@ fun BoxesDashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-        // Glassmorphic List or Empty State
-        if (filteredBoxes.isEmpty()) {
+            // Scrollable Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Glassmorphic List or Empty State
+                if (filteredBoxes.isEmpty()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -575,7 +582,8 @@ fun BoxesDashboardScreen(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(96.dp))
+        Spacer(modifier = Modifier.height(120.dp))
+        }
     }
 
         // Smart FAB at the bottom-right corner of the Box
@@ -586,7 +594,7 @@ fun BoxesDashboardScreen(
             isExpanded = isFabExpanded,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 96.dp, end = 24.dp)
+                .padding(bottom = 120.dp, end = 24.dp)
         )
     }
 }

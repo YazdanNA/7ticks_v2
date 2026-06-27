@@ -90,11 +90,10 @@ fun DictionaryScreen() {
         }
     }
 
-    // Main scroll container
+    // Main scroll container (FIXED Header)
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -153,8 +152,16 @@ fun DictionaryScreen() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Conditional display based on query state
-        if (query.trim().isEmpty()) {
+        // Scrollable Body Content
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Conditional display based on query state
+            if (query.trim().isEmpty()) {
             // --- RECENT SEARCHES PANEL ---
             if (recentSearches.isNotEmpty()) {
                 Row(
@@ -451,8 +458,9 @@ fun DictionaryScreen() {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(96.dp))
+        Spacer(modifier = Modifier.height(120.dp))
     }
+}
 
     // --- WORD DETAILS PREMIUM DIALOG SHEET ---
     if (showDetailsModal && selectedWord != null) {
