@@ -27,15 +27,34 @@ fun FlashcardScreen(
     goodSubtext: String = "1d",
     easySubtext: String = "4d",
     tikiMessage: String = "Let's learn this word!",
+    tikiState: String = "st-happy",
     progressContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val audioController = remember { FlashcardAudioController(context) }
     var showMoreDetails by remember { mutableStateOf(false) }
 
-    // Auto pronunciation when wordDetails loads
-    LaunchedEffect(wordDetails) {
-        audioController.speakWord(wordDetails.word)
+    // Sequential Auto-Pronunciation when card flips to back
+    LaunchedEffect(wordDetails, isFlipped) {
+        if (!isFlipped) {
+            audioController.stop()
+            audioController.speakWord(wordDetails.word)
+        } else {
+            audioController.stop()
+            
+            // 1. Definition (English) -> Male voice
+            val definition = wordDetails.definitions.firstOrNull() ?: ""
+            if (definition.isNotEmpty()) {
+                audioController.speakSuspend(definition, isMale = true)
+            }
+            
+            // 2. Examples -> Female voice
+            wordDetails.examples.forEach { example ->
+                if (example.isNotEmpty()) {
+                    audioController.speakSuspend(example, isMale = false)
+                }
+            }
+        }
     }
 
     DisposableEffect(Unit) {
@@ -95,11 +114,26 @@ fun FlashcardScreen(
         ) {
             FlashCardWidget(
                 state = flashCardState,
-                onFlip = onFlip,
-                onAgainClick = { onRatingClick(ReviewRatingModel.AGAIN) },
-                onHardClick = { onRatingClick(ReviewRatingModel.HARD) },
-                onGoodClick = { onRatingClick(ReviewRatingModel.GOOD) },
-                onEasyClick = { onRatingClick(ReviewRatingModel.EASY) },
+                onFlip = {
+                    audioController.stop()
+                    onFlip()
+                },
+                onAgainClick = {
+                    audioController.stop()
+                    onRatingClick(ReviewRatingModel.AGAIN)
+                },
+                onHardClick = {
+                    audioController.stop()
+                    onRatingClick(ReviewRatingModel.HARD)
+                },
+                onGoodClick = {
+                    audioController.stop()
+                    onRatingClick(ReviewRatingModel.GOOD)
+                },
+                onEasyClick = {
+                    audioController.stop()
+                    onRatingClick(ReviewRatingModel.EASY)
+                },
                 againSubtext = againSubtext,
                 hardSubtext = hardSubtext,
                 goodSubtext = goodSubtext,
@@ -121,6 +155,7 @@ fun FlashcardScreen(
         // Mascot
         TickyCard(
             message = tikiMessage,
+            tikiState = tikiState,
             sizeDp = 50,
             modifier = Modifier.padding(bottom = 8.dp)
         )

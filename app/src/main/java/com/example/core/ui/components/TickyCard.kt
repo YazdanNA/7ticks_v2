@@ -19,6 +19,27 @@ import androidx.compose.ui.unit.sp
 import com.example.core.components.TikiPlaceholder
 import kotlinx.coroutines.delay
 
+private fun splitMessageIntoChunks(message: String, maxChars: Int = 60): List<String> {
+    if (message.length <= maxChars) return listOf(message)
+    val words = message.split(" ")
+    val chunks = mutableListOf<String>()
+    var currentChunk = StringBuilder()
+    for (word in words) {
+        if (currentChunk.isEmpty()) {
+            currentChunk.append(word)
+        } else if (currentChunk.length + 1 + word.length <= maxChars) {
+            currentChunk.append(" ").append(word)
+        } else {
+            chunks.add(currentChunk.toString())
+            currentChunk = StringBuilder(word)
+        }
+    }
+    if (currentChunk.isNotEmpty()) {
+        chunks.add(currentChunk.toString())
+    }
+    return chunks
+}
+
 /**
  * Reusable Global Ticky Card Component.
  * Features:
@@ -38,13 +59,14 @@ fun TickyCard(
     speedMs: Long = 25,
     pauseMs: Long = 3000
 ) {
-    // Resolve which messages to display
+    // Resolve which messages to display, and split long ones to keep speech bubble max 2 lines
     val resolvedMessages = remember(message, messages) {
-        when {
+        val rawList = when {
             messages != null && messages.isNotEmpty() -> messages
             message != null && message.isNotEmpty() -> listOf(message)
             else -> listOf("Welcome! Let's level up your vocabulary today!")
         }
+        rawList.flatMap { splitMessageIntoChunks(it, 60) }
     }
 
     var currentMsgIdx by remember { mutableStateOf(0) }
@@ -106,49 +128,73 @@ fun TickyCard(
         label = "ticky_scale"
     )
 
-    SharedGlassCard(
-        modifier = modifier.fillMaxWidth(),
-        cornerRadius = 24.dp,
-        depth = 1
+    // Enforce 135dp for 4x larger visual appearance
+    val resolvedSizeDp = if (sizeDp < 135) 135 else sizeDp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(110.dp), // STRICT FIXED HEIGHT FOR COMPANION CARD
+        contentAlignment = Alignment.CenterStart
     ) {
-        Row(
+        // 1. Glass Card background & layout (containing the speech bubble, padded on the left to leave space for Tiki)
+        SharedGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .height(110.dp),
+            cornerRadius = 24.dp,
+            depth = 1
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(start = 114.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Speech bubble background - strict fixed height, max 2 lines
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0x0AFFFFFF))
+                            .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = displayedText,
+                            color = Color(0xFF00FFD2),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 17.sp,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Large Tiki drawn on top of the card as a stack, sticking out of boundaries
+        Box(
+            modifier = Modifier
+                .size(resolvedSizeDp.dp)
+                .offset(x = (-4).dp, y = (-20).dp) // letting Tiki stick out of the card organically
+                .scale(breatheScale),
+            contentAlignment = Alignment.Center
         ) {
             TikiPlaceholder(
                 tikiState = activeTikiState,
-                sizeDp = sizeDp,
-                modifier = Modifier
-                    .size(sizeDp.dp)
-                    .scale(breatheScale)
+                sizeDp = resolvedSizeDp,
+                modifier = Modifier.fillMaxSize()
             )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Speech bubble background
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x0AFFFFFF))
-                        .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = displayedText,
-                        color = Color(0xFF00FFD2),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 17.sp,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
         }
     }
 }

@@ -353,10 +353,12 @@ fun UniversalFlashcard(
 
                     // Touch Indicator Hint
                     Text(
-                        text = "Tap Card to Reveal Definition & Translation",
+                        text = "Tap card to reveal",
                         color = Color(0xFF00C2FF).copy(alpha = 0.8f),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -391,12 +393,25 @@ fun UniversalFlashcard(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = data.word,
-                                color = Color(0xFF00C2FF),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = data.word,
+                                    color = Color(0xFF00C2FF),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (showTranslation && data.translationsList.isNotEmpty()) {
+                                    Text(
+                                        text = "(${data.translationsList.first()})",
+                                        color = Color(0xFFFFD600),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -416,11 +431,11 @@ fun UniversalFlashcard(
                         // Scrollable Content
                         Column(
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(1.2f)
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             // 1. Definition (English) with a Play Pronounce Button (Male Voice)
                             if (data.primaryDefinition.isNotEmpty()) {
@@ -456,6 +471,18 @@ fun UniversalFlashcard(
                                         fontWeight = FontWeight.Medium,
                                         lineHeight = 18.sp
                                     )
+                                    if (showTranslation && data.translation.isNotEmpty()) {
+                                        Text(
+                                            text = data.translation,
+                                            color = Color(0xFFFFD600),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 4.dp)
+                                        )
+                                    }
                                 }
                             }
 
@@ -468,149 +495,47 @@ fun UniversalFlashcard(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
-                                    data.examplesList.forEach { ex ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.Top
-                                        ) {
-                                            Text(
-                                                text = "\"$ex\"",
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                fontStyle = FontStyle.Italic,
-                                                fontSize = 13.sp,
-                                                lineHeight = 16.sp,
-                                                modifier = Modifier.weight(1f).padding(end = 4.dp)
-                                            )
-                                            // Pronounce Example Button (Female voice)
-                                            IconButton(
-                                                onClick = { onPronounceClick(ex, false) },
-                                                modifier = Modifier.size(24.dp)
+                                    data.examplesList.forEachIndexed { idx, ex ->
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.Top
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.PlayArrow,
-                                                    contentDescription = "Pronounce Example",
-                                                    tint = Color(0xFF00FFD2),
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // 3. Two Interactive Action Buttons (Translation, More Details)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Translation Toggle Button
-                                Button(
-                                    onClick = { showTranslation = !showTranslation },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (showTranslation) Color(0x3300FFD2) else Color(0x12FFFFFF),
-                                        contentColor = if (showTranslation) Color(0xFF00FFD2) else Color.White
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = if (showTranslation) "Hide Translation" else "Translation",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                // More Details Screen Modal Sheet Opener
-                                Button(
-                                    onClick = { onMoreDetailsClick() },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0x12FFFFFF),
-                                        contentColor = Color(0xFF00C2FF)
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = "More Details",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            // 4. Conditional Translation Details
-                            if (showTranslation) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0x0AFFFFFF))
-                                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Persian Definition
-                                    if (data.translation.isNotEmpty()) {
-                                        Column {
-                                            Text(
-                                                text = "Definition (Persian)",
-                                                color = Color(0xFFFFD600).copy(alpha = 0.6f),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = data.translation,
-                                                color = Color(0xFFFFD600),
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                textAlign = TextAlign.Right,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-                                    }
-
-                                    // Word translations list
-                                    if (data.translationsList.isNotEmpty()) {
-                                        Column {
-                                            Text(
-                                                text = "Translations",
-                                                color = Color(0xFF00FFD2).copy(alpha = 0.6f),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = data.translationsList.joinToString(", "),
-                                                color = Color(0xFF00FFD2),
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                textAlign = TextAlign.Right,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-                                    }
-
-                                    // Persian Example Translations
-                                    if (data.examplesFaList.isNotEmpty()) {
-                                        Column {
-                                            Text(
-                                                text = "Example Translation(s)",
-                                                color = Color.White.copy(alpha = 0.4f),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            data.examplesFaList.forEach { exFa ->
                                                 Text(
-                                                    text = "• $exFa",
-                                                    color = Color.White.copy(alpha = 0.7f),
-                                                    fontSize = 12.sp,
-                                                    textAlign = TextAlign.Right,
-                                                    modifier = Modifier.fillMaxWidth()
+                                                    text = "\"$ex\"",
+                                                    color = Color.White.copy(alpha = 0.8f),
+                                                    fontStyle = FontStyle.Italic,
+                                                    fontSize = 13.sp,
+                                                    lineHeight = 16.sp,
+                                                    modifier = Modifier.weight(1f).padding(end = 4.dp)
                                                 )
+                                                // Pronounce Example Button (Female voice)
+                                                IconButton(
+                                                    onClick = { onPronounceClick(ex, false) },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.PlayArrow,
+                                                        contentDescription = "Pronounce Example",
+                                                        tint = Color(0xFF00FFD2),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                            if (showTranslation) {
+                                                val exFa = data.examplesFaList.getOrNull(idx)
+                                                if (exFa != null && exFa.isNotEmpty()) {
+                                                    Text(
+                                                        text = exFa,
+                                                        color = Color.White.copy(alpha = 0.6f),
+                                                        fontSize = 12.sp,
+                                                        textAlign = TextAlign.Right,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(top = 2.dp, bottom = 4.dp, end = 28.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -623,7 +548,7 @@ fun UniversalFlashcard(
                             SevenCircles(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                    .padding(top = 4.dp, bottom = 2.dp),
                                 activeStates = circleStates
                             )
                         }
@@ -633,7 +558,7 @@ fun UniversalFlashcard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 4.dp),
+                                    .padding(top = 6.dp),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 if (onAgainClick != null) {
@@ -675,12 +600,50 @@ fun UniversalFlashcard(
                             }
                         }
 
-                        Text(
-                            text = "Tap Header/Flip to Close Back View",
-                            color = Color.White.copy(alpha = 0.25f),
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                        // Bottom Actions (Translate and More Details)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Translation Toggle Button
+                            Button(
+                                onClick = { showTranslation = !showTranslation },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (showTranslation) Color(0x3300FFD2) else Color(0x12FFFFFF),
+                                    contentColor = if (showTranslation) Color(0xFF00FFD2) else Color.White
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = if (showTranslation) "Hide Translation" else "Translation",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // More Details Screen Modal Sheet Opener
+                            Button(
+                                onClick = { onMoreDetailsClick() },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0x12FFFFFF),
+                                    contentColor = Color(0xFF00C2FF)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "More Details",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }

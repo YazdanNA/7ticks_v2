@@ -11,6 +11,7 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
     private var isInitialized = false
     private var pendingText: String? = null
     private var pendingIsMale: Boolean? = null
+    private var utteranceDoneCallback: (() -> Unit)? = null
 
     init {
         tts = TextToSpeech(context.applicationContext, this)
@@ -24,6 +25,17 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
             } else {
                 isInitialized = true
                 Log.d("SevenTicksTts", "TTS Initialized successfully")
+                
+                tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {}
+                    override fun onDone(utteranceId: String?) {
+                        utteranceDoneCallback?.invoke()
+                    }
+                    override fun onError(utteranceId: String?) {
+                        utteranceDoneCallback?.invoke()
+                    }
+                })
+
                 val text = pendingText
                 val isMale = pendingIsMale
                 if (text != null && isMale != null) {
@@ -60,6 +72,41 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
         }
     }
 
+    suspend fun speakSuspend(text: String, isMale: Boolean): Boolean {
+        if (!isInitialized) {
+            kotlinx.coroutines.delay(100)
+            if (!isInitialized) return false
+        }
+        return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+            utteranceDoneCallback = {
+                if (continuation.isActive) {
+                    continuation.resume(true) {}
+                }
+            }
+            try {
+                val voices = tts?.voices
+                if (voices != null && voices.isNotEmpty()) {
+                    val selectedVoice = findVoice(voices, isMale)
+                    if (selectedVoice != null) {
+                        tts?.voice = selectedVoice
+                    }
+                }
+                val utteranceId = "SevenTicksTts_${System.currentTimeMillis()}"
+                val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+                if (result == TextToSpeech.ERROR) {
+                    if (continuation.isActive) {
+                        continuation.resume(false) {}
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SevenTicksTts", "Error during speakSuspend", e)
+                if (continuation.isActive) {
+                    continuation.resume(false) {}
+                }
+            }
+        }
+    }
+
     private fun findVoice(voices: Set<Voice>, isMale: Boolean): Voice? {
         val targetGender = if (isMale) "male" else "female"
         var voice = voices.find { 
@@ -81,6 +128,7 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun stop() {
         try {
+            utteranceDoneCallback = null
             tts?.stop()
         } catch (e: Exception) {
             Log.e("SevenTicksTts", "Error stopping TTS", e)
@@ -89,6 +137,7 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun shutdown() {
         try {
+            utteranceDoneCallback = null
             tts?.stop()
             tts?.shutdown()
             tts = null

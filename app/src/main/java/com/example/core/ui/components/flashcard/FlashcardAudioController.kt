@@ -14,6 +14,10 @@ class FlashcardAudioController(context: Context) {
         ttsManager.speak(text, isMale = false)
     }
 
+    suspend fun speakSuspend(text: String, isMale: Boolean): Boolean {
+        return ttsManager.speakSuspend(text, isMale)
+    }
+
     fun stop() {
         ttsManager.stop()
     }

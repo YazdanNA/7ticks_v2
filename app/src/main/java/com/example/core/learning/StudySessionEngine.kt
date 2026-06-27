@@ -34,11 +34,20 @@ class StudySessionEngine(
     var isSessionCompleted by mutableStateOf(queueManager.isFinished.value)
         private set
 
+    private val dialogueManager = CompanionDialogueManager()
+
+    var companionMood by mutableStateOf(CompanionMood.HAPPY)
+        private set
+
+    val tikiState: String get() = companionMood.tikiState
+
     var tikiReactionMessage by mutableStateOf("Tiki is watching! Recall correctly to impress me!")
         private set
 
     var consecutiveMistakesCount by mutableStateOf(0)
         private set
+
+    var completedCardsCount by mutableStateOf(0)
 
     var isFlipped by mutableStateOf(false)
 
@@ -47,6 +56,13 @@ class StudySessionEngine(
         private set
     var temporaryOverlayRating by mutableStateOf("")
         private set
+
+    private var cardStartTime = System.currentTimeMillis()
+    private var hasTriggered30s = false
+    private var hasTriggered50s = false
+
+    private val cardAgainCount = mutableMapOf<String, Int>()
+    private var easyStreakCount = 0
 
     init {
         // Observe finished state
@@ -58,6 +74,43 @@ class StudySessionEngine(
                 }
             }
         }
+
+        // Reset elapsed timer and spent-time flags when active card changes
+        scope.launch {
+            queueManager.currentItem.collect { item ->
+                if (item != null) {
+                    cardStartTime = System.currentTimeMillis()
+                    hasTriggered30s = false
+                    hasTriggered50s = false
+                }
+            }
+        }
+
+        // Active card spent duration monitor loop
+        scope.launch {
+            while (true) {
+                delay(1000)
+                val currentItemValue = queueManager.currentItem.value
+                if (currentItemValue != null && !isSessionCompleted) {
+                    val elapsedSec = (System.currentTimeMillis() - cardStartTime) / 1000
+                    if (elapsedSec >= 50 && !hasTriggered50s) {
+                        hasTriggered50s = true
+                        triggerEvent(CompanionEvent.Spent50Sec)
+                    } else if (elapsedSec >= 30 && !hasTriggered30s) {
+                        hasTriggered30s = true
+                        triggerEvent(CompanionEvent.Spent30Sec)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates companion mood and reaction message based on a given CompanionEvent.
+     */
+    fun triggerEvent(event: CompanionEvent) {
+        companionMood = dialogueManager.resolveMood(event)
+        tikiReactionMessage = dialogueManager.generateMessage(event)
     }
 
     /**
@@ -68,11 +121,11 @@ class StudySessionEngine(
         rating: ReviewRatingModel,
         currentCircleIndex: Int,
         xpAmount: Int,
+        promotedToBox7: Boolean = false,
         onSaveDb: suspend () -> Unit
     ) {
         scope.launch {
             totalAnswers++
-            isFlipped = false // Reset flipped state for the upcoming card
 
             // 1. Process reaction state & triggers
             val isSuccess = rating == ReviewRatingModel.GOOD || rating == ReviewRatingModel.EASY
@@ -81,33 +134,59 @@ class StudySessionEngine(
                 onCorrectHook()
                 streakCount++
                 consecutiveMistakesCount = 0
-                tikiReactionMessage = if (streakCount >= 3) {
-                    "Incredible $streakCount-word streak! Tiki is excited! 🔥"
-                } else {
-                    "Awesome! Tiki is super happy! 🎉"
-                }
             } else {
                 onWrongHook()
                 streakCount = 0
-                consecutiveMistakesCount++
-                tikiReactionMessage = if (consecutiveMistakesCount >= 3) {
-                    "Tiki detects some fatigue! 🐾 Keep practicing, you got this!"
-                } else {
-                    "Ah, no worries! Tiki believes in you. Let's practice!"
+                if (rating == ReviewRatingModel.AGAIN) {
+                    consecutiveMistakesCount++
                 }
             }
 
             xpEarned += xpAmount
 
-            // 2. Circle animation fill overlay
-            val colorStr = when (rating) {
-                ReviewRatingModel.EASY -> "Green"
-                ReviewRatingModel.GOOD -> "Blue"
-                ReviewRatingModel.HARD -> "Yellow"
-                ReviewRatingModel.AGAIN -> "Red"
+            // Resolve proper companion event and trigger dialogue + state update
+            val currentItemId = queueManager.currentItem.value?.id ?: ""
+            val event = when {
+                promotedToBox7 -> CompanionEvent.FirstBox7
+                rating == ReviewRatingModel.EASY -> {
+                    easyStreakCount++
+                    when {
+                        easyStreakCount >= 5 -> CompanionEvent.FiveEasyStreak
+                        easyStreakCount >= 3 -> CompanionEvent.ThreeEasyStreak
+                        else -> CompanionEvent.Easy
+                    }
+                }
+                rating == ReviewRatingModel.GOOD -> {
+                    easyStreakCount = 0
+                    CompanionEvent.Good
+                }
+                rating == ReviewRatingModel.HARD -> {
+                    easyStreakCount = 0
+                    CompanionEvent.Hard
+                }
+                else -> { // AGAIN
+                    easyStreakCount = 0
+                    val count = cardAgainCount.getOrDefault(currentItemId, 0) + 1
+                    cardAgainCount[currentItemId] = count
+                    if (count > 1) CompanionEvent.AgainMultiple else CompanionEvent.AgainFirst
+                }
             }
-            temporaryOverlayIndex = currentCircleIndex
-            temporaryOverlayRating = colorStr
+            triggerEvent(event)
+
+            // 2. Circle animation fill overlay (only for Hard/Good/Easy, NOT for Again)
+            if (rating != ReviewRatingModel.AGAIN) {
+                val colorStr = when (rating) {
+                    ReviewRatingModel.EASY -> "Green"
+                    ReviewRatingModel.GOOD -> "Blue"
+                    ReviewRatingModel.HARD -> "Yellow"
+                    else -> ""
+                }
+                temporaryOverlayIndex = currentCircleIndex
+                temporaryOverlayRating = colorStr
+                completedCardsCount++
+            } else {
+                queueManager.postponeCurrentCard()
+            }
 
             // 3. Trigger concurrent background saving
             val dbJob = launch {

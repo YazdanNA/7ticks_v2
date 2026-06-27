@@ -1746,15 +1746,21 @@ fun BoxStudyScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
+                        val total = cardsToReview.size
+                        val completedCount = engine?.completedCardsCount ?: 0
                         Text(
-                            text = "Card ${activeIndex + 1} of ${cardsToReview.size}",
+                            text = "Card ${completedCount + 1} of $total",
                             color = Color.White.copy(alpha = 0.6f),
                             fontSize = 12.sp
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     LinearProgressIndicator(
-                        progress = { if (cardsToReview.isNotEmpty()) (activeIndex + 1).toFloat() / cardsToReview.size.toFloat() else 0f },
+                        progress = {
+                            val total = cardsToReview.size
+                            val completedCount = engine?.completedCardsCount ?: 0
+                            if (total > 0) completedCount.toFloat() / total.toFloat() else 0f
+                        },
                         color = Color(0xFF00FFD2),
                         trackColor = Color(0x1AFFFFFF),
                         modifier = Modifier
@@ -1799,11 +1805,13 @@ fun BoxStudyScreen(
                     }
 
                     // Upcoming Cards Preview
-                    val nextCards = cardsToReview.drop(activeIndex + 1).take(2)
-                    if (nextCards.isNotEmpty()) {
+                    val nextItems = engine?.queueManager?.getNextItems(2) ?: emptyList()
+                    if (nextItems.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Next: " + nextCards.joinToString(", ") { it.word },
+                            text = "Next: " + nextItems.joinToString(", ") { item ->
+                                (item.payload as? BoxWordEntity)?.word ?: ""
+                            },
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontStyle = FontStyle.Italic,
@@ -1840,12 +1848,22 @@ fun BoxStudyScreen(
                     }
                 }
 
+                LaunchedEffect(activeItem) {
+                    isFlipped = false
+                }
+
                 fun handleBoxRating(rating: ReviewRatingModel) {
                     val activeEngine = engine ?: return
                     val item = activeItem ?: return
                     val word = item.payload as? BoxWordEntity ?: return
-
-                    isFlipped = false
+                    val currentBoxIdx = word.boxIndex
+                    val nextBoxIdx = when (rating) {
+                        ReviewRatingModel.AGAIN -> 1
+                        ReviewRatingModel.HARD -> (currentBoxIdx - 1).coerceAtLeast(1)
+                        ReviewRatingModel.GOOD -> (currentBoxIdx + 1).coerceAtMost(7)
+                        ReviewRatingModel.EASY -> (currentBoxIdx + 2).coerceAtMost(7)
+                    }
+                    val promotedToBox7 = currentBoxIdx < 7 && nextBoxIdx == 7
 
                     activeEngine.submitRating(
                         rating = rating,
@@ -1856,6 +1874,7 @@ fun BoxStudyScreen(
                             ReviewRatingModel.GOOD -> 15
                             ReviewRatingModel.EASY -> 20
                         },
+                        promotedToBox7 = promotedToBox7,
                         onSaveDb = {
                             coroutineScope.launch {
                                 val leveledUp = repo.reviewCard(
@@ -1865,6 +1884,7 @@ fun BoxStudyScreen(
                                 )
                                 if (leveledUp) {
                                     showLeveledUpDialog = true
+                                    activeEngine.triggerEvent(com.example.core.learning.CompanionEvent.LevelUp)
                                 }
                             }
                         }
@@ -1888,6 +1908,7 @@ fun BoxStudyScreen(
                     goodSubtext = "",
                     easySubtext = "",
                     tikiMessage = engine?.tikiReactionMessage ?: "Keep going! You're doing amazing!",
+                    tikiState = engine?.tikiState ?: "st-happy",
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)

@@ -682,16 +682,25 @@ fun LearningSessionScreen(
         }
     }
 
+    LaunchedEffect(activeItem) {
+        isFlipped = false
+    }
+
     // Handle button action click and transition logic
     fun handleRating(rating: ReviewRatingModel) {
         val activeEngine = engine ?: return
         val item = activeItem ?: return
 
-        // Instantly reset flip state and update UI parameters
-        isFlipped = false
-
         if (isBoxSession) {
             val boxWord = item.payload as? BoxWordEntity ?: return
+            val currentBoxIdx = boxWord.boxIndex
+            val nextBoxIdx = when (rating) {
+                ReviewRatingModel.AGAIN -> 1
+                ReviewRatingModel.HARD -> (currentBoxIdx - 1).coerceAtLeast(1)
+                ReviewRatingModel.GOOD -> (currentBoxIdx + 1).coerceAtMost(7)
+                ReviewRatingModel.EASY -> (currentBoxIdx + 2).coerceAtMost(7)
+            }
+            val promotedToBox7 = currentBoxIdx < 7 && nextBoxIdx == 7
             
             activeEngine.submitRating(
                 rating = rating,
@@ -702,6 +711,7 @@ fun LearningSessionScreen(
                     ReviewRatingModel.GOOD -> 15
                     ReviewRatingModel.EASY -> 20
                 },
+                promotedToBox7 = promotedToBox7,
                 onSaveDb = {
                     coroutineScope.launch {
                         val leveledUp = repo.reviewCard(
@@ -711,12 +721,22 @@ fun LearningSessionScreen(
                         )
                         if (leveledUp) {
                             showLeveledUpDialog = true
+                            activeEngine.triggerEvent(com.example.core.learning.CompanionEvent.LevelUp)
                         }
                     }
                 }
             )
         } else {
             val (card, word) = item.payload as? Pair<CardEntity, DictWord> ?: return
+            val currentBoxIdx = card.boxIndex
+            val nextBoxIdx = when (rating) {
+                ReviewRatingModel.AGAIN -> 1
+                ReviewRatingModel.HARD -> (currentBoxIdx - 1).coerceAtLeast(1)
+                ReviewRatingModel.GOOD -> (currentBoxIdx + 1).coerceAtMost(7)
+                ReviewRatingModel.EASY -> (currentBoxIdx + 2).coerceAtMost(7)
+            }
+            val promotedToBox7 = currentBoxIdx < 7 && nextBoxIdx == 7
+
             val xpAmount = when (rating) {
                 ReviewRatingModel.AGAIN -> 5
                 ReviewRatingModel.HARD -> 10
@@ -728,6 +748,7 @@ fun LearningSessionScreen(
                 rating = rating,
                 currentCircleIndex = currentCircleIndex,
                 xpAmount = xpAmount,
+                promotedToBox7 = promotedToBox7,
                 onSaveDb = {
                     coroutineScope.launch {
                         val leveledUp = repo.reviewCard(
@@ -737,6 +758,7 @@ fun LearningSessionScreen(
                         )
                         if (leveledUp) {
                             showLeveledUpDialog = true
+                            activeEngine.triggerEvent(com.example.core.learning.CompanionEvent.LevelUp)
                         }
 
                         // Update session state in database
@@ -822,8 +844,10 @@ fun LearningSessionScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
+                    val total = if (isBoxSession) boxCards.size else loadedCards.size
+                    val completedCount = engine?.completedCardsCount ?: 0
                     Text(
-                        text = "Card ${activeIndex + 1} of ${if (isBoxSession) boxCards.size else loadedCards.size}",
+                        text = "Card ${completedCount + 1} of $total",
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
@@ -832,7 +856,8 @@ fun LearningSessionScreen(
                 LinearProgressIndicator(
                     progress = {
                         val total = if (isBoxSession) boxCards.size else loadedCards.size
-                        if (total > 0) (activeIndex + 1).toFloat() / total.toFloat() else 0f
+                        val completedCount = engine?.completedCardsCount ?: 0
+                        if (total > 0) completedCount.toFloat() / total.toFloat() else 0f
                     },
                     color = Color(0xFF00FFD2),
                     trackColor = Color(0x1AFFFFFF),
@@ -879,11 +904,20 @@ fun LearningSessionScreen(
                     }
 
                     // Upcoming Cards Preview
-                    val nextCards = loadedCards.drop(activeIndex + 1).take(2)
-                    if (nextCards.isNotEmpty()) {
+                    val nextItems = engine?.queueManager?.getNextItems(2) ?: emptyList()
+                    if (nextItems.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Next: " + nextCards.joinToString(", ") { it.second.word },
+                            text = "Next: " + nextItems.joinToString(", ") { item ->
+                                val payload = item.payload
+                                if (payload is Pair<*, *>) {
+                                    (payload.second as? DictWord)?.word ?: ""
+                                } else if (payload is BoxWordEntity) {
+                                    payload.word
+                                } else {
+                                    ""
+                                }
+                            },
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
@@ -913,6 +947,7 @@ fun LearningSessionScreen(
                 onRatingClick = { handleRating(it) },
                 circleStates = circleStatesToShow,
                 tikiMessage = engine?.tikiReactionMessage ?: tikiReactionMessage,
+                tikiState = engine?.tikiState ?: "st-happy",
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
