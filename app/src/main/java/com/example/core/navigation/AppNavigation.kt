@@ -94,6 +94,17 @@ fun AppNavigation() {
 @Composable
 fun MainScreen(navController: androidx.navigation.NavController) {
     var selectedTabRoute by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(TabScreen.SmartLearn.route) }
+    
+    // Seamless tab restoration from savedStateHandle when popping back from sub-flows (like Box reviews)
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val returnedTab = savedStateHandle?.get<String>("selected_tab")
+    LaunchedEffect(returnedTab) {
+        if (returnedTab != null) {
+            selectedTabRoute = returnedTab
+            savedStateHandle.remove<String>("selected_tab")
+        }
+    }
+
     val selectedTab = when (selectedTabRoute) {
         TabScreen.SmartLearn.route -> TabScreen.SmartLearn
         TabScreen.Boxes.route -> TabScreen.Boxes
@@ -102,13 +113,8 @@ fun MainScreen(navController: androidx.navigation.NavController) {
         else -> TabScreen.SmartLearn
     }
     var showDictionaryOverlay by remember { mutableStateOf(false) }
-    var isBottomBarVisibleBySubScreen by remember { mutableStateOf(true) }
 
-    LaunchedEffect(selectedTabRoute, showDictionaryOverlay) {
-        isBottomBarVisibleBySubScreen = true
-    }
-
-    val bottomBarVisible = if (showDictionaryOverlay) true else (selectedTab != TabScreen.Boxes || isBottomBarVisibleBySubScreen)
+    val bottomBarVisible = true
 
     AnimatedBackground(
         modifier = Modifier.fillMaxSize()
@@ -143,7 +149,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                 TabScreen.SmartLearn -> SmartLearnScreen(navController = navController)
                                 TabScreen.Boxes -> BoxesScreen(
                                     navController = navController,
-                                    onShowBottomBar = { isBottomBarVisibleBySubScreen = it }
+                                    onShowBottomBar = {}
                                 )
                                 TabScreen.Analysis -> AnalysisScreen()
                                 TabScreen.Profile -> ProfileScreen()
