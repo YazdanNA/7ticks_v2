@@ -99,13 +99,15 @@ fun AppNavigation() {
 fun MainScreen(navController: androidx.navigation.NavController) {
     var selectedTabRoute by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(TabScreen.SmartLearn.route) }
     var isBottomBarVisibleBySubScreen by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
         initialPage = 0,
         pageCount = { 5 }
     )
 
-    LaunchedEffect(selectedTabRoute) {
+    // Instantly scroll to the target tab when the screen is first created/restored
+    LaunchedEffect(Unit) {
         val targetPage = when (selectedTabRoute) {
             "smart_learn" -> 0
             "boxes" -> 1
@@ -115,18 +117,13 @@ fun MainScreen(navController: androidx.navigation.NavController) {
             else -> 0
         }
         if (pagerState.currentPage != targetPage) {
-            pagerState.animateScrollToPage(
-                page = targetPage,
-                animationSpec = tween(
-                    durationMillis = 320,
-                    easing = FastOutSlowInEasing
-                )
-            )
+            pagerState.scrollToPage(targetPage)
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        val targetRoute = when (pagerState.currentPage) {
+    // Update selectedTabRoute when the page settles (after swipe or programmatic scroll)
+    LaunchedEffect(pagerState.settledPage) {
+        val targetRoute = when (pagerState.settledPage) {
             0 -> "smart_learn"
             1 -> "boxes"
             2 -> "dictionary"
@@ -141,6 +138,29 @@ fun MainScreen(navController: androidx.navigation.NavController) {
 
     LaunchedEffect(selectedTabRoute) {
         isBottomBarVisibleBySubScreen = true
+    }
+
+    val onTabClick: (String) -> Unit = { route ->
+        val targetPage = when (route) {
+            "smart_learn" -> 0
+            "boxes" -> 1
+            "dictionary" -> 2
+            "analysis" -> 3
+            "profile" -> 4
+            else -> 0
+        }
+        if (pagerState.currentPage != targetPage && !pagerState.isScrollInProgress) {
+            selectedTabRoute = route
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(
+                    page = targetPage,
+                    animationSpec = tween(
+                        durationMillis = 320,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            }
+        }
     }
 
     val bottomBarVisible = if (selectedTabRoute == "dictionary") true else (selectedTabRoute != TabScreen.Boxes.route || isBottomBarVisibleBySubScreen)
@@ -212,7 +232,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.Star,
                             active = selectedTabRoute == "smart_learn",
                             onClick = {
-                                selectedTabRoute = "smart_learn"
+                                onTabClick("smart_learn")
                             }
                         )
 
@@ -222,7 +242,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.List,
                             active = selectedTabRoute == "boxes",
                             onClick = {
-                                selectedTabRoute = "boxes"
+                                onTabClick("boxes")
                             }
                         )
 
@@ -231,7 +251,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .clickable { selectedTabRoute = "dictionary" }
+                                .clickable { onTabClick("dictionary") }
                                 .padding(horizontal = 8.dp)
                         ) {
                             Box(
@@ -278,7 +298,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.PlayArrow, // Chart-like representation
                             active = selectedTabRoute == "analysis",
                             onClick = {
-                                selectedTabRoute = "analysis"
+                                onTabClick("analysis")
                             }
                         )
 
@@ -288,7 +308,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             icon = Icons.Default.Person,
                             active = selectedTabRoute == "profile",
                             onClick = {
-                                selectedTabRoute = "profile"
+                                onTabClick("profile")
                             }
                         )
                     }
