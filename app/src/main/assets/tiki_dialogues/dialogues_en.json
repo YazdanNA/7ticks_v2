@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "language": "en",
+  "dialogues": [
+    {
+      "id": "greetings_welcome",
+      "text": "Welcome!",
+      "emotion": "HAPPY",
+      "category": "Greeting",
+      "priority": 80,
+      "relationshipLevel": 1,
+      "minimumStreak": 0,
+      "maximumStreak": 5,
+      "minimumSessionProgress": 0.0,
+      "maximumSessionProgress": 0.5,
+      "weight": 100,
+      "language": "en",
+      "enabled": true,
+      "tags": ["welcome", "greeting"]
+    },
+    {
+      "id": "motivation_keep_going",
+      "text": "Keep going!",
+      "emotion": "HAPPY",
+      "category": "Encouragement",
+      "priority": 60,
+      "relationshipLevel": 1,
+      "minimumStreak": 0,
+      "weight": 100,
+      "language": "en",
+      "enabled": true,
+      "tags": ["motivation", "encouragement"]
+    },
+    {
+      "id": "celebration_great_work",
+      "text": "Great work!",
+      "emotion": "HAPPY",
+      "category": "Celebration",
+      "priority": 90,
+      "relationshipLevel": 2,
+      "minimumStreak": 1,
+      "weight": 100,
+      "language": "en",
+      "enabled": true,
+      "tags": ["celebration", "streak"]
+    }
+  ]
+}

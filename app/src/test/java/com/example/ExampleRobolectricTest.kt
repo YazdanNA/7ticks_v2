@@ -8,6 +8,7 @@ import com.example.core.database.PreferencesManager
 import com.example.core.database.UserDatabase
 import com.example.core.database.UserRepository
 import com.example.core.database.CardEntity
+import com.example.core.learning.engine.SmartSessionEngine
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -137,7 +138,8 @@ class ExampleRobolectricTest {
     prefs.currentLevel = 1 // A1 level
     prefs.dailyGoal = "10 min / day"
     
-    val repository = UserRepository(context, userDao, dbManager, prefs)
+    val smartSessionEngine = SmartSessionEngine(userDao, userDb.smartSessionDao(), dbManager)
+    val repository = UserRepository(context, userDao, dbManager, prefs, smartSessionEngine)
     
     // Execute profile and data initialization (First launch simulation)
     repository.initializeUserDataProfile()

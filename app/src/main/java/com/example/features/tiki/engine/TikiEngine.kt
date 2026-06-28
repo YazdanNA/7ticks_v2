@@ -11,6 +11,8 @@ class TikiEngine private constructor() {
     val assetRepository = EmotionAssetRepository()
     val transitionManager = EmotionTransitionManager(CoroutineScope(Dispatchers.Main.immediate))
     val emotionEngine = EmotionEngine(dialogueRepository, assetRepository, transitionManager)
+    val directorEngine = com.example.features.tiki.director.DirectorEngine.getInstance()
+    val contentEngine = com.example.features.tiki.content.ContentEngine()
 
     companion object {
         @Volatile

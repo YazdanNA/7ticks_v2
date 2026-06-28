@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "language": "fa",
+  "dialogues": [
+    {
+      "id": "greetings_welcome",
+      "text": "خوش آمدید!",
+      "emotion": "HAPPY",
+      "category": "Greeting",
+      "priority": 80,
+      "relationshipLevel": 1,
+      "minimumStreak": 0,
+      "maximumStreak": 5,
+      "minimumSessionProgress": 0.0,
+      "maximumSessionProgress": 0.5,
+      "weight": 100,
+      "language": "fa",
+      "enabled": true,
+      "tags": ["welcome", "greeting"]
+    },
+    {
+      "id": "motivation_keep_going",
+      "text": "ادامه بده!",
+      "emotion": "HAPPY",
+      "category": "Encouragement",
+      "priority": 60,
+      "relationshipLevel": 1,
+      "minimumStreak": 0,
+      "weight": 100,
+      "language": "fa",
+      "enabled": true,
+      "tags": ["motivation", "encouragement"]
+    }
+  ]
+}
