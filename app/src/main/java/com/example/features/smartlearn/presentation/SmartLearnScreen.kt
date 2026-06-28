@@ -123,6 +123,10 @@ fun SmartLearnScreen(navController: NavController) {
     // Portal expansion state
     var showChallengePortal by remember { mutableStateOf(false) }
 
+    androidx.activity.compose.BackHandler(enabled = showChallengePortal) {
+        showChallengePortal = false
+    }
+
     // Breathing Hero Button Transition parameters
     val infiniteTransition = rememberInfiniteTransition(label = "hero_button_pulse")
     val breatheScale by infiniteTransition.animateFloat(

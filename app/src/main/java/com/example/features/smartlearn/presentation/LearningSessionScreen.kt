@@ -814,6 +814,10 @@ fun LearningSessionScreen(
         label = "camera_rotation_y"
     )
 
+    androidx.activity.compose.BackHandler(enabled = true) {
+        navController.popBackStack()
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(

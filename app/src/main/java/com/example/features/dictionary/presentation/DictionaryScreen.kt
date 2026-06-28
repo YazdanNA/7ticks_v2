@@ -70,6 +70,10 @@ fun DictionaryScreen() {
     // Word Details Modal State
     var selectedWord by remember { mutableStateOf<WordDetails?>(null) }
     var showDetailsModal by remember { mutableStateOf(false) }
+
+    androidx.activity.compose.BackHandler(enabled = showDetailsModal) {
+        showDetailsModal = false
+    }
     var isWordFavorite by remember { mutableStateOf(false) }
 
     // Dropdown for adding to a Custom Box

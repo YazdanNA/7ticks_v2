@@ -3,6 +3,7 @@ package com.example.features.boxes.presentation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -149,6 +150,12 @@ fun BoxesScreen(
         } else {
             currentSubScreenStr = "Dashboard"
         }
+    }
+
+    // Intercept back clicks when not on the main dashboard of Boxes screen
+    val canGoBack = currentSubScreen !is BoxesSubScreen.Dashboard || backstackStr.isNotEmpty()
+    BackHandler(enabled = canGoBack) {
+        navigateBack()
     }
 
     // Wrap in animated transition content

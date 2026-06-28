@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -276,6 +279,19 @@ fun Modifier.shake(trigger: Boolean, onAnimationFinished: () -> Unit = {}): Modi
     }
 }
 
+// Global state to track currently focused field value
+var currentlyFocusedValue by mutableStateOf<String?>(null)
+
+fun Modifier.clearFocusOnTap(focusManager: FocusManager): Modifier = this.pointerInput(Unit) {
+    detectTapGestures(
+        onTap = {
+            if (currentlyFocusedValue.isNullOrEmpty()) {
+                focusManager.clearFocus()
+            }
+        }
+    )
+}
+
 /**
  * SECTION 12. TEXT FIELD REDESIGN
  * Custom styled text fields with rounded corners, frosted glass background,
@@ -299,6 +315,14 @@ fun SharedTextField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+
+    LaunchedEffect(isFocused, value) {
+        if (isFocused) {
+            currentlyFocusedValue = value
+        } else if (currentlyFocusedValue == value) {
+            currentlyFocusedValue = null
+        }
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }

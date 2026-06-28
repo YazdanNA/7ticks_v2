@@ -33,6 +33,8 @@ import com.example.features.smartlearn.presentation.LearningSessionScreen
 import com.example.features.smartlearn.presentation.SmartLearnScreen
 import com.example.features.splash.presentation.SplashScreen
 import com.example.core.ui.components.AnimatedBackground
+import com.example.core.ui.components.clearFocusOnTap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.pager.HorizontalPager
@@ -232,6 +234,15 @@ fun AppNavigation() {
 
 @Composable
 fun MainScreen(navController: androidx.navigation.NavController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    androidx.activity.compose.BackHandler(enabled = !showExitDialog) {
+        showExitDialog = true
+    }
+
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
     var selectedTabRoute by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(TabScreen.SmartLearn.route) }
     var isBottomBarVisibleBySubScreen by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
@@ -304,7 +315,9 @@ fun MainScreen(navController: androidx.navigation.NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .clearFocusOnTap(focusManager)
         ) {
             // Main content container (full screen with HorizontalPager)
             Box(
@@ -454,6 +467,89 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                 onTabClick("profile")
                             }
                         )
+                    }
+                }
+            }
+
+            // Custom premium glassmorphic exit confirmation dialog card
+            if (showExitDialog) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.75f))
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null
+                        ) { /* Intercept clicks on backdrop */ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    com.example.core.ui.components.SharedGlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .padding(16.dp),
+                        cornerRadius = 24.dp,
+                        backgroundColor = Color(0xFF0F1026).copy(alpha = 0.95f)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Exit Alert",
+                                tint = Color(0xFFFF1744),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            
+                            Text(
+                                text = "Exit SevenTicks?",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            Text(
+                                text = "Are you sure you want to exit the application?",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Cancel Button
+                                Button(
+                                    onClick = { showExitDialog = false },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0x1AFFFFFF),
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Text("No", fontWeight = FontWeight.Bold)
+                                }
+                                
+                                // Exit Button
+                                Button(
+                                    onClick = {
+                                        (context as? android.app.Activity)?.finish()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFF1744),
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Text("Yes", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             }
