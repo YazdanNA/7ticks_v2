@@ -28,6 +28,12 @@ class FeedbackManager private constructor(context: Context) {
     private val _isPronunciationActive = MutableStateFlow(false)
     val isPronunciationActive: StateFlow<Boolean> = _isPronunciationActive.asStateFlow()
 
+    private val _spokenText = MutableStateFlow("")
+    val spokenText: StateFlow<String> = _spokenText.asStateFlow()
+
+    private val _spokenTextRange = MutableStateFlow<Pair<Int, Int>?>(null)
+    val spokenTextRange: StateFlow<Pair<Int, Int>?> = _spokenTextRange.asStateFlow()
+
     // --- Sound Pool and Caching ---
     private var soundPool: SoundPool? = null
     private val soundIds = mutableMapOf<String, Int>()
@@ -170,8 +176,18 @@ class FeedbackManager private constructor(context: Context) {
         _isPronunciationActive.value = active
     }
 
+    fun setSpokenText(text: String) {
+        _spokenText.value = text
+    }
+
+    fun setSpokenTextRange(range: Pair<Int, Int>?) {
+        _spokenTextRange.value = range
+    }
+
     fun resetHighlightState() {
         _isPronunciationActive.value = false
+        _spokenText.value = ""
+        _spokenTextRange.value = null
     }
 
     // --- Resource Clean Up ---

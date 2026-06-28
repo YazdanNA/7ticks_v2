@@ -26,6 +26,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.components.SevenCircles
@@ -234,6 +238,8 @@ fun UniversalFlashcard(
 
     val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
     val isPronouncing by feedbackManager.isPronunciationActive.collectAsState()
+    val spokenText by feedbackManager.spokenText.collectAsState()
+    val spokenTextRange by feedbackManager.spokenTextRange.collectAsState()
 
     val highlightColor by animateColorAsState(
         targetValue = if (isPronouncing) Color(0xFF00FFD2) else Color(0x1A00FFD2),
@@ -495,9 +501,12 @@ fun UniversalFlashcard(
                                             )
                                         }
                                     }
-                                    Text(
+                                    HighlightableText(
                                         text = data.primaryDefinition,
-                                        color = Color.White,
+                                        spokenText = spokenText,
+                                        range = spokenTextRange,
+                                        baseColor = Color.White,
+                                        highlightColor = Color(0xFF00FFD2),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                         lineHeight = 18.sp
@@ -533,13 +542,17 @@ fun UniversalFlashcard(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.Top
                                             ) {
-                                                Text(
-                                                    text = "\"$ex\"",
-                                                    color = Color.White.copy(alpha = 0.8f),
+                                                HighlightableText(
+                                                    text = ex,
+                                                    spokenText = spokenText,
+                                                    range = spokenTextRange,
+                                                    baseColor = Color.White.copy(alpha = 0.8f),
+                                                    highlightColor = Color(0xFF00FFD2),
                                                     fontStyle = FontStyle.Italic,
                                                     fontSize = 13.sp,
                                                     lineHeight = 16.sp,
-                                                    modifier = Modifier.weight(1f).padding(end = 4.dp)
+                                                    modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                                    isExampleWithQuotes = true
                                                 )
                                                 // Pronounce Example Button (Female voice)
                                                 IconButton(
@@ -680,4 +693,60 @@ fun UniversalFlashcard(
             }
         }
     }
+}
+
+@Composable
+fun HighlightableText(
+    text: String,
+    spokenText: String,
+    range: Pair<Int, Int>?,
+    baseColor: Color,
+    highlightColor: Color,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 14.sp,
+    fontWeight: FontWeight = FontWeight.Medium,
+    lineHeight: TextUnit = 18.sp,
+    fontStyle: FontStyle? = null,
+    isExampleWithQuotes: Boolean = false
+) {
+    val annotatedString = remember(text, spokenText, range, isExampleWithQuotes) {
+        buildAnnotatedString {
+            val isCurrentSpoken = spokenText.trim().equals(text.trim(), ignoreCase = true)
+            
+            if (isExampleWithQuotes) {
+                append("\"")
+            }
+            
+            if (isCurrentSpoken && range != null && range.first >= 0 && range.second <= text.length && range.first < range.second) {
+                // Pre-range
+                if (range.first > 0) {
+                    append(text.substring(0, range.first))
+                }
+                // Highlight range
+                withStyle(style = SpanStyle(color = highlightColor, fontWeight = FontWeight.Bold)) {
+                    append(text.substring(range.first, range.second))
+                }
+                // Post-range
+                if (range.second < text.length) {
+                    append(text.substring(range.second))
+                }
+            } else {
+                append(text)
+            }
+            
+            if (isExampleWithQuotes) {
+                append("\"")
+            }
+        }
+    }
+
+    Text(
+        text = annotatedString,
+        color = baseColor,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        lineHeight = lineHeight,
+        fontStyle = fontStyle,
+        modifier = modifier
+    )
 }

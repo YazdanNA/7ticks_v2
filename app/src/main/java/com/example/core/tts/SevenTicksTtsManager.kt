@@ -31,12 +31,19 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
                         com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(true)
                     }
                     override fun onDone(utteranceId: String?) {
-                        com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
+                        val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+                        fm.setPronunciationActive(false)
+                        fm.setSpokenTextRange(null)
                         utteranceDoneCallback?.invoke()
                     }
                     override fun onError(utteranceId: String?) {
-                        com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
+                        val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+                        fm.setPronunciationActive(false)
+                        fm.setSpokenTextRange(null)
                         utteranceDoneCallback?.invoke()
+                    }
+                    override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                        com.example.core.feedback.FeedbackManager.getInstance(context).setSpokenTextRange(Pair(start, end))
                     }
                 })
 
@@ -61,6 +68,10 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
         }
         try {
             tts?.stop() // Ensure only one TTS session is active at a time
+            
+            val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+            fm.setSpokenText(text)
+            fm.setSpokenTextRange(null)
             
             val voices = tts?.voices
             if (voices != null && voices.isNotEmpty()) {
@@ -88,6 +99,10 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
                 }
             }
             try {
+                val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+                fm.setSpokenText(text)
+                fm.setSpokenTextRange(null)
+
                 val voices = tts?.voices
                 if (voices != null && voices.isNotEmpty()) {
                     val selectedVoice = findVoice(voices, isMale)
