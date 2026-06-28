@@ -2,12 +2,23 @@ package com.example.features.tiki.api
 
 import com.example.features.tiki.engine.TikiEngine
 import com.example.features.tiki.model.EmotionState
+import com.example.features.tiki.context.ContextEvent
+import com.example.features.tiki.behavior.BehaviorEvent
+import com.example.features.tiki.relationship.RelationshipEvent
 import kotlinx.coroutines.flow.StateFlow
 
 class TikiController(
     private val tikiEngine: TikiEngine = TikiEngine.getInstance()
 ) {
     val state: StateFlow<TikiState> = tikiEngine.emotionEngine.state
+
+    fun triggerPipeline(
+        contextEvent: ContextEvent,
+        behaviorEvent: BehaviorEvent? = null,
+        relationshipEvent: RelationshipEvent? = null
+    ) {
+        tikiEngine.triggerPipeline(contextEvent, behaviorEvent, relationshipEvent)
+    }
 
     fun onEvent(event: TikiEvents) {
         when (event) {
@@ -40,5 +51,18 @@ class TikiController(
 
     fun reset() {
         onEvent(TikiEvents.ResetToDefault)
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: TikiController? = null
+
+        fun getInstance(): TikiController {
+            return INSTANCE ?: synchronized(this) {
+                val instance = TikiController()
+                INSTANCE = instance
+                instance
+            }
+        }
     }
 }

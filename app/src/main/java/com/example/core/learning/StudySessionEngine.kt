@@ -34,12 +34,8 @@ class StudySessionEngine(
     var isSessionCompleted by mutableStateOf(queueManager.isFinished.value)
         private set
 
-    private val dialogueManager = CompanionDialogueManager()
-
-    var companionMood by mutableStateOf(CompanionMood.HAPPY)
+    var tikiState by mutableStateOf("st-happy")
         private set
-
-    val tikiState: String get() = companionMood.tikiState
 
     var tikiReactionMessage by mutableStateOf("Tiki is watching! Recall correctly to impress me!")
         private set
@@ -65,11 +61,46 @@ class StudySessionEngine(
     private var easyStreakCount = 0
 
     init {
+        // Collect state from the production TikiController V2
+        scope.launch {
+            com.example.features.tiki.api.TikiController.getInstance().state.collect { v2State ->
+                tikiState = v2State.tikiStateKey
+                tikiReactionMessage = v2State.dialogue
+            }
+        }
+
+        // Monitor isFlipped to trigger CardFlipped behavior event in the pipeline
+        scope.launch {
+            snapshotFlow { isFlipped }.collect { flipped ->
+                if (flipped) {
+                    com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                        contextEvent = com.example.features.tiki.context.ContextEvent.ThinkingFinished(0L),
+                        behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardFlipped
+                    )
+                }
+            }
+        }
+
+        // Trigger session started on Tiki V2
+        scope.launch {
+            delay(100)
+            com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                contextEvent = com.example.features.tiki.context.ContextEvent.SessionStarted(queueManager.totalCount),
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.SessionStarted,
+                relationshipEvent = com.example.features.tiki.relationship.RelationshipEvent.DailyStudyPlayed
+            )
+        }
+
         // Observe finished state
         scope.launch {
             queueManager.isFinished.collect { finished ->
                 if (finished) {
                     isSessionCompleted = true
+                    com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                        contextEvent = com.example.features.tiki.context.ContextEvent.SessionFinished,
+                        behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.SessionFinished,
+                        relationshipEvent = com.example.features.tiki.relationship.RelationshipEvent.SessionCompleted()
+                    )
                     onSessionFinished()
                 }
             }
@@ -109,8 +140,59 @@ class StudySessionEngine(
      * Updates companion mood and reaction message based on a given CompanionEvent.
      */
     fun triggerEvent(event: CompanionEvent) {
-        companionMood = dialogueManager.resolveMood(event)
-        tikiReactionMessage = dialogueManager.generateMessage(event)
+        val tikiController = com.example.features.tiki.api.TikiController.getInstance()
+        val contextEvent: com.example.features.tiki.context.ContextEvent
+        val behaviorEvent: com.example.features.tiki.behavior.BehaviorEvent
+        val relationshipEvent: com.example.features.tiki.relationship.RelationshipEvent? = null
+
+        when (event) {
+            is CompanionEvent.Easy -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = true)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy
+            }
+            is CompanionEvent.ThreeEasyStreak -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = true)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy
+            }
+            is CompanionEvent.FiveEasyStreak -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = true)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy
+            }
+            is CompanionEvent.Good -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = false)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredGood
+            }
+            is CompanionEvent.Hard -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = false)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredHard
+            }
+            is CompanionEvent.AgainFirst -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = false)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredAgain
+            }
+            is CompanionEvent.AgainMultiple -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.CardAnswered(isMastered = false)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredAgain
+            }
+            is CompanionEvent.Spent30Sec -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.ThinkingStarted
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardThinkingStarted
+            }
+            is CompanionEvent.Spent50Sec -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.ThinkingFinished(50000L)
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardThinkingFinished(50000L)
+            }
+            is CompanionEvent.LevelUp -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.LevelCompleted
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy
+            }
+            is CompanionEvent.FirstBox7 -> {
+                contextEvent = com.example.features.tiki.context.ContextEvent.FirstMasterWord
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy
+            }
+        }
+
+        tikiController.triggerPipeline(contextEvent, behaviorEvent, relationshipEvent)
     }
 
     /**

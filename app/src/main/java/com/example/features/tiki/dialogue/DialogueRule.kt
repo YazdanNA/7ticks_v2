@@ -7,7 +7,7 @@ data class WeightedDialogue(
     init {
         if (text.isNotEmpty()) {
             val words = text.split("\\s+".toRegex()).filter { it.isNotEmpty() }
-            require(words.size <= 5) { "Dialogue text exceeds 5 words limit: '$text'" }
+            require(words.size <= 100) { "Dialogue text exceeds 100 words limit: '$text'" }
         }
     }
 }

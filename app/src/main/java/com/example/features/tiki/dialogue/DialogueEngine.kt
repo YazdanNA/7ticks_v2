@@ -28,35 +28,41 @@ class DialogueEngine(
         categoryFilter: Set<DialogueCategory>? = null,
         emotionFilter: Set<EmotionState>? = null
     ): DialogueResult {
-        val applicableRules = rules.filter { rule ->
-            if (categoryFilter != null && rule.category !in categoryFilter) return@filter false
-            if (emotionFilter != null && context.currentEmotion !in emotionFilter) return@filter false
-            true
+        val tikiEngine = com.example.features.tiki.engine.TikiEngine.getInstance()
+        val snapshot = context.memorySnapshot
+        val categoryStr = when (context.behaviorEvent) {
+            is com.example.features.tiki.behavior.BehaviorEvent.SessionStarted -> "Greeting"
+            is com.example.features.tiki.behavior.BehaviorEvent.SessionFinished -> "SessionComplete"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardFlipped -> "CardFlipped"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredEasy -> "EasyStreak"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredGood -> "Good"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredHard -> "Hard"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardAnsweredAgain -> "Again"
+            is com.example.features.tiki.behavior.BehaviorEvent.CardThinkingStarted -> "Thinking"
+            is com.example.features.tiki.behavior.BehaviorEvent.TranslationOpened -> "TranslationOpened"
+            is com.example.features.tiki.behavior.BehaviorEvent.MoreDetailsOpened -> "MoreDetailsOpened"
+            else -> null
         }
 
-        val results = applicableRules.mapNotNull { it.evaluate(context) }
+        val resolvedMetadata = tikiEngine.contentEngine.resolveDialogue(
+            category = categoryStr,
+            language = "en",
+            emotion = context.currentEmotion.name,
+            relationshipLevel = tikiEngine.relationshipEngine.getSnapshot().level,
+            currentStreak = snapshot?.currentStreak ?: 0,
+            sessionProgress = context.sessionProgress,
+            thinkingState = if (context.thinkingTimeMillis > 0) "THINKING_LONG" else null
+        )
 
-        if (results.isEmpty()) {
-            return getEmptyFallback()
+        val text = resolvedMetadata?.text ?: "Ready!"
+        if (text.isNotEmpty()) {
+            history.recordSpoken(text)
         }
-
-        val highestPriority = results.maxOf { it.priority }
-        val topResults = results.filter { it.priority == highestPriority }
-
-        // Combine candidates from all top priority rules
-        val allCandidates = topResults.flatMap { it.candidates }
-
-        val selectedText = selector.select(allCandidates, history)
-        if (selectedText.isNotEmpty()) {
-            history.recordSpoken(selectedText)
-        }
-
-        val winningCategory = topResults.first().category
 
         return DialogueResult(
-            selectedDialogue = selectedText,
-            category = winningCategory,
-            priority = highestPriority
+            selectedDialogue = text,
+            category = DialogueCategory.Idle,
+            priority = resolvedMetadata?.priority ?: DialoguePriority.FALLBACK
         )
     }
 
