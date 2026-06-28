@@ -50,7 +50,7 @@ class TikiDirectorEngineTest {
 
         // Submit low priority during active cooldown -> must be discarded
         val spamDecision = engine.submitEvent(
-            DirectorDecision.ShowEmotion(EmotionState.CURIOUS),
+            DirectorDecision.ShowEmotion(EmotionState.THINKING),
             DirectorPriority.BEHAVIOR_REACTION,
             startTime + 1000L
         )
@@ -119,11 +119,15 @@ class TikiDirectorEngineTest {
         // Low priority (AMBIENT / BEHAVIOR_REACTION) triggers refinement with silence chance
         val decision = DirectorDecision.ShowEmotion(EmotionState.SAD)
         
-        // Force the seed of random to hit silence
+        val customRandom = object : Random() {
+            override fun nextBits(bitCount: Int): Int = 0
+            override fun nextDouble(): Double = 0.10
+        }
+        
         val refinedToSilence = customRules.refineDecision(
             decision, 
             DirectorPriority.AMBIENT, 
-            Random(12345L) // Deterministic random seed that falls below the silence threshold
+            customRandom
         )
         assertEquals(DirectorDecision.RemainSilent, refinedToSilence)
     }

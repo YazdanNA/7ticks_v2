@@ -2,8 +2,13 @@ package com.example.features.tiki.content
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import kotlin.random.Random
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class TikiContentEngineTest {
 
     private val baseEnglishJson = """

@@ -77,7 +77,7 @@ class TikiPersonalityEngineTest {
     fun `test no architecture violations`() {
         // Verify engine is isolated and returns clean strings
         val engine = PersonalityEngine.getInstance()
-        val result = engine.processDialogue("Ready!", DialogueCategory.Idle, EmotionState.POKER)
+        val result = engine.processDialogue("Ready!", DialogueCategory.Idle, EmotionState.THINKING)
         assertEquals("Ready!", result)
     }
 }

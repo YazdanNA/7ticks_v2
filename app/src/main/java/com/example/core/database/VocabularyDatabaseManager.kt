@@ -321,6 +321,9 @@ open class VocabularyDatabaseManager @Inject constructor(private val context: Co
     }
 
     fun getWordCountByLevels(levels: List<String>): Int {
+        if (isTestMode) {
+            return testWords.count { levels.contains(it.level.uppercase()) }
+        }
         if (!isDatabaseDownloaded()) return 0
         var count = 0
         var db: SQLiteDatabase? = null

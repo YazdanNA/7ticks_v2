@@ -123,21 +123,29 @@ class ExampleRobolectricTest {
     val dbManager = VocabularyDatabaseManager(context)
     val prefs = PreferencesManager(context)
     
-    // Ensure vocabulary database is downloaded for testing
-    if (!dbManager.isDatabaseDownloaded()) {
-        println("Downloading database...")
-        dbManager.downloadDatabase { }
+    VocabularyDatabaseManager.isTestMode = true
+    VocabularyDatabaseManager.testWords.clear()
+    val seedWords = mutableListOf<com.example.core.database.DictWord>()
+    for (i in 1..50) {
+        seedWords.add(
+            com.example.core.database.DictWord(
+                id = i,
+                word = "word_$i",
+                level = "A1"
+            )
+        )
     }
+    VocabularyDatabaseManager.testWords.addAll(seedWords)
     
     // Clear / initialize database context safely
     val userDb = UserDatabase.getDatabase(context)
     val userDao = userDb.userDao()
     userDao.clearReviewCards() // Keep database clean for the audit test
     
-    // Set onboarding settings (10 minute study goal / day)
+    // Set onboarding settings (1 minute study goal / day)
     prefs.isFirstLaunch = false
     prefs.currentLevel = 1 // A1 level
-    prefs.dailyGoal = "10 min / day"
+    prefs.dailyGoal = "1 min / day"
 
     val smartSessionEngine = SmartSessionEngine(userDao, userDb.smartSessionDao(), dbManager)
     val repository = UserRepository(context, userDao, dbManager, prefs, smartSessionEngine)
@@ -154,7 +162,7 @@ class ExampleRobolectricTest {
     val sessionCards = repository.generateSmartLearnSession()
     println("Verification 2 - Session card list count: ${sessionCards.size}")
     
-    // VERIFICATION 2: Smart Learn must create only the required number of new cards (10 min -> 3 cards)
+    // VERIFICATION 2: Smart Learn must create only the required number of new cards (1 min -> 3 cards)
     assertEquals(3, sessionCards.size)
     
     val cardsInDbAfterSession = userDao.getAllCardsOnce()
@@ -176,6 +184,8 @@ class ExampleRobolectricTest {
     val cardsInDbAfterSecondSession = userDao.getAllCardsOnce()
     assertEquals(3, cardsInDbAfterSecondSession.size)
     
+    VocabularyDatabaseManager.isTestMode = false
+    VocabularyDatabaseManager.testWords.clear()
     println("--- END OF SMART LEARN REFACTOR VERIFICATION ---")
   }
 
@@ -185,9 +195,19 @@ class ExampleRobolectricTest {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val dbManager = VocabularyDatabaseManager(context)
     
-    if (!dbManager.isDatabaseDownloaded()) {
-        dbManager.downloadDatabase { }
+    VocabularyDatabaseManager.isTestMode = true
+    VocabularyDatabaseManager.testWords.clear()
+    val seedWords = mutableListOf<com.example.core.database.DictWord>()
+    for (i in 1..50) {
+        seedWords.add(
+            com.example.core.database.DictWord(
+                id = i,
+                word = "word_$i",
+                level = "A1"
+            )
+        )
     }
+    VocabularyDatabaseManager.testWords.addAll(seedWords)
     
     val a1WordsCount = dbManager.getWordCountByLevels(listOf("A1"))
     println("Total A1 words count via COUNT(*): $a1WordsCount")
@@ -200,6 +220,9 @@ class ExampleRobolectricTest {
     
     // Check if the first word and last word are both present
     println("First word: ${a1WordsList.firstOrNull()?.word}, Last word: ${a1WordsList.lastOrNull()?.word}")
+    
+    VocabularyDatabaseManager.isTestMode = false
+    VocabularyDatabaseManager.testWords.clear()
     println("--- END OF VOCABULARY REACHABILITY TEST ---")
   }
 }
