@@ -139,6 +139,24 @@ class TikiEngine private constructor() {
             )
         }
 
+        // Pass 2.5: Map standard categories to funny/rare categories if standard search yielded no results
+        if (resolvedMetadata == null) {
+            val funnyCats = getMappedFunnyCategories(categoryToResolve)
+            for (funnyCat in funnyCats) {
+                resolvedMetadata = contentEngine.resolveDialogue(
+                    category = funnyCat,
+                    language = "en",
+                    emotion = null,
+                    relationshipLevel = relationshipLevel,
+                    currentStreak = memorySnapshot.currentStreak,
+                    sessionProgress = progress,
+                    thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+                    currentTimeMillis = currentTime
+                )
+                if (resolvedMetadata != null) break
+            }
+        }
+
         // Pass 3: Ultimate fallback matching category = "Idle" with emotion = null
         if (resolvedMetadata == null && categoryToResolve != "Idle") {
             resolvedMetadata = contentEngine.resolveDialogue(
@@ -156,7 +174,20 @@ class TikiEngine private constructor() {
         // Extract the final emotion from the selected dialogue's metadata if found
         val targetEmotion = if (resolvedMetadata != null) {
             try {
-                EmotionState.valueOf(resolvedMetadata.emotion.uppercase())
+                val emotionStr = when (resolvedMetadata.emotion.uppercase()) {
+                    "FUNNY_LIGHT_SURPRISE" -> "SWEAT_SMILE"
+                    "SOFT_HUMOR" -> "SMIRK"
+                    "UNEXPECTED_PATTERN" -> "EYEBROW_RAISE"
+                    "ODD_CONNECTION" -> "DIZZY"
+                    "PLAYFUL_OBSERVATION" -> "WINK"
+                    "RARE_BEHAVIOR_DETECTED" -> "FLUSHED"
+                    "QUIRKY_INSIGHT" -> "ROFL"
+                    "RARE_MOMENT_AWARENESS" -> "SMILE_HEARTS"
+                    "STRANGE_CLARITY" -> "ASTONISHED"
+                    "GENTLE_LAUGHTER_STATE" -> "LAUGH_BIG"
+                    else -> resolvedMetadata.emotion.uppercase()
+                }
+                EmotionState.valueOf(emotionStr)
             } catch (e: Exception) {
                 initialEmotion
             }
@@ -221,6 +252,21 @@ class TikiEngine private constructor() {
             customDialogue = finalDialogue,
             forceInstant = behaviorResult?.forceInstant ?: false
         )
+    }
+
+    private fun getMappedFunnyCategories(category: String): List<String> {
+        return when (category) {
+            "Greeting" -> listOf("funny_first_contact")
+            "SessionComplete" -> listOf("funny_success_twist", "rare_insight_moment")
+            "Easy", "EasyStreak" -> listOf("funny_unexpected_win", "rare_surprise_success", "funny_chain_reaction")
+            "Good" -> listOf("funny_success_twist", "rare_insight_moment")
+            "Hard" -> listOf("funny_repeat_attempt", "rare_context_shift")
+            "Again", "AgainStreak" -> listOf("funny_failure_light", "rare_learning_glitch")
+            "Thinking" -> listOf("funny_first_contact", "rare_pattern_break")
+            "LongThinking" -> listOf("funny_confusion_flip", "rare_session_anomaly")
+            "Idle" -> listOf("rare_micro_joke", "rare_context_shift", "rare_behavior_detected", "rare_insight_moment")
+            else -> emptyList()
+        }
     }
 
     companion object {

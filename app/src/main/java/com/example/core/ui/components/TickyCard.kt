@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.core.components.TikiPlaceholder
+import com.example.features.tiki.renderer.EmotionRenderer
 import kotlinx.coroutines.delay
 
 private fun splitMessageIntoChunks(message: String, maxChars: Int = 60): List<String> {
@@ -188,8 +188,8 @@ fun TickyCard(
                 .scale(breatheScale),
             contentAlignment = Alignment.Center
         ) {
-            TikiPlaceholder(
-                tikiState = tikiState,
+            EmotionRenderer(
+                tikiStateOverride = tikiState,
                 isSpeaking = isSpeaking,
                 sizeDp = resolvedSizeDp,
                 modifier = Modifier.fillMaxSize()

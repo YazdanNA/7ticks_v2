@@ -32,6 +32,8 @@ import com.example.features.tiki.model.EmotionState
 fun EmotionRenderer(
     modifier: Modifier = Modifier,
     controller: TikiController = remember { TikiController() },
+    tikiStateOverride: String? = null,
+    isSpeaking: Boolean = false,
     sizeDp: Int = 160
 ) {
     val tikiState by controller.state.collectAsState()
@@ -132,19 +134,21 @@ fun EmotionRenderer(
         label = "tiki_dizzy_spin"
     )
 
+    val activeIsSquished = if (tikiStateOverride != null) false else tikiState.isSquished
+
     // Smooth squish scaling for transition changes
     val squishScaleX by animateFloatAsState(
-        targetValue = if (tikiState.isSquished) 1.2f else 1.0f,
+        targetValue = if (activeIsSquished) 1.2f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "tiki_squish_x"
     )
     val squishScaleY by animateFloatAsState(
-        targetValue = if (tikiState.isSquished) 0.8f else 1.0f,
+        targetValue = if (activeIsSquished) 0.8f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "tiki_squish_y"
     )
     val squishOffsetY by animateFloatAsState(
-        targetValue = if (tikiState.isSquished) 15f else 0f,
+        targetValue = if (activeIsSquished) 15f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "tiki_squish_y_offset"
     )
@@ -212,9 +216,65 @@ fun EmotionRenderer(
                 withTransform({
                     scale(scaleX, scaleY, pivot = Offset.Zero)
                 }) {
-                    val body = tikiState.body
-                    val face = tikiState.face
-                    val gadget = tikiState.gadget
+                    val activeStateKey = tikiStateOverride ?: tikiState.tikiStateKey
+                    val (baseFace, body, gadget) = if (tikiStateOverride != null) {
+                        when (activeStateKey) {
+                            "st-happy" -> Triple("happy", "normal", "none")
+                            "st-laugh-tears" -> Triple("laugh-tears", "normal", "none")
+                            "st-rofl" -> Triple("rofl", "rofl-roll", "none")
+                            "st-laugh-big" -> Triple("laugh-big", "normal", "none")
+                            "st-smile-big" -> Triple("smile-big", "normal", "none")
+                            "st-smile-simple" -> Triple("smile-simple", "normal", "none")
+                            "st-smile-shy" -> Triple("smile-shy", "normal", "none")
+                            "st-heart-eyes" -> Triple("heart-eyes", "normal", "none")
+                            "st-smile-hearts" -> Triple("smile-hearts", "normal", "none")
+                            "st-wink" -> Triple("wink", "normal", "none")
+                            "st-kiss" -> Triple("kiss", "normal", "none")
+                            "st-tears-of-joy" -> Triple("tears-of-joy", "normal", "none")
+                            "st-pleading" -> Triple("pleading", "sad", "none")
+                            "st-sad" -> Triple("sad", "sad", "none")
+                            "st-cry" -> Triple("cry", "sad", "none")
+                            "st-disappointed" -> Triple("disappointed", "sad", "none")
+                            "st-sad-simple" -> Triple("sad-simple", "sad", "none")
+                            "st-angry" -> Triple("angry", "normal", "none")
+                            "st-angry-red" -> Triple("angry-red", "furious", "none")
+                            "st-frown" -> Triple("frown", "normal", "none")
+                            "st-cursing" -> Triple("cursing", "furious", "none")
+                            "st-scream" -> Triple("scream", "furious", "none")
+                            "st-astonished" -> Triple("astonished", "normal", "none")
+                            "st-mouth-open" -> Triple("mouth-open", "normal", "none")
+                            "st-flushed" -> Triple("flushed", "normal", "none")
+                            "st-thinking" -> Triple("thinking", "normal", "none")
+                            "st-roll-eyes" -> Triple("roll-eyes", "normal", "none")
+                            "st-smirk" -> Triple("smirk", "normal", "none")
+                            "st-poker" -> Triple("poker", "normal", "none")
+                            "st-eyebrow-raise" -> Triple("eyebrow-raise", "normal", "none")
+                            "st-sweat-smile" -> Triple("sweat-smile", "normal", "none")
+                            "st-sweat-cold" -> Triple("sweat-cold", "normal", "none")
+                            "st-yawn" -> Triple("yawn", "normal", "none")
+                            "st-sleep" -> Triple("sleep", "normal", "none")
+                            "st-zipped" -> Triple("zipped", "normal", "none")
+                            "st-dizzy" -> Triple("dizzy", "normal", "none")
+                            "st-talking" -> Triple("talk", "normal", "none")
+                            "st-welcome" -> Triple("happy", "wave", "stars")
+                            "st-name" -> Triple("happy", "normal", "pencil")
+                            "st-native-lang" -> Triple("happy", "normal", "globe-native")
+                            "st-target-lang" -> Triple("happy", "normal", "globe-target")
+                            "st-study-time" -> Triple("happy", "normal", "timer")
+                            "st-remind-time" -> Triple("happy", "normal", "bell")
+                            "st-placement" -> Triple("happy", "normal", "placement")
+                            "st-loading-data" -> Triple("hidden", "normal", "loading")
+                            "st-streak-fire" -> Triple("happy", "large", "fire")
+                            "st-locked-level" -> Triple("locked", "locked", "lock")
+                            "st-header-peek" -> Triple("happy", "peek", "none")
+                            "st-collection-search" -> Triple("search", "normal", "search-data")
+                            "st-rap" -> Triple("rap", "normal", "none")
+                            else -> Triple("happy", "normal", "none")
+                        }
+                    } else {
+                        Triple(tikiState.face, tikiState.body, tikiState.gadget)
+                    }
+                    val face = if (isSpeaking && baseFace != "hidden") "talk" else baseFace
 
                     // 1. Shadow Floor (if not peeking)
                     if (body != "peek") {
