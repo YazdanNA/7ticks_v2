@@ -111,13 +111,26 @@ class TikiEngine private constructor() {
             is BehaviorEvent.CardThinkingFinished -> if (behaviorEvent.durationMillis >= 8000L) "LongThinking" else "Thinking"
             is BehaviorEvent.TranslationOpened -> "Idle"
             is BehaviorEvent.MoreDetailsOpened -> "Idle"
+            is BehaviorEvent.DictionaryOpened -> "Idle"
+            is BehaviorEvent.AnalysisOpened -> "Idle"
+            is BehaviorEvent.BoxesOpened -> "Idle"
+            is BehaviorEvent.ProfileOpened -> "Idle"
+            is BehaviorEvent.WordSearched -> "Idle"
+            is BehaviorEvent.WordStarred -> "Idle"
+            is BehaviorEvent.OnboardingStepChanged -> "Idle"
             else -> null
         }
         
         val categoryToResolve = contextRecommendation?.suggestedDialogueCategory ?: mappedCategory ?: "Idle"
         val relationshipLevel = relationshipEngine.getSnapshot(currentTime).level
 
-        val langCode = "en"
+        val prefs = com.example.core.database.PreferencesManager(com.example.SevenTicksApplication.instance)
+        val langCode = when (prefs.nativeLanguage.lowercase()) {
+            "persian" -> "fa"
+            "french" -> "fr"
+            "german" -> "de"
+            else -> "en"
+        }
 
         // Multi-pass dialogue resolution:
         // Pass 1: Strict match with both category and initial emotion
@@ -179,7 +192,9 @@ class TikiEngine private constructor() {
         }
 
         // Extract the final emotion from the selected dialogue's metadata if found
-        val targetEmotion = if (resolvedMetadata != null) {
+        val targetEmotion = if (behaviorResult != null) {
+            behaviorResult.emotion
+        } else if (resolvedMetadata != null) {
             try {
                 val emotionStr = when (resolvedMetadata.emotion.uppercase()) {
                     "FUNNY_LIGHT_SURPRISE" -> "SWEAT_SMILE"

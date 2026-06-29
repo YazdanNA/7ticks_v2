@@ -44,9 +44,17 @@ class DialogueEngine(
             else -> null
         }
 
+        val prefs = com.example.core.database.PreferencesManager(com.example.SevenTicksApplication.instance)
+        val langCode = when (prefs.nativeLanguage.lowercase()) {
+            "persian" -> "fa"
+            "french" -> "fr"
+            "german" -> "de"
+            else -> "en"
+        }
+
         val resolvedMetadata = tikiEngine.contentEngine.resolveDialogue(
             category = categoryStr,
-            language = "en",
+            language = langCode,
             emotion = context.currentEmotion.name,
             relationshipLevel = tikiEngine.relationshipEngine.getSnapshot().level,
             currentStreak = snapshot?.currentStreak ?: 0,

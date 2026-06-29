@@ -132,6 +132,13 @@ fun BoxesScreen(
         onShowBottomBar(deserializeSubScreen(currentSubScreenStr) is BoxesSubScreen.Dashboard)
     }
 
+    LaunchedEffect(Unit) {
+        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+            behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.BoxesOpened
+        )
+    }
+
     fun navigateTo(screen: BoxesSubScreen) {
         isBackNavigation = false
         val newBackstack = if (backstackStr.isEmpty()) currentSubScreenStr else "$backstackStr;$currentSubScreenStr"

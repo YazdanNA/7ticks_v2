@@ -68,6 +68,13 @@ fun AnalysisScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var activeTab by remember { mutableStateOf(0) } // 0 = Overview, 1 = Cognitive, 2 = Activity
 
+    LaunchedEffect(Unit) {
+        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+            behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.AnalysisOpened
+        )
+    }
+
     LaunchedEffect(allCards, reviewHistory) {
         isLoading = true
         qualityScore = repo.getLearningQualityScore()

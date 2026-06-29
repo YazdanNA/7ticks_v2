@@ -52,18 +52,23 @@ private fun splitMessageIntoChunks(message: String, maxChars: Int = 60): List<St
 @Composable
 fun TickyCard(
     modifier: Modifier = Modifier,
-    tikiState: String = "st-happy",
+    tikiState: String? = null,
     sizeDp: Int = 80,
     message: String? = null,
     messages: List<String>? = null,
     speedMs: Long = 25,
     pauseMs: Long = 3000
 ) {
+    val globalState by com.example.features.tiki.api.TikiController.getInstance().state.collectAsState()
+
+    val resolvedTikiState = tikiState ?: globalState.tikiStateKey
+    val baseMessage = message ?: if (messages == null || messages.isEmpty()) globalState.dialogue else null
+
     // Resolve which messages to display, and split long ones to keep speech bubble max 2 lines
-    val resolvedMessages = remember(message, messages) {
+    val resolvedMessages = remember(baseMessage, messages) {
         val rawList = when {
             messages != null && messages.isNotEmpty() -> messages
-            message != null && message.isNotEmpty() -> listOf(message)
+            baseMessage != null && baseMessage.isNotEmpty() -> listOf(baseMessage)
             else -> listOf("Welcome! Let's level up your vocabulary today!")
         }
         rawList.flatMap { splitMessageIntoChunks(it, 60) }
@@ -189,7 +194,7 @@ fun TickyCard(
             contentAlignment = Alignment.Center
         ) {
             EmotionRenderer(
-                tikiStateOverride = tikiState,
+                tikiStateOverride = resolvedTikiState,
                 isSpeaking = isSpeaking,
                 sizeDp = resolvedSizeDp,
                 modifier = Modifier.fillMaxSize()

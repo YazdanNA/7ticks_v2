@@ -16,4 +16,11 @@ sealed interface BehaviorEvent {
     object MoreDetailsClosed : BehaviorEvent
     object AppPaused : BehaviorEvent
     object AppResumed : BehaviorEvent
+    object DictionaryOpened : BehaviorEvent
+    object AnalysisOpened : BehaviorEvent
+    object BoxesOpened : BehaviorEvent
+    object ProfileOpened : BehaviorEvent
+    data class WordSearched(val query: String, val found: Boolean) : BehaviorEvent
+    data class WordStarred(val word: String) : BehaviorEvent
+    data class OnboardingStepChanged(val step: Int) : BehaviorEvent
 }

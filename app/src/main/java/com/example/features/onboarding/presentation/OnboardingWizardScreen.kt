@@ -138,6 +138,15 @@ fun OnboardingWizardScreen(navController: NavController) {
         }
     }
 
+    val tikiV2State by com.example.features.tiki.api.TikiController.getInstance().state.collectAsState()
+
+    LaunchedEffect(step) {
+        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+            behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.OnboardingStepChanged(step)
+        )
+    }
+
     // Single screen conversational layout
     Scaffold(
         topBar = {

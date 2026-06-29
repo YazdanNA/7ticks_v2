@@ -67,6 +67,13 @@ fun ProfileScreen() {
 
     val currentAvatarId = userProgress?.avatar ?: prefs.avatar
 
+    LaunchedEffect(Unit) {
+        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+            behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.ProfileOpened
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent

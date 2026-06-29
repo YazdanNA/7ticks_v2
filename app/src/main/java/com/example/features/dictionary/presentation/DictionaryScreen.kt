@@ -79,6 +79,13 @@ fun DictionaryScreen() {
     // Dropdown for adding to a Custom Box
     var showAddToBoxDropdown by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+            behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.DictionaryOpened
+        )
+    }
+
     // Live search prefix trigger while typing
     LaunchedEffect(query) {
         if (query.trim().isEmpty()) {
@@ -87,10 +94,15 @@ fun DictionaryScreen() {
         } else {
             isSearching = true
             delay(150) // Debounce searching
-            searchResults = withContext(Dispatchers.IO) {
+            val results = withContext(Dispatchers.IO) {
                 searchRepo.search(query.trim(), limit = 60)
             }
+            searchResults = results
             isSearching = false
+            com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+                behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.WordSearched(query.trim(), results.isNotEmpty())
+            )
         }
     }
 
@@ -345,7 +357,6 @@ fun DictionaryScreen() {
                     verticalArrangement = Arrangement.Center
                 ) {
                     TickyCard(
-                        tikiState = "st-rap",
                         message = "I couldn't find \"$query\" in my database. Let's try typing another term or check the spelling!",
                         sizeDp = 80,
                         modifier = Modifier.fillMaxWidth()
@@ -516,6 +527,12 @@ fun DictionaryScreen() {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 boxRepo.toggleFavoriteWord(word.word)
                                 isWordFavorite = !isWordFavorite
+                                if (isWordFavorite) {
+                                    com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                                        contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle"),
+                                        behaviorEvent = com.example.features.tiki.behavior.BehaviorEvent.WordStarred(word.word)
+                                    )
+                                }
                             }
                         }) {
                             Icon(
