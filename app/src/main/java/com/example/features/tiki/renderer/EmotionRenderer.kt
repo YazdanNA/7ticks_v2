@@ -181,26 +181,6 @@ fun EmotionRenderer(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Speech Bubble
-        if (showSpeechBubble && tikiState.dialogue.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color(0x1A1E293B), RoundedCornerShape(16.dp))
-                    .border(1.dp, Color(0x3300FFD2), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = tikiState.dialogue,
-                    color = Color(0xFF00FFD2),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
         // Companion Canvas
         Box(
             modifier = Modifier.requiredSize(sizeDp.dp),

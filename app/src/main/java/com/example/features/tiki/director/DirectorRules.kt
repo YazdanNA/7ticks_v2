@@ -46,8 +46,9 @@ object DirectorRules {
         priority: DirectorPriority,
         random: Random = Random
     ): DirectorDecision {
-        // Low priority reactions sometimes choose natural silence to avoid overreacting
-        if (priority.value <= DirectorPriority.BEHAVIOR_REACTION.value) {
+        // Low priority reactions (e.g. ambient idle triggers) sometimes choose natural silence to avoid overreacting.
+        // Explicit behavior reactions (from user interactions) must NEVER choose random silence so that Tiki always reacts.
+        if (priority.value < DirectorPriority.BEHAVIOR_REACTION.value) {
             if (random.nextDouble() < SILENCE_CHANCE) {
                 return DirectorDecision.RemainSilent
             }

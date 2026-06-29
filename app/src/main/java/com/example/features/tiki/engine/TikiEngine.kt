@@ -117,14 +117,7 @@ class TikiEngine private constructor() {
         val categoryToResolve = contextRecommendation?.suggestedDialogueCategory ?: mappedCategory ?: "Idle"
         val relationshipLevel = relationshipEngine.getSnapshot(currentTime).level
 
-        val prefs = com.example.SevenTicksApplication.instance.preferencesManager
-        val nativeLang = prefs.nativeLanguage
-        val langCode = when (nativeLang.lowercase()) {
-            "persian", "fa" -> "fa"
-            "french", "fr" -> "fr"
-            "german", "de" -> "de"
-            else -> "en"
-        }
+        val langCode = "en"
 
         // Multi-pass dialogue resolution:
         // Pass 1: Strict match with both category and initial emotion
