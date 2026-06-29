@@ -40,13 +40,18 @@ class TikiEngine private constructor() {
     }
 
     private fun loadDialogues() {
-        try {
-            val appInstance = com.example.SevenTicksApplication.instance
-            val stream = appInstance.assets.open("tiki_dialogues/dialogues_en.json")
-            val library = com.example.features.tiki.content.DialogueLoader().loadFromStream(stream)
-            contentEngine.loadLibrary(library)
-        } catch (e: Exception) {
-            android.util.Log.e("TikiEngine", "Failed to load dialogues asset", e)
+        val languages = listOf("en", "fa", "fr", "de")
+        val appInstance = com.example.SevenTicksApplication.instance
+        val loader = com.example.features.tiki.content.DialogueLoader()
+        for (lang in languages) {
+            try {
+                val stream = appInstance.assets.open("tiki_dialogues/dialogues_$lang.json")
+                val library = loader.loadFromStream(stream)
+                contentEngine.loadLibrary(library)
+                android.util.Log.d("TikiEngine", "Successfully loaded dialogue library for language: $lang")
+            } catch (e: Exception) {
+                android.util.Log.e("TikiEngine", "Failed to load dialogue library for language: $lang", e)
+            }
         }
     }
 
@@ -112,11 +117,20 @@ class TikiEngine private constructor() {
         val categoryToResolve = contextRecommendation?.suggestedDialogueCategory ?: mappedCategory ?: "Idle"
         val relationshipLevel = relationshipEngine.getSnapshot(currentTime).level
 
+        val prefs = com.example.SevenTicksApplication.instance.preferencesManager
+        val nativeLang = prefs.nativeLanguage
+        val langCode = when (nativeLang.lowercase()) {
+            "persian", "fa" -> "fa"
+            "french", "fr" -> "fr"
+            "german", "de" -> "de"
+            else -> "en"
+        }
+
         // Multi-pass dialogue resolution:
         // Pass 1: Strict match with both category and initial emotion
         var resolvedMetadata = contentEngine.resolveDialogue(
             category = categoryToResolve,
-            language = "en",
+            language = langCode,
             emotion = initialEmotion.name,
             relationshipLevel = relationshipLevel,
             currentStreak = memorySnapshot.currentStreak,
@@ -129,7 +143,7 @@ class TikiEngine private constructor() {
         if (resolvedMetadata == null) {
             resolvedMetadata = contentEngine.resolveDialogue(
                 category = categoryToResolve,
-                language = "en",
+                language = langCode,
                 emotion = null,
                 relationshipLevel = relationshipLevel,
                 currentStreak = memorySnapshot.currentStreak,
@@ -145,7 +159,7 @@ class TikiEngine private constructor() {
             for (funnyCat in funnyCats) {
                 resolvedMetadata = contentEngine.resolveDialogue(
                     category = funnyCat,
-                    language = "en",
+                    language = langCode,
                     emotion = null,
                     relationshipLevel = relationshipLevel,
                     currentStreak = memorySnapshot.currentStreak,
@@ -161,7 +175,7 @@ class TikiEngine private constructor() {
         if (resolvedMetadata == null && categoryToResolve != "Idle") {
             resolvedMetadata = contentEngine.resolveDialogue(
                 category = "Idle",
-                language = "en",
+                language = langCode,
                 emotion = null,
                 relationshipLevel = relationshipLevel,
                 currentStreak = memorySnapshot.currentStreak,

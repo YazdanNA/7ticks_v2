@@ -34,7 +34,8 @@ fun EmotionRenderer(
     controller: TikiController = remember { TikiController() },
     tikiStateOverride: String? = null,
     isSpeaking: Boolean = false,
-    sizeDp: Int = 160
+    sizeDp: Int = 160,
+    showSpeechBubble: Boolean = false
 ) {
     val tikiState by controller.state.collectAsState()
 
@@ -181,7 +182,7 @@ fun EmotionRenderer(
         verticalArrangement = Arrangement.Center
     ) {
         // Speech Bubble
-        if (tikiState.dialogue.isNotEmpty()) {
+        if (showSpeechBubble && tikiState.dialogue.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
