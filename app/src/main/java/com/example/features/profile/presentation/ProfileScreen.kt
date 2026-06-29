@@ -61,6 +61,9 @@ fun ProfileScreen() {
     var isEditingName by remember { mutableStateOf(false) }
     var editNameValue by remember(userName) { mutableStateOf(userName) }
     var showAvatarPicker by remember { mutableStateOf(false) }
+    var showNativeLangDialog by remember { mutableStateOf(false) }
+    var showTargetLangDialog by remember { mutableStateOf(false) }
+    var showDailyGoalDialog by remember { mutableStateOf(false) }
 
     val xpNeeded = level * 500
     val progressPercentage = if (xpNeeded > 0) xp.toFloat() / xpNeeded.toFloat() else 0f
@@ -556,7 +559,11 @@ fun ProfileScreen() {
                 ) {
                     // Option 1: Native Language
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showNativeLangDialog = true }
+                            .padding(vertical = 4.dp, horizontal = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -565,12 +572,16 @@ fun ProfileScreen() {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Native Lang", color = Color.White, fontSize = 14.sp)
                         }
-                        Text("${userProgress?.nativeLanguage ?: prefs.nativeLanguage} >", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                        Text("${userProgress?.nativeLanguage ?: prefs.nativeLanguage} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     // Option 2: Target Language
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showTargetLangDialog = true }
+                            .padding(vertical = 4.dp, horizontal = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -579,7 +590,7 @@ fun ProfileScreen() {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Target Lang", color = Color.White, fontSize = 14.sp)
                         }
-                        Text("${userProgress?.targetLanguage ?: prefs.targetLanguage} >", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                        Text("${userProgress?.targetLanguage ?: prefs.targetLanguage} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     // Option 3: Dark Mode
@@ -605,7 +616,11 @@ fun ProfileScreen() {
 
                     // Option 4: Daily Goal
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showDailyGoalDialog = true }
+                            .padding(vertical = 4.dp, horizontal = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -614,7 +629,7 @@ fun ProfileScreen() {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Daily Goal", color = Color.White, fontSize = 14.sp)
                         }
-                        Text("${userProgress?.dailyGoal ?: prefs.dailyGoal} >", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                        Text("${userProgress?.dailyGoal ?: prefs.dailyGoal} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     // Option 5: About
@@ -635,6 +650,136 @@ fun ProfileScreen() {
             confirmButton = {
                 TextButton(onClick = { showSettings = false }) {
                     Text("Close", color = Color(0xFF00FFD2), fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // Native Language Selection Dialog
+    if (showNativeLangDialog) {
+        val options = listOf("Persian", "English", "German", "French")
+        AlertDialog(
+            onDismissRequest = { showNativeLangDialog = false },
+            containerColor = Color(0xFF141539),
+            title = { Text("Select Native Language", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    options.forEach { option ->
+                        val isSelected = (userProgress?.nativeLanguage ?: prefs.nativeLanguage) == option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) Color(0x2000FFD2) else Color.Transparent)
+                                .clickable {
+                                    coroutineScope.launch {
+                                        repo.updateNativeLanguage(option)
+                                        showNativeLangDialog = false
+                                        // Update Tiki immediately to reflect new language
+                                        com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
+                                            contextEvent = com.example.features.tiki.context.ContextEvent.Custom("Idle")
+                                        )
+                                    }
+                                }
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(option, color = Color.White, fontSize = 15.sp)
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNativeLangDialog = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                }
+            }
+        )
+    }
+
+    // Target Language Selection Dialog
+    if (showTargetLangDialog) {
+        val options = listOf("English", "German", "French", "Spanish", "Japanese")
+        AlertDialog(
+            onDismissRequest = { showTargetLangDialog = false },
+            containerColor = Color(0xFF141539),
+            title = { Text("Select Target Language", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    options.forEach { option ->
+                        val isSelected = (userProgress?.targetLanguage ?: prefs.targetLanguage) == option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) Color(0x2000FFD2) else Color.Transparent)
+                                .clickable {
+                                    coroutineScope.launch {
+                                        repo.updateTargetLanguage(option)
+                                        showTargetLangDialog = false
+                                    }
+                                }
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(option, color = Color.White, fontSize = 15.sp)
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTargetLangDialog = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                }
+            }
+        )
+    }
+
+    // Daily Goal Selection Dialog
+    if (showDailyGoalDialog) {
+        val options = listOf("5 words / day", "10 words / day", "15 words / day", "20 words / day", "30 words / day", "45 words / day")
+        AlertDialog(
+            onDismissRequest = { showDailyGoalDialog = false },
+            containerColor = Color(0xFF141539),
+            title = { Text("Select Daily Goal", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    options.forEach { option ->
+                        val isSelected = (userProgress?.dailyGoal ?: prefs.dailyGoal) == option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) Color(0x2000FFD2) else Color.Transparent)
+                                .clickable {
+                                    coroutineScope.launch {
+                                        repo.updateDailyGoal(option)
+                                        showDailyGoalDialog = false
+                                    }
+                                }
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(option, color = Color.White, fontSize = 15.sp)
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDailyGoalDialog = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
                 }
             }
         )

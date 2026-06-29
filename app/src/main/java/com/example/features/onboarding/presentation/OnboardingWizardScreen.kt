@@ -396,9 +396,9 @@ fun OnboardingWizardScreen(navController: NavController) {
                         // Native Language View (Compact Grid, No Scrolling, No search)
                         val nativeLanguages = listOf(
                             "Persian" to true,
-                            "English" to false,
-                            "German" to false,
-                            "French" to false
+                            "English" to true,
+                            "German" to true,
+                            "French" to true
                         )
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -460,10 +460,10 @@ fun OnboardingWizardScreen(navController: NavController) {
                         // Target Language View (Compact Grid, No Scrolling, No search)
                         val targetLanguages = listOf(
                             "English" to true,
-                            "German" to false,
-                            "French" to false,
-                            "Spanish" to false,
-                            "Japanese" to false
+                            "German" to true,
+                            "French" to true,
+                            "Spanish" to true,
+                            "Japanese" to true
                         )
                         Column(
                             modifier = Modifier.fillMaxWidth(),

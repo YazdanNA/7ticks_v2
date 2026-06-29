@@ -65,6 +65,24 @@ class UserRepository @Inject constructor(
         userDao.insertUserProgress(updated)
     }
 
+    suspend fun updateNativeLanguage(lang: String) = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: UserProgressEntity()
+        val updated = progress.copy(nativeLanguage = lang)
+        userDao.insertUserProgress(updated)
+    }
+
+    suspend fun updateTargetLanguage(lang: String) = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: UserProgressEntity()
+        val updated = progress.copy(targetLanguage = lang)
+        userDao.insertUserProgress(updated)
+    }
+
+    suspend fun updateDailyGoal(goal: String) = withContext(Dispatchers.IO) {
+        val progress = userDao.getUserProgressOnce() ?: UserProgressEntity()
+        val updated = progress.copy(dailyGoal = goal)
+        userDao.insertUserProgress(updated)
+    }
+
     fun getCardsByBox(boxIndex: Int): Flow<List<CardEntity>> = userDao.getCardsByBox(boxIndex)
 
     fun getCardCountInBox(boxIndex: Int): Flow<Int> = userDao.getCardCountInBox(boxIndex)

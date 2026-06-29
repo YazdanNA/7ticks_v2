@@ -124,13 +124,7 @@ class TikiEngine private constructor() {
         val categoryToResolve = contextRecommendation?.suggestedDialogueCategory ?: mappedCategory ?: "Idle"
         val relationshipLevel = relationshipEngine.getSnapshot(currentTime).level
 
-        val prefs = com.example.core.database.PreferencesManager(com.example.SevenTicksApplication.instance)
-        val langCode = when (prefs.nativeLanguage.lowercase()) {
-            "persian" -> "fa"
-            "french" -> "fr"
-            "german" -> "de"
-            else -> "en"
-        }
+        val langCode = getAppLanguage()
 
         // Multi-pass dialogue resolution:
         // Pass 1: Strict match with both category and initial emotion
@@ -301,6 +295,41 @@ class TikiEngine private constructor() {
                 INSTANCE = instance
                 instance
             }
+        }
+
+        fun getAppLanguage(): String {
+            val systemLang = java.util.Locale.getDefault().language
+            val prefs = com.example.core.database.PreferencesManager(com.example.SevenTicksApplication.instance)
+            val prefLang = when (prefs.nativeLanguage.lowercase()) {
+                "persian" -> "fa"
+                "french" -> "fr"
+                "german" -> "de"
+                else -> "en"
+            }
+            
+            // If the system language is English, the app's display language is English,
+            // so Tiki must speak English as explicitly requested.
+            if (systemLang.startsWith("en")) {
+                return "en"
+            }
+            
+            // If system is not English, but user preference is English, use English
+            if (prefLang == "en") {
+                return "en"
+            }
+            
+            // Otherwise, match the system language or user preference
+            if (systemLang.startsWith("fa") || prefLang == "fa") {
+                return "fa"
+            }
+            if (systemLang.startsWith("fr") || prefLang == "fr") {
+                return "fr"
+            }
+            if (systemLang.startsWith("de") || prefLang == "de") {
+                return "de"
+            }
+            
+            return "en"
         }
     }
 }
