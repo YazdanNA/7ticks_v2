@@ -47,8 +47,15 @@ class BehaviorEngine(
 
         if (bestResult == null) return null
 
+        val isExplicitAction = event is BehaviorEvent.CardAnsweredEasy ||
+                event is BehaviorEvent.CardAnsweredGood ||
+                event is BehaviorEvent.CardAnsweredHard ||
+                event is BehaviorEvent.CardAnsweredAgain ||
+                event is BehaviorEvent.SessionStarted ||
+                event is BehaviorEvent.SessionFinished
+
         val elapsed = currentTimeMillis - lastEmissionTimeMillis
-        if (elapsed < cooldownMillis && lastEmissionTimeMillis > 0L) {
+        if (!isExplicitAction && elapsed < cooldownMillis && lastEmissionTimeMillis > 0L) {
             // Cooldown is active. Only allow if new priority strictly overrides current active priority.
             if (bestResult.priority <= currentActivePriority) {
                 return null

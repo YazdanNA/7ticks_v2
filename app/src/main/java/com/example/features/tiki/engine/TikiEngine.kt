@@ -78,8 +78,8 @@ class TikiEngine private constructor() {
             null
         }
 
-        // 4. Emotion Engine
-        val targetEmotion = behaviorResult?.emotion 
+        // 4. Emotion Engine (initial guess based on behavior/context)
+        val initialEmotion = behaviorResult?.emotion 
             ?: when (contextRecommendation?.suggestedDialogueCategory) {
                 "Celebration", "SessionComplete" -> EmotionState.LAUGH_BIG
                 "Greeting" -> EmotionState.WELCOME
@@ -89,15 +89,80 @@ class TikiEngine private constructor() {
 
         // 5. Dialogue Engine / Library resolution (exclusively from Dialogue Library)
         val progress = contextEngine.getSnapshot().sessionProgress
-        val resolvedMetadata = contentEngine.resolveDialogue(
-            category = contextRecommendation?.suggestedDialogueCategory,
+        
+        // Map behaviorEvent to standard dialogue categories based on trailing answer streak and action
+        val trailingStreak = behaviorEngine.history.getTrailingAnswerStreak()
+        val isEasyStreak = trailingStreak.first == BehaviorEvent.CardAnsweredEasy::class.java && trailingStreak.second >= 3
+        val isAgainStreak = trailingStreak.first == BehaviorEvent.CardAnsweredAgain::class.java && trailingStreak.second >= 2
+
+        val mappedCategory = when (behaviorEvent) {
+            is BehaviorEvent.SessionStarted -> "Greeting"
+            is BehaviorEvent.SessionFinished -> "SessionComplete"
+            is BehaviorEvent.CardAnsweredEasy -> if (isEasyStreak) "EasyStreak" else "Easy"
+            is BehaviorEvent.CardAnsweredGood -> "Good"
+            is BehaviorEvent.CardAnsweredHard -> "Hard"
+            is BehaviorEvent.CardAnsweredAgain -> if (isAgainStreak) "AgainStreak" else "Again"
+            is BehaviorEvent.CardThinkingStarted -> "Thinking"
+            is BehaviorEvent.CardThinkingFinished -> if (behaviorEvent.durationMillis >= 8000L) "LongThinking" else "Thinking"
+            is BehaviorEvent.TranslationOpened -> "Idle"
+            is BehaviorEvent.MoreDetailsOpened -> "Idle"
+            else -> null
+        }
+        
+        val categoryToResolve = contextRecommendation?.suggestedDialogueCategory ?: mappedCategory ?: "Idle"
+        val relationshipLevel = relationshipEngine.getSnapshot(currentTime).level
+
+        // Multi-pass dialogue resolution:
+        // Pass 1: Strict match with both category and initial emotion
+        var resolvedMetadata = contentEngine.resolveDialogue(
+            category = categoryToResolve,
             language = "en",
-            emotion = targetEmotion.name,
-            relationshipLevel = relationshipEngine.getSnapshot(currentTime).level,
+            emotion = initialEmotion.name,
+            relationshipLevel = relationshipLevel,
             currentStreak = memorySnapshot.currentStreak,
             sessionProgress = progress,
-            thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null
+            thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+            currentTimeMillis = currentTime
         )
+
+        // Pass 2: Fallback matching category with emotion = null
+        if (resolvedMetadata == null) {
+            resolvedMetadata = contentEngine.resolveDialogue(
+                category = categoryToResolve,
+                language = "en",
+                emotion = null,
+                relationshipLevel = relationshipLevel,
+                currentStreak = memorySnapshot.currentStreak,
+                sessionProgress = progress,
+                thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+                currentTimeMillis = currentTime
+            )
+        }
+
+        // Pass 3: Ultimate fallback matching category = "Idle" with emotion = null
+        if (resolvedMetadata == null && categoryToResolve != "Idle") {
+            resolvedMetadata = contentEngine.resolveDialogue(
+                category = "Idle",
+                language = "en",
+                emotion = null,
+                relationshipLevel = relationshipLevel,
+                currentStreak = memorySnapshot.currentStreak,
+                sessionProgress = progress,
+                thinkingState = null,
+                currentTimeMillis = currentTime
+            )
+        }
+
+        // Extract the final emotion from the selected dialogue's metadata if found
+        val targetEmotion = if (resolvedMetadata != null) {
+            try {
+                EmotionState.valueOf(resolvedMetadata.emotion.uppercase())
+            } catch (e: Exception) {
+                initialEmotion
+            }
+        } else {
+            initialEmotion
+        }
 
         val resolvedText = resolvedMetadata?.text ?: "Ready!"
 

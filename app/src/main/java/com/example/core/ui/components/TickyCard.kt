@@ -112,9 +112,7 @@ fun TickyCard(
     }
 
     // Tiki speaks (mouth moves) when typewriter is typing
-    val activeTikiState = remember(tikiState, isTypingOrErasing) {
-        if (isTypingOrErasing) "st-talking" else tikiState
-    }
+    val isSpeaking = isTypingOrErasing
 
     // Breathing motion scale
     val infiniteTransition = rememberInfiniteTransition(label = "ticky_breathe")
@@ -191,7 +189,8 @@ fun TickyCard(
             contentAlignment = Alignment.Center
         ) {
             TikiPlaceholder(
-                tikiState = activeTikiState,
+                tikiState = tikiState,
+                isSpeaking = isSpeaking,
                 sizeDp = resolvedSizeDp,
                 modifier = Modifier.fillMaxSize()
             )

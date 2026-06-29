@@ -14,7 +14,9 @@ class DialogueResolver {
         sessionProgress: Float = 0f,
         thinkingState: String? = null,
         tags: List<String> = emptyList(),
-        random: Random = Random
+        random: Random = Random,
+        currentTimeMillis: Long = System.currentTimeMillis(),
+        lastSpokenMap: Map<String, Long> = emptyMap()
     ): DialogueMetadata? {
         val candidates = library.dialogues.filter { dialogue ->
             if (!dialogue.enabled) return@filter false
@@ -42,20 +44,33 @@ class DialogueResolver {
 
         if (candidates.isEmpty()) return null
 
-        val totalWeight = candidates.sumOf { it.weight }
+        // Apply dialogue-specific cooldown filtering if there are other candidates
+        val uncooledCandidates = candidates.filter { dialogue ->
+            val lastSpoken = lastSpokenMap[dialogue.id]
+            if (lastSpoken != null && dialogue.cooldown != null) {
+                val elapsed = currentTimeMillis - lastSpoken
+                elapsed >= dialogue.cooldown * 1000L
+            } else {
+                true
+            }
+        }
+
+        val finalCandidates = if (uncooledCandidates.isNotEmpty()) uncooledCandidates else candidates
+
+        val totalWeight = finalCandidates.sumOf { it.weight }
         if (totalWeight <= 0) {
-            return candidates.random(random)
+            return finalCandidates.random(random)
         }
 
         val targetWeight = random.nextInt(totalWeight)
         var currentWeightSum = 0
-        for (candidate in candidates) {
+        for (candidate in finalCandidates) {
             currentWeightSum += candidate.weight
             if (targetWeight < currentWeightSum) {
                 return candidate
             }
         }
 
-        return candidates.last()
+        return finalCandidates.last()
     }
 }

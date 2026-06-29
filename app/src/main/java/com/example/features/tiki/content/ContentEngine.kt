@@ -41,8 +41,11 @@ class ContentEngine(
         usedDialogueIds.clear()
     }
 
-    fun recordUsed(dialogueId: String) {
+    private val dialogueLastSpokenTime = mutableMapOf<String, Long>()
+
+    fun recordUsed(dialogueId: String, timestamp: Long = System.currentTimeMillis()) {
         usedDialogueIds.add(dialogueId)
+        dialogueLastSpokenTime[dialogueId] = timestamp
     }
 
     fun getUnusedContent(language: String): List<DialogueMetadata> {
@@ -59,14 +62,16 @@ class ContentEngine(
         sessionProgress: Float = 0f,
         thinkingState: String? = null,
         tags: List<String> = emptyList(),
-        random: Random = Random
+        random: Random = Random,
+        currentTimeMillis: Long = System.currentTimeMillis()
     ): DialogueMetadata? {
         val targetLib = libraries[language]
         var resolved: DialogueMetadata? = null
         if (targetLib != null) {
             resolved = resolver.resolve(
                 targetLib, category, language, emotion, relationshipLevel,
-                currentStreak, sessionProgress, thinkingState, tags, random
+                currentStreak, sessionProgress, thinkingState, tags, random,
+                currentTimeMillis, dialogueLastSpokenTime
             )
         }
 
@@ -75,13 +80,14 @@ class ContentEngine(
             if (enLib != null) {
                 resolved = resolver.resolve(
                     enLib, category, "en", emotion, relationshipLevel,
-                    currentStreak, sessionProgress, thinkingState, tags, random
+                    currentStreak, sessionProgress, thinkingState, tags, random,
+                    currentTimeMillis, dialogueLastSpokenTime
                 )
             }
         }
 
         if (resolved != null) {
-            recordUsed(resolved.id)
+            recordUsed(resolved.id, currentTimeMillis)
         }
 
         return resolved
