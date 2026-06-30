@@ -110,6 +110,14 @@ class FeedbackManager private constructor(context: Context) {
             Log.w("FeedbackManager", "SoundPool not initialized yet, skipping sound play: $type")
             return
         }
+        try {
+            val prefs = com.example.core.database.PreferencesManager(appContext)
+            if (!prefs.soundEnabled) {
+                return
+            }
+        } catch (e: Exception) {
+            // Fallback gracefully if prefs error
+        }
         val soundId = soundIds[type.lowercase()]
         if (soundId != null && soundId != 0) {
             scope.launch {
@@ -151,6 +159,14 @@ class FeedbackManager private constructor(context: Context) {
     }
 
     private fun vibrate(durationMs: Long, amplitude: Int, effectId: Int) {
+        try {
+            val prefs = com.example.core.database.PreferencesManager(appContext)
+            if (!prefs.hapticEnabled) {
+                return
+            }
+        } catch (e: Exception) {
+            // Fallback gracefully if prefs error
+        }
         val activeVibrator = vibrator ?: return
         try {
             if (!activeVibrator.hasVibrator()) return

@@ -229,6 +229,9 @@ fun AppNavigation() {
             // Accessible directly if navigated
             DictionaryScreen()
         }
+        composable(Screen.Settings.route) {
+            com.example.features.settings.presentation.SettingsScreen(navController = navController)
+        }
     }
 }
 
@@ -346,7 +349,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         )
                         2 -> DictionaryScreen()
                         3 -> AnalysisScreen()
-                        4 -> ProfileScreen()
+                        4 -> ProfileScreen(navController = navController)
                     }
                 }
             }

@@ -34,7 +34,7 @@ import com.example.core.ui.components.SharedTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(navController: androidx.navigation.NavController) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showSettings by remember { mutableStateOf(false) }
@@ -101,7 +101,7 @@ fun ProfileScreen() {
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(
-                    onClick = { showSettings = true },
+                    onClick = { navController.navigate(com.example.core.navigation.Screen.Settings.route) },
                     modifier = Modifier
                         .background(Color(0x0AFFFFFF), CircleShape)
                         .border(1.dp, Color(0x1AFFFFFF), CircleShape)
