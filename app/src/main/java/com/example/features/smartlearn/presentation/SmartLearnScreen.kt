@@ -122,6 +122,19 @@ fun SmartLearnScreen(navController: NavController) {
 
     val isSessionActive = sessionState?.active == true && !isFinishedForToday
 
+    val activeSessionCards = remember(sessionState, allCards) {
+        if (sessionState != null && sessionState!!.active && sessionState!!.cardIds.isNotEmpty()) {
+            val ids = sessionState!!.cardIds.split(",").filter { it.isNotEmpty() }.mapNotNull { it.toIntOrNull() }.toSet()
+            allCards.filter { it.id in ids }
+        } else {
+            emptyList()
+        }
+    }
+
+    val finalDueCount = if (isSessionActive && activeSessionCards.isNotEmpty()) activeSessionCards.count { it.state == 2 } else dueCount
+    val finalLearningCount = if (isSessionActive && activeSessionCards.isNotEmpty()) activeSessionCards.count { it.state == 1 || it.state == 3 } else learningCount
+    val finalNewCount = if (isSessionActive && activeSessionCards.isNotEmpty()) activeSessionCards.count { it.state == 0 } else newCount
+
     // Portal expansion state
     var showChallengePortal by remember { mutableStateOf(false) }
     var showStreakCelebration by remember { mutableStateOf(false) }
@@ -298,7 +311,7 @@ fun SmartLearnScreen(navController: NavController) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "$dueCount",
+                                text = "$finalDueCount",
                                 color = Color(0xFFFF1744),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Black
@@ -312,7 +325,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "$learningCount",
+                                text = "$finalLearningCount",
                                 color = Color(0xFF00C2FF),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Black
@@ -326,7 +339,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "$newCount",
+                                text = "$finalNewCount",
                                 color = Color(0xFF00E676),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Black
