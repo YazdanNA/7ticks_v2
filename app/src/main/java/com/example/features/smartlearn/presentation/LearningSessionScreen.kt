@@ -94,6 +94,8 @@ fun LearningSessionScreen(
     val userProgress by repo.userProgress.collectAsState(initial = null)
     val rewardHistory by repo.rewardHistory.collectAsState(initial = emptyList())
 
+
+
     var currentCardIndex by remember { mutableStateOf(0) }
     var loadedCards by remember { mutableStateOf<List<Pair<CardEntity, DictWord>>>(emptyList()) }
     var boxName by remember { mutableStateOf("Vocab Box") }
@@ -107,6 +109,10 @@ fun LearningSessionScreen(
     var xpEarnedInSession by remember { mutableStateOf(0) }
     var isSessionCompleted by remember { mutableStateOf(false) }
     var showLeveledUpDialog by remember { mutableStateOf(false) }
+    var hasLeveledUpInSession by remember { mutableStateOf(false) }
+    var displayedXpEarned by remember { mutableIntStateOf(0) }
+    var currentAnimatingLevelXp by remember { mutableIntStateOf(-1) }
+    val particleProgresses = remember { List(15) { Animatable(0f) } }
     var totalAnswersInSession by remember { mutableStateOf(0) }
     var correctAnswersInSession by remember { mutableStateOf(0) }
 
@@ -192,6 +198,45 @@ fun LearningSessionScreen(
     // Connect queue index & current item flows to Composable state
     val activeIndex by engine?.queueManager?.currentIndex?.collectAsState() ?: remember { mutableStateOf(0) }
     val currentItem by engine?.queueManager?.currentItem?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    val isSessionDone = engine?.isSessionCompleted ?: isSessionCompleted
+    val finalLevelXp = userProgress?.xp ?: 0
+    val sessionXp = engine?.xpEarned ?: xpEarnedInSession
+
+    LaunchedEffect(isSessionDone, finalLevelXp, sessionXp) {
+        if (isSessionDone && sessionXp > 0) {
+            val startLevelXp = (finalLevelXp - sessionXp).coerceAtLeast(0)
+            currentAnimatingLevelXp = startLevelXp
+            displayedXpEarned = 0
+            particleProgresses.forEach { it.snapTo(0f) }
+            
+            delay(1200) // Stately delay before particles start flying
+            val context = SevenTicksApplication.instance.applicationContext
+            val feedbackManager = com.example.core.feedback.FeedbackManager.getInstance(context)
+            
+            particleProgresses.forEachIndexed { index, animatable ->
+                launch {
+                    delay(index * 55L) // Stagger particle launch
+                    animatable.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(durationMillis = 650, easing = EaseInOutSine)
+                    )
+                    // Landed!
+                    feedbackManager.playSound("xp_gain")
+                    feedbackManager.vibrateLight()
+                    
+                    // Increment numbers step-by-step
+                    val progressRatio = (index + 1).toFloat() / 15f
+                    displayedXpEarned = (progressRatio * sessionXp).toInt().coerceAtMost(sessionXp)
+                    currentAnimatingLevelXp = (startLevelXp + (progressRatio * sessionXp).toInt()).coerceAtMost(finalLevelXp)
+                }
+            }
+            delay(1200)
+            // Safety alignment
+            displayedXpEarned = sessionXp
+            currentAnimatingLevelXp = finalLevelXp
+        }
+    }
 
     LaunchedEffect(currentItem) {
         if (!isBoxSession && currentItem != null) {
@@ -343,99 +388,200 @@ fun LearningSessionScreen(
 
             if (rewardHistory.isNotEmpty()) {
                 val reward = rewardHistory.first()
+                val isLevelUp = reward.type == "LEVEL_UP"
                 
-                // --- PREMIUM GLASS REWARD OVERLAY ---
-                GlassCard(
+                val context = SevenTicksApplication.instance.applicationContext
+                val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
+                
+                // Trigger Level Up celebratory sound and vibration loop once
+                LaunchedEffect(reward.id) {
+                    if (isLevelUp) {
+                        feedbackManager.playSound("level_up")
+                        feedbackManager.vibrateHeavy()
+                        delay(250)
+                        feedbackManager.vibrateMedium()
+                        delay(250)
+                        feedbackManager.vibrateLight()
+                    } else {
+                        feedbackManager.playSound("streak")
+                        feedbackManager.vibrateMedium()
+                    }
+                }
+
+                val infiniteTransition = rememberInfiniteTransition(label = "reward_anim")
+                val badgeRotation by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(8000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "badge_rot"
+                )
+
+                val badgeScale by infiniteTransition.animateFloat(
+                    initialValue = 0.93f,
+                    targetValue = 1.07f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "badge_scale"
+                )
+
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                        .scale(1.02f),
-                    cornerRadius = 28.dp
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(24.dp)
+                    // Back glowing radiant aura
+                    Box(
+                        modifier = Modifier
+                            .size(240.dp)
+                            .scale(badgeScale)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = if (isLevelUp) listOf(Color(0x55FFD600), Color.Transparent)
+                                    else listOf(Color(0x44E040FB), Color.Transparent)
+                                )
+                            )
+                    )
+
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth(0.92f)
+                            .scale(1.02f),
+                        cornerRadius = 32.dp
                     ) {
-                        // Glowing Icon depending on reward type
-                        val iconColor = when (reward.type) {
-                            "LEVEL_UP" -> Color(0xFFFFD600)
-                            "CHALLENGE_COMPLETE" -> Color(0xFF00C2FF)
-                            "ACHIEVEMENT_UNLOCK" -> Color(0xFFE040FB)
-                            "STREAK_MILESTONE" -> Color(0xFFFF5722)
-                            else -> Color(0xFF00FFD2)
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = reward.type,
-                            tint = iconColor,
-                            modifier = Modifier.size(80.dp)
-                        )
-
-                        Text(
-                            text = when (reward.type) {
-                                "LEVEL_UP" -> "🌟 LEVEL UP! 🌟"
-                                "CHALLENGE_COMPLETE" -> "🏆 QUEST CLEAR! 🏆"
-                                "ACHIEVEMENT_UNLOCK" -> "🏅 ACHIEVEMENT UNLOCKED! 🏅"
-                                "STREAK_MILESTONE" -> "🔥 STREAK MILESTONE! 🔥"
-                                else -> "✨ REWARD EARNED! ✨"
-                            },
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Text(
-                            text = reward.title,
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-
-                        // XP Bonus Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(iconColor.copy(alpha = 0.2f))
-                                .border(1.dp, iconColor, RoundedCornerShape(12.dp))
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                            modifier = Modifier.padding(28.dp)
                         ) {
+                            // Centered Level Star Shield or Trophy
+                            Box(
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .scale(badgeScale),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Rotating outer rays
+                                Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { rotationZ = badgeRotation }) {
+                                    val w = size.width
+                                    val h = size.height
+                                    val rayCount = 8
+                                    val rayColor = if (isLevelUp) Color(0x33FFD600) else Color(0x22E040FB)
+                                    for (i in 0 until rayCount) {
+                                        val angle = (i * (360f / rayCount)) * (Math.PI / 180f)
+                                        val endX = w / 2 + kotlin.math.cos(angle).toFloat() * (w / 2)
+                                        val endY = h / 2 + kotlin.math.sin(angle).toFloat() * (h / 2)
+                                        drawCircle(
+                                            color = rayColor,
+                                            radius = 12.dp.toPx(),
+                                            center = Offset(endX, endY)
+                                        )
+                                    }
+                                }
+
+                                // Golden shield with star
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = if (isLevelUp) listOf(Color(0xFFFFEA00), Color(0xFFFF9100))
+                                                else listOf(Color(0xFFE040FB), Color(0xFF651FFF))
+                                            )
+                                        )
+                                        .border(2.dp, Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                }
+                            }
+
                             Text(
-                                text = "+${reward.rewardXp} XP Boost",
-                                color = Color(0xFF00FFD2),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black
+                                text = if (isLevelUp) "🌟 LEVEL UP! 🌟" else "🏅 REWARD EARNED! 🏅",
+                                color = if (isLevelUp) Color(0xFFFFD600) else Color(0xFF00FFD2),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Text(
+                                text = reward.title,
+                                color = Color.White,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+
+                            // Persian description and stats
+                            Text(
+                                text = if (isLevelUp) "سطح جدید با موفقیت باز شد! به تمرینات روزانه خود ادامه دهید تا زنجیره یادگیری خود را پرثمرتر کنید."
+                                else "تبریک می‌گوییم! پاداش تلاش‌ها و دستاوردهای یادگیری خود را دریافت کنید.",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+
+                            // XP Booster Badge
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isLevelUp) Color(0x33FFD600) else Color(0x33E040FB)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isLevelUp) Color(0xFFFFD600) else Color(0xFFE040FB),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "+${reward.rewardXp} XP Boost",
+                                    color = Color(0xFF00FFD2),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            val tikiMsg = when (reward.type) {
+                                "LEVEL_UP" -> "Tiki is celebrating your cognitive growth! Let's do a happy island dance! 🌴💃"
+                                "CHALLENGE_COMPLETE" -> "Tiki is proud of your persistence! Double high-five! 🐾✋"
+                                "ACHIEVEMENT_UNLOCK" -> "Tiki is amazed by your dedication! That is a rare badge! 🏆✨"
+                                "STREAK_MILESTONE" -> "Your burning passion is inspiring! Tiki says keep the flame alive! 🔥🦖"
+                                else -> "Tiki is cheering for you! Keep up the incredible work!"
+                            }
+
+                            TickyCard(
+                                message = tikiMsg,
+                                sizeDp = 60,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            PremiumGlassButton(
+                                text = if (isLevelUp) "CLAIM LEVEL REWARD! 🌟" else "Claim Reward",
+                                onClick = {
+                                    coroutineScope.launch {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        feedbackManager.playSound("typing")
+                                        repo.dismissReward(reward.id)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
-
-                        // Tiki Mascot custom feedback message
-                        val tikiMsg = when (reward.type) {
-                            "LEVEL_UP" -> "Tiki is celebrating your cognitive growth! Let's do a happy island dance! 🌴💃"
-                            "CHALLENGE_COMPLETE" -> "Tiki is proud of your persistence! Double high-five! 🐾✋"
-                            "ACHIEVEMENT_UNLOCK" -> "Tiki is amazed by your dedication! That is a rare badge! 🏆✨"
-                            "STREAK_MILESTONE" -> "Your burning passion is inspiring! Tiki says keep the flame alive! 🔥🦖"
-                            else -> "Tiki is cheering for you! Keep up the incredible work!"
-                        }
-
-                        TickyCard(
-                            message = tikiMsg,
-                            sizeDp = 60,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        PremiumGlassButton(
-                            text = "Claim Reward",
-                            onClick = {
-                                coroutineScope.launch {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    repo.dismissReward(reward.id)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
             } else {
@@ -447,6 +593,17 @@ fun LearningSessionScreen(
                 }
 
                 val currentStreak = userProgress?.streak ?: 1
+
+                val levelNum = userProgress?.level ?: 1
+                val targetXpNeeded = levelNum * 500
+                
+                val levelXpToDisplay = if (currentAnimatingLevelXp == -1) (userProgress?.xp ?: 0) else currentAnimatingLevelXp
+                val xpEarnedToDisplay = if (currentAnimatingLevelXp == -1) (engine?.xpEarned ?: xpEarnedInSession) else displayedXpEarned
+                val currentAnimatingLevelProgress = if (targetXpNeeded > 0) {
+                    levelXpToDisplay.toFloat() / targetXpNeeded.toFloat()
+                } else {
+                    0f
+                }
 
                 GlassCard(
                     modifier = Modifier
@@ -489,7 +646,7 @@ fun LearningSessionScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "+${engine?.xpEarned ?: xpEarnedInSession}",
+                                    text = "+$xpEarnedToDisplay",
                                     color = Color(0xFFFFD600),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black
@@ -544,11 +701,6 @@ fun LearningSessionScreen(
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
 
                         // Level progress bar
-                        val levelNum = userProgress?.level ?: 1
-                        val levelXp = userProgress?.xp ?: 0
-                        val targetXpNeeded = levelNum * 500
-                        val percentage = if (targetXpNeeded > 0) levelXp.toFloat() / targetXpNeeded.toFloat() else 0f
-
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -562,14 +714,14 @@ fun LearningSessionScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "$levelXp / $targetXpNeeded XP",
+                                    text = "$levelXpToDisplay / $targetXpNeeded XP",
                                     color = Color(0xFF00FFD2),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             LinearProgressIndicator(
-                                progress = { percentage },
+                                progress = { currentAnimatingLevelProgress },
                                 color = Color(0xFF9D00FF),
                                 trackColor = Color(0x1AFFFFFF),
                                 modifier = Modifier
@@ -591,6 +743,43 @@ fun LearningSessionScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                }
+
+                // Drawing the flying gold particles layer
+                if (sessionXp > 0) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val w = maxWidth
+                        val h = maxHeight
+                        
+                        // Start: around Center-Left near "+XP Earned" column
+                        val startX = w * 0.28f
+                        val startY = h * 0.53f
+                        
+                        // Target: around the progress bar area
+                        val targetX = w * 0.5f
+                        val targetY = h * 0.72f
+                        
+                        particleProgresses.forEachIndexed { index, animatable ->
+                            val p = animatable.value
+                            if (p > 0f && p < 1f) {
+                                val sinOffset = kotlin.math.sin(p * Math.PI).toFloat()
+                                val curX = startX + (targetX - startX) * p - (sinOffset * 40).dp
+                                val curY = startY + (targetY - startY) * p - (sinOffset * 90).dp
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = curX, y = curY)
+                                        .size(14.dp)
+                                        .background(
+                                            Brush.radialGradient(
+                                                colors = listOf(Color(0xFFFFF176), Color(0xFFFFD600), Color.Transparent)
+                                            )
+                                        )
+                                        .clip(CircleShape)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -718,7 +907,7 @@ fun LearningSessionScreen(
                             rating = rating
                         )
                         if (leveledUp) {
-                            showLeveledUpDialog = true
+                            hasLeveledUpInSession = true
                             activeEngine.triggerEvent(com.example.core.learning.CompanionEvent.LevelUp)
                         }
                     }
@@ -755,7 +944,7 @@ fun LearningSessionScreen(
                             rating = rating
                         )
                         if (leveledUp) {
-                            showLeveledUpDialog = true
+                            hasLeveledUpInSession = true
                             activeEngine.triggerEvent(com.example.core.learning.CompanionEvent.LevelUp)
                         }
 
@@ -957,21 +1146,7 @@ fun LearningSessionScreen(
         }
     }
 
-    // Leveled Up Dialog
-    if (showLeveledUpDialog) {
-        val level = userProgress?.level ?: 1
-        AlertDialog(
-            onDismissRequest = { showLeveledUpDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showLeveledUpDialog = false }) {
-                    Text("Awesome!", color = Color(0xFF00FFD2))
-                }
-            },
-            title = { Text("Level Up! 🌟", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text("Congratulations! You've leveled up to Level ${level + 1}!", color = Color.White.copy(alpha = 0.8f)) },
-            containerColor = Color(0xFF0F1026)
-        )
-    }
+
 }
 
 // Bouncy ActionButton with physical spring scale press state feedback

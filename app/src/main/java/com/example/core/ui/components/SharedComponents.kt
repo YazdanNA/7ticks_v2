@@ -478,7 +478,10 @@ fun SharedProgressHeader(
     level: Int,
     xp: Int,
     modifier: Modifier = Modifier,
-    badgeText: String = "Explorer"
+    badgeText: String = "Explorer",
+    onStreakClick: () -> Unit = {},
+    onLevelClick: () -> Unit = {},
+    onXpClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -486,7 +489,7 @@ fun SharedProgressHeader(
     ) {
         // Card 1: Streak
         SharedGlassCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).clickable { onStreakClick() },
             cornerRadius = 18.dp
         ) {
             Column(
@@ -517,7 +520,7 @@ fun SharedProgressHeader(
 
         // Card 2: Level
         SharedGlassCard(
-            modifier = Modifier.weight(1.1f),
+            modifier = Modifier.weight(1.1f).clickable { onLevelClick() },
             cornerRadius = 18.dp,
             backgroundColor = Color(0x3D7A88FF) // Highlight middle card
         ) {
@@ -550,7 +553,7 @@ fun SharedProgressHeader(
 
         // Card 3: Experience
         SharedGlassCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).clickable { onXpClick() },
             cornerRadius = 18.dp
         ) {
             Column(

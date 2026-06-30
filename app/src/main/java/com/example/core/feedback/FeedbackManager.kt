@@ -78,7 +78,10 @@ class FeedbackManager private constructor(context: Context) {
                     SoundType("good", 250, "good"),
                     SoundType("hard", 200, "hard"),
                     SoundType("again", 300, "again"),
-                    SoundType("typing", 15, "typing")
+                    SoundType("typing", 15, "typing"),
+                    SoundType("level_up", 1500, "level_up"),
+                    SoundType("streak", 700, "streak"),
+                    SoundType("xp_gain", 120, "xp_gain")
                 )
 
                 soundTypes.forEach { sound ->
@@ -285,6 +288,37 @@ private object AudioSynth {
                     val freq = 1500.0
                     val envelope = Math.exp(-250.0 * t)
                     (Math.sin(2.0 * Math.PI * freq * t) * 9000.0 * envelope).toInt().toShort()
+                }
+                "level_up" -> {
+                    // Magnificent grand celebratory fanfare chord progression
+                    val tRatio = i.toDouble() / numSamples
+                    val freq = when {
+                        tRatio < 0.2 -> 523.25 // C5
+                        tRatio < 0.4 -> 659.25 // E5
+                        tRatio < 0.6 -> 783.99 // G5
+                        tRatio < 0.8 -> 1046.50 // C6
+                        else -> 1318.51 // E6
+                    }
+                    val envelope = getEnvelope(i, numSamples)
+                    // Layer a harmony (third or fifth) for extra grandeur
+                    val harmonyFreq = freq * 1.5
+                    val wave = (Math.sin(2.0 * Math.PI * freq * t) + 0.4 * Math.sin(2.0 * Math.PI * harmonyFreq * t)) / 1.4
+                    (wave * 18000.0 * envelope).toInt().toShort()
+                }
+                "streak" -> {
+                    // Upward sliding frequency sweep: C5 (523.25Hz) to C6 (1046.50Hz)
+                    val tRatio = i.toDouble() / numSamples
+                    val freq = 523.25 + (1046.50 - 523.25) * tRatio
+                    val envelope = getEnvelope(i, numSamples)
+                    val wave = Math.sin(2.0 * Math.PI * freq * t)
+                    (wave * 16000.0 * envelope).toInt().toShort()
+                }
+                "xp_gain" -> {
+                    // Crisp, high-frequency, sparkly ding/pop
+                    val envelope = Math.exp(-35.0 * t) // sharp decay
+                    val freq = 1200.0
+                    val wave = Math.sin(2.0 * Math.PI * freq * t)
+                    (wave * 13000.0 * envelope).toInt().toShort()
                 }
                 else -> 0.toShort()
             }

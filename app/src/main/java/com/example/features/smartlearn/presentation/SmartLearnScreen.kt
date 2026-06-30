@@ -36,6 +36,8 @@ import com.example.SevenTicksApplication
 import com.example.core.navigation.Screen
 import com.example.core.ui.components.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.Canvas
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -122,9 +124,12 @@ fun SmartLearnScreen(navController: NavController) {
 
     // Portal expansion state
     var showChallengePortal by remember { mutableStateOf(false) }
+    var showStreakCelebration by remember { mutableStateOf(false) }
+    var animatedStreakCount by remember { mutableIntStateOf(0) }
 
-    androidx.activity.compose.BackHandler(enabled = showChallengePortal) {
-        showChallengePortal = false
+    androidx.activity.compose.BackHandler(enabled = showChallengePortal || showStreakCelebration) {
+        if (showChallengePortal) showChallengePortal = false
+        if (showStreakCelebration) showStreakCelebration = false
     }
 
     // Breathing Hero Button Transition parameters
@@ -212,7 +217,11 @@ fun SmartLearnScreen(navController: NavController) {
                 streak = animStreak,
                 level = animLevel,
                 xp = animXp,
-                badgeText = "Cognitive Guru"
+                badgeText = "Cognitive Guru",
+                onStreakClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showStreakCelebration = true
+                }
             )
 
             // Scrollable Body Content
@@ -696,6 +705,254 @@ fun SmartLearnScreen(navController: NavController) {
                                 text = "Quests synchronize in real-time with the central FSRS engine",
                                 color = Color.White.copy(alpha = 0.4f),
                                 fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // SECTION 9.5: STREAK CELEBRATION OVERLAY (Duolingo-style grand gamified overlay with sounds and vibrations)
+        if (showStreakCelebration) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
+            
+            // Trigger sound & haptic progression once
+            LaunchedEffect(showStreakCelebration) {
+                animatedStreakCount = 0
+                delay(300)
+                val targetStreak = streak.coerceAtLeast(1)
+                val stepDelay = (600 / targetStreak).coerceIn(40, 200).toLong()
+                for (i in 1..targetStreak) {
+                    delay(stepDelay)
+                    animatedStreakCount = i
+                    feedbackManager.playSound("typing")
+                    feedbackManager.vibrateLight()
+                }
+                feedbackManager.playSound("streak")
+                feedbackManager.vibrateHeavy()
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xE0060713))
+                    .clickable(enabled = true) {
+                        // Dismiss on click background
+                        showStreakCelebration = false
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                val flameScale = rememberInfiniteTransition(label = "flame_breathe").animateFloat(
+                    initialValue = 0.94f,
+                    targetValue = 1.06f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "flame_scale"
+                )
+
+                SharedGlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .padding(16.dp)
+                        .clickable(enabled = false) {}, // prevent click-through
+                    cornerRadius = 28.dp,
+                    backgroundColor = Color(0xFB0F1026)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Text(
+                            text = "STREAK BURNING! 🔥",
+                            color = Color(0xFFFF5722),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // 3D/Glow Canvas Flame draw
+                        Box(
+                            modifier = Modifier
+                                .size(140.dp)
+                                .scale(flameScale.value),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Radial shadow back glow
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(Color(0x33FF3D00), Color.Transparent)
+                                        )
+                                    )
+                            )
+
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val w = size.width
+                                val h = size.height
+                                val path = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(w * 0.5f, h * 0.08f)
+                                    // Left curve
+                                    cubicTo(w * 0.1f, h * 0.45f, w * 0.05f, h * 0.85f, w * 0.5f, h * 0.98f)
+                                    // Right curve
+                                    cubicTo(w * 0.95f, h * 0.85f, w * 0.9f, h * 0.45f, w * 0.5f, h * 0.08f)
+                                }
+                                drawPath(
+                                    path = path,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color(0xFFFFEA00), // Yellow top
+                                            Color(0xFFFF9100), // Orange mid
+                                            Color(0xFFFF3D00)  // Red bottom
+                                        )
+                                    )
+                                )
+                                
+                                // Inner flame
+                                val innerPath = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(w * 0.5f, h * 0.35f)
+                                    cubicTo(w * 0.25f, h * 0.55f, w * 0.22f, h * 0.82f, w * 0.5f, h * 0.92f)
+                                    cubicTo(w * 0.78f, h * 0.82f, w * 0.75f, h * 0.55f, w * 0.5f, h * 0.35f)
+                                }
+                                drawPath(
+                                    path = innerPath,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color(0xFFFFFFFF), // White core
+                                            Color(0xFFFFEA00)  // Yellow border
+                                        )
+                                    )
+                                )
+                            }
+                        }
+
+                        // Big Counter
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "$animatedStreakCount",
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 48.sp,
+                                modifier = Modifier.scale(if (animatedStreakCount == streak) 1.15f else 1.0f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Days",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text(
+                            text = "استریک روزانه شما فعال است! از تداوم زنجیره یادگیری خود محافظت کنید.",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+
+                        // 7-day calendar row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val daysOfWeek = listOf("M", "T", "W", "T", "F", "S", "S")
+                            daysOfWeek.forEachIndexed { index, day ->
+                                val active = index < (streak % 7).coerceAtLeast(1)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = day,
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (active) Brush.radialGradient(
+                                                    colors = listOf(Color(0xFFFF9100), Color(0xFFFF3D00))
+                                                ) else Brush.radialGradient(
+                                                    colors = listOf(Color(0x12FFFFFF), Color(0x06FFFFFF))
+                                                )
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (active) Color(0xFFFFEA00).copy(alpha = 0.6f) else Color(0x12FFFFFF),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = if (active) Color.White else Color.White.copy(alpha = 0.15f),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Streak Freezes
+                        val spells = userProgress?.streakRestoreSpells ?: 1
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0x1F2C2D35))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Build,
+                                contentDescription = null,
+                                tint = Color(0xFF00C2FF),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Streak Freeze Spells: $spells",
+                                color = Color(0xFF00C2FF),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                feedbackManager.playSound("typing")
+                                showStreakCelebration = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF5722)
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                text = "KEEP BURNING! 🔥",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
                             )
                         }
                     }
