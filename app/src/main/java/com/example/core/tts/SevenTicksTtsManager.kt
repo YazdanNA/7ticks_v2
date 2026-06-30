@@ -5,6 +5,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.util.Log
 import java.util.Locale
+import kotlinx.coroutines.*
 
 class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
@@ -12,6 +13,10 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
     private var pendingText: String? = null
     private var pendingIsMale: Boolean? = null
     private var utteranceDoneCallback: (() -> Unit)? = null
+
+    private var currentText: String = ""
+    private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var highlightJob: Job? = null
 
     init {
         tts = TextToSpeech(context.applicationContext, this)
@@ -29,21 +34,26 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
                         com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(true)
+                        mainScope.launch {
+                            startPacingHighlight(currentText)
+                        }
                     }
                     override fun onDone(utteranceId: String?) {
+                        highlightJob?.cancel()
                         val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
                         fm.setPronunciationActive(false)
                         fm.setSpokenTextRange(null)
                         utteranceDoneCallback?.invoke()
                     }
                     override fun onError(utteranceId: String?) {
+                        highlightJob?.cancel()
                         val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
                         fm.setPronunciationActive(false)
                         fm.setSpokenTextRange(null)
                         utteranceDoneCallback?.invoke()
                     }
                     override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-                        com.example.core.feedback.FeedbackManager.getInstance(context).setSpokenTextRange(Pair(start, end))
+                        // Bypassed in favor of the beautifully paced custom highlight pacing system
                     }
                 })
 
@@ -67,6 +77,8 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
             return
         }
         try {
+            highlightJob?.cancel()
+            currentText = text
             tts?.stop() // Ensure only one TTS session is active at a time
             
             val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
@@ -93,6 +105,8 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
             if (!isInitialized) return false
         }
         return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+            highlightJob?.cancel()
+            currentText = text
             utteranceDoneCallback = {
                 if (continuation.isActive) {
                     continuation.resume(true) {}
@@ -147,7 +161,10 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun stop() {
         try {
-            com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
+            highlightJob?.cancel()
+            val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+            fm.setPronunciationActive(false)
+            fm.setSpokenTextRange(null)
             utteranceDoneCallback = null
             tts?.stop()
         } catch (e: Exception) {
@@ -157,7 +174,10 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
 
     fun shutdown() {
         try {
-            com.example.core.feedback.FeedbackManager.getInstance(context).setPronunciationActive(false)
+            highlightJob?.cancel()
+            val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+            fm.setPronunciationActive(false)
+            fm.setSpokenTextRange(null)
             utteranceDoneCallback = null
             tts?.stop()
             tts?.shutdown()
@@ -165,6 +185,62 @@ class SevenTicksTtsManager(private val context: Context) : TextToSpeech.OnInitLi
             isInitialized = false
         } catch (e: Exception) {
             Log.e("SevenTicksTts", "Error during shutdown", e)
+        }
+    }
+
+    private fun startPacingHighlight(text: String) {
+        highlightJob?.cancel()
+        val fm = com.example.core.feedback.FeedbackManager.getInstance(context)
+        
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            fm.setSpokenTextRange(null)
+            return
+        }
+        
+        // If it's a single word, just highlight the whole word immediately
+        if (!trimmed.contains(" ")) {
+            fm.setSpokenTextRange(Pair(0, text.length))
+            return
+        }
+
+        // Find exact word boundaries
+        val boundaries = mutableListOf<Pair<Int, Int>>()
+        var inWord = false
+        var start = 0
+        for (i in text.indices) {
+            val char = text[i]
+            val isCharWord = char.isLetterOrDigit() || char == '\'' || char == '-'
+            if (isCharWord) {
+                if (!inWord) {
+                    start = i
+                    inWord = true
+                }
+            } else {
+                if (inWord) {
+                    boundaries.add(Pair(start, i))
+                    inWord = false
+                }
+            }
+        }
+        if (inWord) {
+            boundaries.add(Pair(start, text.length))
+        }
+
+        if (boundaries.isEmpty()) return
+
+        highlightJob = mainScope.launch {
+            // Give a slight delay of 120ms to align with physical TTS audio initiation
+            delay(120)
+            
+            for (range in boundaries) {
+                val wordLength = range.second - range.first
+                fm.setSpokenTextRange(range)
+                
+                // Beautifully calculated duration per word: base 180ms + 42ms per character
+                val delayTime = 180L + (wordLength * 42L)
+                delay(delayTime)
+            }
         }
     }
 }

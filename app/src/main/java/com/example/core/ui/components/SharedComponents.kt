@@ -961,19 +961,19 @@ fun SevenTicksFAB(
     isExpanded: Boolean = true
 ) {
     val haptic = LocalHapticFeedback.current
-    FloatingActionButton(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            onClick()
-        },
-        containerColor = Color.Transparent,
-        elevation = FloatingActionButtonDefaults.elevation(12.dp),
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(20.dp))
             .background(
-                Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)))
+                Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))),
+                shape = RoundedCornerShape(20.dp)
             )
+            .clip(RoundedCornerShape(20.dp))
             .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

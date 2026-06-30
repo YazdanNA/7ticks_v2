@@ -16,6 +16,7 @@ import javax.inject.Singleton
 import com.example.core.gamification.GamificationEngine
 import com.example.core.gamification.XpConfig
 import com.example.core.learning.engine.SmartSessionEngine
+import com.example.core.fsrs.toFsrsModel
 
 sealed class SetupStep {
     object Idle : SetupStep()
@@ -711,21 +712,8 @@ class UserRepository @Inject constructor(
         if (isBoxWord) {
             val boxWord = userDao.getBoxWordById(cardId) ?: return@withContext false
             
-            // Map to FsrsCardModel
-            val fsrsModel = com.example.core.fsrs.FsrsCardModel(
-                id = boxWord.id,
-                wordId = boxWord.wordId,
-                word = boxWord.word,
-                stability = boxWord.stability,
-                difficulty = boxWord.difficulty,
-                elapsedDays = boxWord.elapsedDays,
-                scheduledDays = boxWord.scheduledDays,
-                reps = boxWord.reps,
-                lapses = boxWord.lapses,
-                state = boxWord.state,
-                lastReviewed = if (boxWord.lastReviewed > 0) java.util.Date(boxWord.lastReviewed) else null,
-                dueDate = java.util.Date(boxWord.dueDate)
-            )
+            // Map to FsrsCardModel using shared extension
+            val fsrsModel = boxWord.toFsrsModel()
 
             // FSRS calculate
             val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
@@ -780,21 +768,8 @@ class UserRepository @Inject constructor(
         } else {
             val card = userDao.getCardById(cardId) ?: return@withContext false
 
-            // Map to FsrsCardModel
-            val fsrsModel = com.example.core.fsrs.FsrsCardModel(
-                id = card.id,
-                wordId = card.wordId,
-                word = card.word,
-                stability = card.stability,
-                difficulty = card.difficulty,
-                elapsedDays = card.elapsedDays,
-                scheduledDays = card.scheduledDays,
-                reps = card.reps,
-                lapses = card.lapses,
-                state = card.state,
-                lastReviewed = if (card.lastReviewed > 0) java.util.Date(card.lastReviewed) else null,
-                dueDate = java.util.Date(card.dueDate)
-            )
+            // Map to FsrsCardModel using shared extension
+            val fsrsModel = card.toFsrsModel()
 
             // FSRS calculate
             val updatedFsrsModel = fsrsRepo.calculateNextReview(fsrsModel, rating, currentTime)
@@ -825,6 +800,8 @@ class UserRepository @Inject constructor(
             )
 
             userDao.updateCard(updatedCard)
+
+            smartSessionEngine.logCardReview(card.id, rating.value)
 
             // Record review log with isBoxReview = false, wordId = card.wordId (the dictionary wordId to keep separate)
             recordReviewLog(

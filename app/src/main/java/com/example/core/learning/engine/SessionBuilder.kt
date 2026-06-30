@@ -3,15 +3,9 @@ package com.example.core.learning.engine
 import com.example.core.database.CardEntity
 
 /**
- * Priority session queue assembler.
- * Priorities:
- * 1. Again cards (state == 3)
- * 2. Due Review cards (state == 2 & dueDate <= currentTime)
- * 3. Learning cards (state == 1)
- * 4. New cards (state == 0)
- *
- * Implements "Reviews Always Win": If Again + Due Review already exceed or meet capacity,
- * no new cards are inserted.
+ * Priority session queue assembler with Adaptive Allocation.
+ * Avoids "Reviews Always Win" blocking by reserving 15-20% of the session capacity
+ * for introducing/learning new words, ensuring continuous progress.
  */
 class SessionBuilder {
     fun buildSession(
@@ -28,49 +22,63 @@ class SessionBuilder {
         val learningCards = allCards.filter { it.state == 1 }
         val newCards = allCards.filter { it.state == 0 }
 
+        // Adaptive allocation: reserve 18% of capacity for new vocabulary (state == 0)
+        val targetNewCount = if (newCards.isNotEmpty()) {
+            (capacity * 0.18).toInt().coerceAtLeast(1)
+        } else {
+            0
+        }
+        val maxReviewCapacity = (capacity - targetNewCount).coerceAtLeast(1)
+
         val selected = mutableListOf<CardEntity>()
-        var remaining = capacity
+        var remainingReviewSlots = maxReviewCapacity
 
-        // Priority 1: Again cards
-        val takenAgain = againCards.take(remaining)
+        // 1. Take Again cards (Priority 1) up to review slots
+        val takenAgain = againCards.take(remainingReviewSlots)
         selected.addAll(takenAgain)
-        remaining -= takenAgain.size
+        remainingReviewSlots -= takenAgain.size
 
-        // Priority 2: Due Review cards
-        if (remaining > 0) {
-            val takenDue = dueCards.take(remaining)
+        // 2. Take Due Review cards (Priority 2) up to review slots
+        if (remainingReviewSlots > 0) {
+            val takenDue = dueCards.take(remainingReviewSlots)
             selected.addAll(takenDue)
-            remaining -= takenDue.size
+            remainingReviewSlots -= takenDue.size
         }
 
-        // Reviews Always Win constraint:
-        // "If Again + Due already exceed capacity, DO NOT insert any new cards."
-        val totalReviewsCount = againCards.size + dueCards.size
-        if (totalReviewsCount >= capacity) {
-            return selected // Stop right here, do not add any learning or new cards
-        }
+        // 3. Take Learning cards (Priority 3)
+        var remainingTotalSlots = capacity - selected.size
+        val takenLearning = learningCards.take(remainingTotalSlots)
+        selected.addAll(takenLearning)
+        remainingTotalSlots -= takenLearning.size
 
-        // Priority 3: Learning cards
-        if (remaining > 0) {
-            val takenLearning = learningCards.take(remaining)
-            selected.addAll(takenLearning)
-            remaining -= takenLearning.size
-        }
-
-        // Priority 4: New cards - bounded by the Adaptive Active Vocabulary target limit
-        if (remaining > 0 && newCards.isNotEmpty()) {
+        // 4. Take New cards (Priority 4) up to remaining slots
+        if (remainingTotalSlots > 0 && newCards.isNotEmpty()) {
             val activeCardsCount = allCards.count { card ->
                 val isMatureAndDistant = card.state == 2 && card.boxIndex >= 5 && (card.dueDate - currentTime > 14L * 24 * 60 * 60 * 1000L)
                 (card.state == 1 || card.state == 2 || card.state == 3) && !isMatureAndDistant
             }
             val deficit = (targetActiveCards - activeCardsCount).coerceAtLeast(0)
-            val newCardsToTakeCount = minOf(deficit, remaining)
+            val newCardsToTakeCount = minOf(deficit, remainingTotalSlots)
 
             if (newCardsToTakeCount > 0) {
                 val takenNew = newCards.take(newCardsToTakeCount)
                 selected.addAll(takenNew)
-                remaining -= takenNew.size
+                remainingTotalSlots -= takenNew.size
             }
+        }
+
+        // 5. Backfill with remaining reviews if we couldn't fill the session with new/learning cards
+        if (remainingTotalSlots > 0) {
+            val remainingAgain = againCards.filter { !selected.contains(it) }
+            val takenExtraAgain = remainingAgain.take(remainingTotalSlots)
+            selected.addAll(takenExtraAgain)
+            remainingTotalSlots -= takenExtraAgain.size
+        }
+        if (remainingTotalSlots > 0) {
+            val remainingDue = dueCards.filter { !selected.contains(it) }
+            val takenExtraDue = remainingDue.take(remainingTotalSlots)
+            selected.addAll(takenExtraDue)
+            remainingTotalSlots -= takenExtraDue.size
         }
 
         return selected

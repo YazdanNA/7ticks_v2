@@ -695,6 +695,108 @@ fun UniversalFlashcard(
     }
 }
 
+sealed class FlowToken {
+    data class WordItem(
+        val word: String,
+        val startIndex: Int,
+        val endIndex: Int,
+        val trailingPunctuation: String = ""
+    ) : FlowToken()
+    
+    data class SpaceItem(
+        val text: String
+    ) : FlowToken()
+}
+
+fun parseFlowTokens(text: String): List<FlowToken> {
+    val tokens = mutableListOf<FlowToken>()
+    var i = 0
+    while (i < text.length) {
+        val char = text[i]
+        
+        // 1. Handle spaces and newlines
+        if (char.isWhitespace()) {
+            val spaceStart = i
+            while (i < text.length && text[i].isWhitespace()) {
+                i++
+            }
+            tokens.add(FlowToken.SpaceItem(text.substring(spaceStart, i)))
+            continue
+        }
+        
+        // 2. Find word
+        if (char.isLetterOrDigit() || char == '\'' || char == '-') {
+            val wordStart = i
+            while (i < text.length && (text[i].isLetterOrDigit() || text[i] == '\'' || text[i] == '-')) {
+                i++
+            }
+            val word = text.substring(wordStart, i)
+            
+            // 3. Look ahead for trailing punctuation (before next space/word)
+            val punctStart = i
+            while (i < text.length && !text[i].isWhitespace() && !(text[i].isLetterOrDigit() || text[i] == '\'' || text[i] == '-')) {
+                i++
+            }
+            val punct = text.substring(punctStart, i)
+            
+            tokens.add(FlowToken.WordItem(word, wordStart, punctStart, punct))
+        } else {
+            // It's a leading punctuation before any word
+            val start = i
+            while (i < text.length && !text[i].isWhitespace() && !(text[i].isLetterOrDigit() || text[i] == '\'' || text[i] == '-')) {
+                i++
+            }
+            tokens.add(FlowToken.SpaceItem(text.substring(start, i)))
+        }
+    }
+    return tokens
+}
+
+@Composable
+fun TokenText(
+    word: String,
+    isHighlighted: Boolean,
+    baseColor: Color,
+    highlightColor: Color,
+    fontSize: TextUnit,
+    fontWeight: FontWeight,
+    fontStyle: FontStyle?
+) {
+    // Smooth animated scale for a bouncy physics feel
+    val scale by animateFloatAsState(
+        targetValue = if (isHighlighted) 1.25f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "token_scale"
+    )
+    
+    // Smooth animated color
+    val color by animateColorAsState(
+        targetValue = if (isHighlighted) highlightColor else baseColor,
+        animationSpec = tween(200),
+        label = "token_color"
+    )
+
+    // Smooth animated font weight
+    val weight = if (isHighlighted) FontWeight.ExtraBold else fontWeight
+
+    Text(
+        text = word,
+        color = color,
+        fontSize = fontSize,
+        fontWeight = weight,
+        fontStyle = fontStyle,
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+    )
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun HighlightableText(
     text: String,
@@ -709,44 +811,95 @@ fun HighlightableText(
     fontStyle: FontStyle? = null,
     isExampleWithQuotes: Boolean = false
 ) {
-    val annotatedString = remember(text, spokenText, range, isExampleWithQuotes) {
-        buildAnnotatedString {
-            val isCurrentSpoken = spokenText.trim().equals(text.trim(), ignoreCase = true)
-            
-            if (isExampleWithQuotes) {
-                append("\"")
-            }
-            
-            if (isCurrentSpoken && range != null && range.first >= 0 && range.second <= text.length && range.first < range.second) {
-                // Pre-range
-                if (range.first > 0) {
-                    append(text.substring(0, range.first))
-                }
-                // Highlight range
-                withStyle(style = SpanStyle(color = highlightColor, fontWeight = FontWeight.Bold)) {
-                    append(text.substring(range.first, range.second))
-                }
-                // Post-range
-                if (range.second < text.length) {
-                    append(text.substring(range.second))
-                }
-            } else {
-                append(text)
-            }
-            
-            if (isExampleWithQuotes) {
-                append("\"")
-            }
-        }
+    val isCurrentSpoken = remember(spokenText, text) {
+        spokenText.trim().equals(text.trim(), ignoreCase = true)
     }
 
-    Text(
-        text = annotatedString,
-        color = baseColor,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
-        lineHeight = lineHeight,
-        fontStyle = fontStyle,
-        modifier = modifier
-    )
+    if (isCurrentSpoken && range != null && range.first >= 0 && range.second <= text.length && range.first < range.second) {
+        val tokens = remember(text) { parseFlowTokens(text) }
+        
+        FlowRow(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.Start,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (isExampleWithQuotes) {
+                Text(
+                    text = "\"",
+                    color = baseColor,
+                    fontSize = fontSize,
+                    fontWeight = fontWeight,
+                    fontStyle = fontStyle
+                )
+            }
+            
+            tokens.forEach { token ->
+                when (token) {
+                    is FlowToken.SpaceItem -> {
+                        Text(
+                            text = token.text,
+                            color = baseColor,
+                            fontSize = fontSize,
+                            fontWeight = fontWeight,
+                            fontStyle = fontStyle
+                        )
+                    }
+                    is FlowToken.WordItem -> {
+                        val isHighlighted = remember(range, token) {
+                            val overlapStart = maxOf(range.first, token.startIndex)
+                            val overlapEnd = minOf(range.second, token.endIndex)
+                            overlapStart < overlapEnd
+                        }
+                        
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            TokenText(
+                                word = token.word,
+                                isHighlighted = isHighlighted,
+                                baseColor = baseColor,
+                                highlightColor = highlightColor,
+                                fontSize = fontSize,
+                                fontWeight = fontWeight,
+                                fontStyle = fontStyle
+                            )
+                            if (token.trailingPunctuation.isNotEmpty()) {
+                                Text(
+                                    text = token.trailingPunctuation,
+                                    color = baseColor,
+                                    fontSize = fontSize,
+                                    fontWeight = fontWeight,
+                                    fontStyle = fontStyle
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (isExampleWithQuotes) {
+                Text(
+                    text = "\"",
+                    color = baseColor,
+                    fontSize = fontSize,
+                    fontWeight = fontWeight,
+                    fontStyle = fontStyle
+                )
+            }
+        }
+    } else {
+        val staticText = remember(text, isExampleWithQuotes) {
+            if (isExampleWithQuotes) "\"$text\"" else text
+        }
+        Text(
+            text = staticText,
+            color = baseColor,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            lineHeight = lineHeight,
+            fontStyle = fontStyle,
+            modifier = modifier
+        )
+    }
 }

@@ -40,8 +40,14 @@ interface UserDao {
     @Query("SELECT * FROM review_cards WHERE wordId = :wordId")
     suspend fun getCardByWordId(wordId: Int): CardEntity?
 
+    @Query("SELECT * FROM review_cards WHERE wordId IN (:wordIds)")
+    suspend fun getCardsByWordIds(wordIds: List<Int>): List<CardEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCard(card: CardEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCards(cards: List<CardEntity>)
 
     @Query("DELETE FROM review_cards")
     suspend fun clearReviewCards()

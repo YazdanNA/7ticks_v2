@@ -5,6 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -117,6 +122,7 @@ private fun deserializeSubScreen(str: String): BoxesSubScreen {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BoxesScreen(
     navController: androidx.navigation.NavController? = null,
@@ -165,52 +171,61 @@ fun BoxesScreen(
         navigateBack()
     }
 
-    // Wrap in animated transition content
-    AnimatedContent(
-        targetState = currentSubScreen,
-        transitionSpec = {
-            if (isBackNavigation) {
-                (slideInHorizontally { width -> -width } + fadeIn())
-                    .togetherWith(slideOutHorizontally { width -> width } + fadeOut())
-            } else {
-                (slideInHorizontally { width -> width } + fadeIn())
-                    .togetherWith(slideOutHorizontally { width -> -width } + fadeOut())
-            }
-        },
-        label = "boxes_subscreen_switch"
-    ) { screen ->
-        when (screen) {
-            is BoxesSubScreen.Dashboard -> {
-                BoxesDashboardScreen(
-                    onNavigateToCreateBox = { navigateTo(BoxesSubScreen.CreateEditBox()) },
-                    onNavigateToEditBox = { id -> navigateTo(BoxesSubScreen.CreateEditBox(id)) },
-                    onNavigateToBoxDetail = { id -> navigateTo(BoxesSubScreen.BoxDetail(id)) },
-                    onNavigateToImport = { navigateTo(BoxesSubScreen.ImportBackup) }
-                )
-            }
-            is BoxesSubScreen.CreateEditBox -> {
-                CreateEditBoxScreen(
-                    boxId = screen.boxId,
-                    onBack = { navigateBack() }
-                )
-            }
-            is BoxesSubScreen.BoxDetail -> {
-                BoxDetailScreen(
-                    boxId = screen.boxId,
-                    onBack = { navigateBack() },
-                    onNavigateToAddWord = { boxId -> navigateTo(BoxesSubScreen.AddWord(boxId)) },
-                    onNavigateToEditWord = { boxId, wordId -> navigateTo(BoxesSubScreen.AddWord(boxId, wordId)) },
-                    onNavigateToWordDetail = { boxId, wordId -> navigateTo(BoxesSubScreen.WordDetail(boxId, wordId)) },
-                    onNavigateToStudy = { boxId -> navigateTo(BoxesSubScreen.BoxStudy(boxId)) }
-                )
-            }
-            is BoxesSubScreen.AddWord -> {
-                AddWordScreen(
-                    boxId = screen.boxId,
-                    boxWordId = screen.boxWordId,
-                    onBack = { navigateBack() }
-                )
-            }
+    // Wrap in animated transition content with SharedTransitionLayout
+    SharedTransitionLayout {
+        AnimatedContent(
+            targetState = currentSubScreen,
+            transitionSpec = {
+                if (isBackNavigation) {
+                    (slideInHorizontally { width -> -width } + fadeIn())
+                        .togetherWith(slideOutHorizontally { width -> width } + fadeOut())
+                } else {
+                    (slideInHorizontally { width -> width } + fadeIn())
+                        .togetherWith(slideOutHorizontally { width -> -width } + fadeOut())
+                }
+            },
+            label = "boxes_subscreen_switch"
+        ) { screen ->
+            when (screen) {
+                is BoxesSubScreen.Dashboard -> {
+                    BoxesDashboardScreen(
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent,
+                        onNavigateToCreateBox = { navigateTo(BoxesSubScreen.CreateEditBox()) },
+                        onNavigateToEditBox = { id -> navigateTo(BoxesSubScreen.CreateEditBox(id)) },
+                        onNavigateToBoxDetail = { id -> navigateTo(BoxesSubScreen.BoxDetail(id)) },
+                        onNavigateToImport = { navigateTo(BoxesSubScreen.ImportBackup) }
+                    )
+                }
+                is BoxesSubScreen.CreateEditBox -> {
+                    CreateEditBoxScreen(
+                        boxId = screen.boxId,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent,
+                        onBack = { navigateBack() }
+                    )
+                }
+                is BoxesSubScreen.BoxDetail -> {
+                    BoxDetailScreen(
+                        boxId = screen.boxId,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent,
+                        onBack = { navigateBack() },
+                        onNavigateToAddWord = { boxId -> navigateTo(BoxesSubScreen.AddWord(boxId)) },
+                        onNavigateToEditWord = { boxId, wordId -> navigateTo(BoxesSubScreen.AddWord(boxId, wordId)) },
+                        onNavigateToWordDetail = { boxId, wordId -> navigateTo(BoxesSubScreen.WordDetail(boxId, wordId)) },
+                        onNavigateToStudy = { boxId -> navigateTo(BoxesSubScreen.BoxStudy(boxId)) }
+                    )
+                }
+                is BoxesSubScreen.AddWord -> {
+                    AddWordScreen(
+                        boxId = screen.boxId,
+                        boxWordId = screen.boxWordId,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent,
+                        onBack = { navigateBack() }
+                    )
+                }
             is BoxesSubScreen.WordDetail -> {
                 BoxWordDetailScreen(
                     boxId = screen.boxId,
@@ -233,6 +248,7 @@ fun BoxesScreen(
             }
         }
     }
+}
 }
 
 // Icon dictionary mapper
@@ -274,9 +290,11 @@ val COLOR_PICKERS = listOf(
 // ====================================================
 // 1. DASHBOARD SCREEN
 // ====================================================
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun BoxesDashboardScreen(
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onNavigateToCreateBox: () -> Unit,
     onNavigateToEditBox: (Int) -> Unit,
     onNavigateToBoxDetail: (Int) -> Unit,
@@ -404,7 +422,14 @@ fun BoxesDashboardScreen(
 
                 Box(modifier = Modifier.fillMaxWidth()) {
                     GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = with(sharedTransitionScope) {
+                            Modifier
+                                .sharedElement(
+                                    rememberSharedContentState(key = "box_card_${box.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                )
+                                .fillMaxWidth()
+                        },
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onNavigateToBoxDetail(box.id)
@@ -596,7 +621,7 @@ fun BoxesDashboardScreen(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(120.dp))
+        Spacer(modifier = Modifier.height(160.dp))
         }
     }
 
@@ -608,7 +633,7 @@ fun BoxesDashboardScreen(
             isExpanded = isFabExpanded,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 120.dp, end = 24.dp)
+                .padding(bottom = 175.dp, end = 24.dp)
         )
     }
 }
@@ -623,10 +648,12 @@ object ScaffoldMessenger {
 // ====================================================
 // 2. CREATE BOX SCREEN
 // ====================================================
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun CreateEditBoxScreen(
     boxId: Int?,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onBack: () -> Unit
 ) {
     val boxRepo = remember { SevenTicksApplication.instance.boxRepository }
@@ -819,9 +846,12 @@ fun CreateEditBoxScreen(
 // ====================================================
 // 3. BOX DETAIL (WORDS LIST)
 // ====================================================
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BoxDetailScreen(
     boxId: Int,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onBack: () -> Unit,
     onNavigateToAddWord: (Int) -> Unit,
     onNavigateToEditWord: (Int, Int) -> Unit,
@@ -867,7 +897,14 @@ fun BoxDetailScreen(
         ) {
             // Navigation Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = with(sharedTransitionScope) {
+                    Modifier
+                        .sharedElement(
+                            rememberSharedContentState(key = "box_card_${boxId}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                        .fillMaxWidth()
+                },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -1007,6 +1044,7 @@ fun BoxDetailScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
                 .padding(bottom = 24.dp, end = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -1015,16 +1053,10 @@ fun BoxDetailScreen(
                 val currentTime = System.currentTimeMillis()
                 val dueWordsCount = words.count { it.dueDate <= currentTime }
 
-                FloatingActionButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigateToStudy(boxId)
-                    },
-                    containerColor = Color.Transparent,
-                    elevation = FloatingActionButtonDefaults.elevation(12.dp),
+                Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .clip(CircleShape)
+                        .shadow(elevation = 12.dp, shape = CircleShape)
                         .background(
                             Brush.horizontalGradient(
                                 colors = if (dueWordsCount > 0) {
@@ -1032,32 +1064,37 @@ fun BoxDetailScreen(
                                 } else {
                                     listOf(Color(0x33FFFFFF), Color(0x11FFFFFF))
                                 }
-                            )
+                            ),
+                            shape = CircleShape
                         )
+                        .clip(CircleShape)
                         .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigateToStudy(boxId)
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Review Box",
-                            tint = if (dueWordsCount > 0) Color.White else Color.White.copy(alpha = 0.5f)
-                        )
-                        if (dueWordsCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = (-4).dp, y = 4.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White)
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "$dueWordsCount",
-                                    color = Color(0xFFFF1744),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Review Box",
+                        tint = if (dueWordsCount > 0) Color.White else Color.White.copy(alpha = 0.5f)
+                    )
+                    if (dueWordsCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-4).dp, y = 4.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "$dueWordsCount",
+                                color = Color(0xFFFF1744),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black
+                            )
                         }
                     }
                 }
@@ -1067,7 +1104,8 @@ fun BoxDetailScreen(
                 onClick = { onNavigateToAddWord(boxId) },
                 icon = Icons.Default.Add,
                 label = "Add Word",
-                isExpanded = true
+                isExpanded = true,
+                modifier = Modifier
             )
         }
     }
@@ -1076,11 +1114,13 @@ fun BoxDetailScreen(
 // ====================================================
 // 4. ADD / EDIT WORD SCREEN WITH AUTO-FILL
 // ====================================================
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun AddWordScreen(
     boxId: Int,
     boxWordId: Int?,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onBack: () -> Unit
 ) {
     val boxRepo = remember { SevenTicksApplication.instance.boxRepository }

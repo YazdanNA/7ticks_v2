@@ -54,6 +54,8 @@ import com.example.core.database.BoxWordEntity
 import com.example.core.fsrs.FsrsCardModel
 import com.example.core.fsrs.FsrsRepository
 import com.example.core.fsrs.ReviewRatingModel
+import com.example.core.fsrs.toFsrsModel
+import com.example.core.fsrs.toCardEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -72,38 +74,6 @@ fun LearningSessionScreen(
     val haptic = LocalHapticFeedback.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val feedbackManager = remember { com.example.core.feedback.FeedbackManager.getInstance(context) }
-
-    // Helpers to convert between CardEntity and FsrsCardModel
-    fun CardEntity.toFsrsModel() = FsrsCardModel(
-        id = id,
-        wordId = wordId,
-        word = word,
-        stability = stability,
-        difficulty = difficulty,
-        elapsedDays = elapsedDays,
-        scheduledDays = scheduledDays,
-        reps = reps,
-        lapses = lapses,
-        state = state,
-        lastReviewed = if (lastReviewed > 0) Date(lastReviewed) else null,
-        dueDate = Date(dueDate)
-    )
-
-    fun FsrsCardModel.toCardEntity(oldBoxIndex: Int) = CardEntity(
-        id = id,
-        wordId = wordId,
-        word = word,
-        boxIndex = oldBoxIndex,
-        stability = stability,
-        difficulty = difficulty,
-        elapsedDays = elapsedDays,
-        scheduledDays = scheduledDays,
-        reps = reps,
-        lapses = lapses,
-        state = state,
-        lastReviewed = lastReviewed?.time ?: 0,
-        dueDate = dueDate.time
-    )
 
     // Haptic + Sound Hooks
     fun onCorrectAnswer() {
@@ -222,6 +192,12 @@ fun LearningSessionScreen(
     // Connect queue index & current item flows to Composable state
     val activeIndex by engine?.queueManager?.currentIndex?.collectAsState() ?: remember { mutableStateOf(0) }
     val currentItem by engine?.queueManager?.currentItem?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    LaunchedEffect(currentItem) {
+        if (!isBoxSession && currentItem != null) {
+            repo.smartSessionEngine.timingTracker.start()
+        }
+    }
 
     // Animating circle feedback states
     var temporaryOverlayIndex by remember { mutableStateOf(-1) }

@@ -335,7 +335,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = true,
+                    userScrollEnabled = isBottomBarVisibleBySubScreen,
                     beyondViewportPageCount = 4
                 ) { pageIndex ->
                     when (pageIndex) {
