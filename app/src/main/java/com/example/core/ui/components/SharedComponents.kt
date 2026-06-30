@@ -38,6 +38,7 @@ import kotlin.math.sin
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import com.example.ui.theme.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -62,8 +63,8 @@ fun SharedGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
     borderWidth: Dp = 1.dp,
-    glowColor: Color = Color(0x3DFFFFFF),
-    backgroundColor: Color = Color(0x1F7A88FF),
+    glowColor: Color? = null,
+    backgroundColor: Color? = null,
     depth: Int = 1, // 1 to 3 layers for stacked card depth
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit = {}
@@ -71,6 +72,10 @@ fun SharedGlassCard(
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+
+    val isDark = MaterialTheme.colorScheme.isDark
+    val resolvedBgColor = backgroundColor ?: if (isDark) Color(0x1F7A88FF) else Color(0x0A4F46E5)
+    val resolvedGlowColor = glowColor ?: if (isDark) Color(0x3DFFFFFF) else Color(0x1F0F172A)
 
     // Bouncy press animation
     val scale by animateFloatAsState(
@@ -85,17 +90,17 @@ fun SharedGlassCard(
     // Base transparency gradient
     val cardBrush = Brush.verticalGradient(
         colors = listOf(
-            backgroundColor.copy(alpha = (0.16f * depth).coerceAtMost(0.45f)),
-            backgroundColor.copy(alpha = (0.04f * depth).coerceAtMost(0.18f))
+            resolvedBgColor.copy(alpha = (0.16f * depth).coerceAtMost(0.45f)),
+            resolvedBgColor.copy(alpha = (0.04f * depth).coerceAtMost(0.18f))
         )
     )
 
     // High quality border glow brush
     val borderBrush = Brush.linearGradient(
         colors = listOf(
-            Color.White.copy(alpha = 0.35f),
-            glowColor.copy(alpha = 0.12f),
-            Color.White.copy(alpha = 0.04f)
+            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.25f),
+            resolvedGlowColor.copy(alpha = 0.12f),
+            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.04f)
         ),
         start = Offset(0f, 0f),
         end = Offset(200f, 400f)
@@ -108,8 +113,8 @@ fun SharedGlassCard(
                 elevation = (4 * depth).dp,
                 shape = RoundedCornerShape(cornerRadius),
                 clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.3f),
-                spotColor = Color.Black.copy(alpha = 0.5f)
+                ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0xFF0F172A).copy(alpha = 0.1f),
+                spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.15f)
             )
             .clip(RoundedCornerShape(cornerRadius))
             .background(cardBrush)
@@ -137,7 +142,7 @@ fun SharedGlassCard(
                 .drawBehind {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.05f), Color.Transparent),
+                            colors = listOf((if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.05f), Color.Transparent),
                             center = Offset(size.width / 3f, 0f),
                             radius = size.width / 1.5f
                         )
@@ -203,13 +208,16 @@ fun SharedPrimaryButton(
         label = "btn_glow"
     )
 
+    val isDark = MaterialTheme.colorScheme.isDark
     val gradientBrush = if (enabled) {
         Brush.horizontalGradient(
             colors = listOf(accentColor, purpleColor)
         )
     } else {
+        val disabledColorStart = if (isDark) Color(0x33FFFFFF) else Color(0x1F000000)
+        val disabledColorEnd = if (isDark) Color(0x11FFFFFF) else Color(0x0A000000)
         Brush.horizontalGradient(
-            colors = listOf(Color(0x33FFFFFF), Color(0x11FFFFFF))
+            colors = listOf(disabledColorStart, disabledColorEnd)
         )
     }
 
@@ -247,7 +255,7 @@ fun SharedPrimaryButton(
             }
             Text(
                 text = text,
-                color = if (enabled) Color.White else Color.White.copy(alpha = 0.4f),
+                color = if (enabled) Color.White else (if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF0F172A).copy(alpha = 0.35f)),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center
@@ -342,6 +350,8 @@ fun SharedTextField(
         }
     }
 
+    val isDark = MaterialTheme.colorScheme.isDark
+
     // Animate indicator colors on focus
     val borderGlowColor by animateColorAsState(
         targetValue = if (isError) {
@@ -349,7 +359,7 @@ fun SharedTextField(
         } else if (isFocused) {
             Color(0xFF00C2FF)
         } else {
-            Color(0x22FFFFFF)
+            if (isDark) Color(0x22FFFFFF) else Color(0x1F0F172A)
         },
         animationSpec = tween(300),
         label = "text_field_border_color"
@@ -361,7 +371,7 @@ fun SharedTextField(
         } else if (isFocused) {
             Color(0xFF00FFD2)
         } else {
-            Color.White.copy(alpha = 0.5f)
+            if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.5f)
         },
         animationSpec = tween(300),
         label = "text_field_label_color"
@@ -380,7 +390,7 @@ fun SharedTextField(
         } else if (isFocused) {
             Color(0x1A00C2FF)
         } else {
-            Color(0x0CFFFFFF)
+            if (isDark) Color(0x0CFFFFFF) else Color(0x080F172A)
         }
 
         BasicTextField(
@@ -406,11 +416,11 @@ fun SharedTextField(
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
             textStyle = LocalTextStyle.current.copy(
-                color = Color.White,
+                color = if (isDark) Color.White else Color(0xFF0F172A),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             ),
-            cursorBrush = SolidColor(Color(0xFF00FFD2)),
+            cursorBrush = SolidColor(if (isDark) Color(0xFF00FFD2) else MaterialTheme.colorScheme.primary),
             decorationBox = @Composable { innerTextField ->
                 TextFieldDefaults.DecorationBox(
                     value = value,
@@ -432,7 +442,7 @@ fun SharedTextField(
                                         iterations = Int.MAX_VALUE,
                                         initialDelayMillis = 1000
                                     )
-                            )
+                             )
                         }
                     } else null,
                     leadingIcon = leadingIcon,
@@ -444,10 +454,10 @@ fun SharedTextField(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         errorIndicatorColor = Color.Transparent,
-                        cursorColor = Color(0xFF00FFD2),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        errorTextColor = Color.White
+                        cursorColor = if (isDark) Color(0xFF00FFD2) else MaterialTheme.colorScheme.primary,
+                        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                        errorTextColor = if (isDark) Color.White else Color(0xFF0F172A)
                     ),
                     container = {
                         Box(
@@ -507,13 +517,13 @@ fun SharedProgressHeader(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$streak Days",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "Day Streak",
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                     fontSize = 10.sp
                 )
             }
@@ -523,7 +533,7 @@ fun SharedProgressHeader(
         SharedGlassCard(
             modifier = Modifier.weight(1.1f).clickable { onLevelClick() },
             cornerRadius = 18.dp,
-            backgroundColor = Color(0x3D7A88FF) // Highlight middle card
+            backgroundColor = if (MaterialTheme.colorScheme.isDark) Color(0x3D7A88FF) else Color(0x1F4F46E5) // Highlight middle card
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -539,7 +549,7 @@ fun SharedProgressHeader(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Level $level",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Black
                 )
@@ -571,13 +581,13 @@ fun SharedProgressHeader(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$xp XP",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "Total Points",
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                     fontSize = 10.sp
                 )
             }
@@ -663,7 +673,7 @@ fun SharedFlashcard(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.15f),
+                            tint = MaterialTheme.colorScheme.adaptiveText.copy(alpha = 0.15f),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -674,7 +684,7 @@ fun SharedFlashcard(
                     ) {
                         Text(
                             text = word,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.adaptiveText,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Black,
                             textAlign = TextAlign.Center
@@ -682,7 +692,7 @@ fun SharedFlashcard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = phonetics,
-                            color = Color.White.copy(alpha = 0.45f),
+                            color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center
                         )
@@ -694,7 +704,7 @@ fun SharedFlashcard(
                     ) {
                         Text(
                             text = enDefinition,
-                            color = Color.White.copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.adaptiveText.copy(alpha = 0.85f),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp,
@@ -706,12 +716,12 @@ fun SharedFlashcard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0x0DFFFFFF))
+                                    .background(if (MaterialTheme.colorScheme.isDark) Color(0x0DFFFFFF) else Color(0x0D000000))
                                     .padding(10.dp)
                             ) {
                                 Text(
                                     text = "\"$example\"",
-                                    color = Color(0xFF00FFD2).copy(alpha = 0.7f),
+                                    color = if (MaterialTheme.colorScheme.isDark) Color(0xFF00FFD2).copy(alpha = 0.7f) else Color(0xFF0284C7),
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center,
                                     lineHeight = 16.sp,
@@ -742,7 +752,7 @@ fun SharedFlashcard(
                 SharedGlassCard(
                     modifier = Modifier.fillMaxSize(),
                     cornerRadius = 24.dp,
-                    backgroundColor = Color(0x2E7A88FF)
+                    backgroundColor = if (MaterialTheme.colorScheme.isDark) Color(0x2E7A88FF) else Color(0x1F4F46E5)
                 ) {
                     Column(
                         modifier = Modifier
@@ -779,7 +789,7 @@ fun SharedFlashcard(
                             // Persian Translation
                             Text(
                                 text = faDefinition,
-                                color = Color(0xFFFFD600),
+                                color = if (MaterialTheme.colorScheme.isDark) Color(0xFFFFD600) else Color(0xFFDB2777),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center,
@@ -789,7 +799,7 @@ fun SharedFlashcard(
                             // Definition
                             Text(
                                 text = enDefinition,
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = MaterialTheme.colorScheme.adaptiveText.copy(alpha = 0.9f),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 18.sp,

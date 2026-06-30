@@ -30,6 +30,7 @@ import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
 import com.example.core.components.AvatarManager
+import com.example.ui.theme.*
 import com.example.core.ui.components.SharedTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,20 +97,20 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             ) {
                 Text(
                     text = "My Profile",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(
                     onClick = { navController.navigate(com.example.core.navigation.Screen.Settings.route) },
                     modifier = Modifier
-                        .background(Color(0x0AFFFFFF), CircleShape)
-                        .border(1.dp, Color(0x1AFFFFFF), CircleShape)
+                        .background(if (MaterialTheme.colorScheme.isDark) Color(0x0AFFFFFF) else Color(0x0C000000), CircleShape)
+                        .border(1.dp, if (MaterialTheme.colorScheme.isDark) Color(0x1AFFFFFF) else Color(0x1F000000), CircleShape)
                 ) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.adaptiveText
                     )
                 }
             }

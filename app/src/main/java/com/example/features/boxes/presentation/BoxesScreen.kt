@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.SevenTicksApplication
+import com.example.ui.theme.*
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
@@ -363,13 +364,13 @@ fun BoxesDashboardScreen(
             Column {
                 Text(
                     text = "My Vocab Boxes",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "Personal study collections",
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                     fontSize = 12.sp
                 )
             }
@@ -379,11 +380,11 @@ fun BoxesDashboardScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = "Search Boxes",
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.adaptiveText)
                         }
                     }
                 },
@@ -467,14 +468,14 @@ fun BoxesDashboardScreen(
                                     Column {
                                         Text(
                                             text = box.name,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.adaptiveText,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                         if (box.description.isNotEmpty()) {
                                             Text(
                                                 text = box.description,
-                                                color = Color.White.copy(alpha = 0.6f),
+                                                color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                                                 fontSize = 11.sp,
                                                 maxLines = 1
                                             )
@@ -483,7 +484,7 @@ fun BoxesDashboardScreen(
                                 }
 
                                 IconButton(onClick = { showMenu = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color.White.copy(alpha = 0.6f))
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.adaptiveSecondaryText)
                                 }
                             }
 
@@ -497,12 +498,12 @@ fun BoxesDashboardScreen(
                                     val dueCount = boxDueCounts[box.id] ?: 0
                                     Text(
                                         text = "$wordCount words total • $dueCount due • $masteredCount mastered",
-                                        color = Color.White.copy(alpha = 0.4f),
+                                        color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                                         fontSize = 11.sp
                                     )
                                     Text(
                                         text = "Activity: ${formatDateTime(box.lastActivityAt)}",
-                                        color = Color.White.copy(alpha = 0.3f),
+                                        color = MaterialTheme.colorScheme.adaptiveSubtleText,
                                         fontSize = 9.sp
                                     )
                                 }
@@ -532,20 +533,20 @@ fun BoxesDashboardScreen(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
                         modifier = Modifier
-                            .background(Color(0xFF0F1026))
-                            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(8.dp))
+                            .background(if (MaterialTheme.colorScheme.isDark) Color(0xFF0F1026) else MaterialTheme.colorScheme.surface)
+                            .border(1.dp, if (MaterialTheme.colorScheme.isDark) Color(0x22FFFFFF) else Color(0x1F000000), RoundedCornerShape(8.dp))
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Edit / Rename", color = Color.White) },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                            text = { Text("Edit / Rename", color = MaterialTheme.colorScheme.adaptiveText) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
                                 onNavigateToEditBox(box.id)
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (box.isArchived) "Unarchive" else "Archive", color = Color.White) },
-                            leadingIcon = { Icon(Icons.Default.Check, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                            text = { Text(if (box.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.adaptiveText) },
+                            leadingIcon = { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
                                 coroutineScope.launch {
@@ -555,8 +556,8 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Duplicate", color = Color.White) },
-                            leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                            text = { Text("Duplicate", color = MaterialTheme.colorScheme.adaptiveText) },
+                            leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
                                 coroutineScope.launch {
@@ -566,8 +567,8 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Export JSON Backup", color = Color.White) },
-                            leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                            text = { Text("Export JSON Backup", color = MaterialTheme.colorScheme.adaptiveText) },
+                            leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
                                 coroutineScope.launch {

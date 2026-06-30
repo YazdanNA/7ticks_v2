@@ -32,6 +32,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.*
 import com.example.core.components.SevenCircles
 import com.example.core.database.CardEntity
 import com.example.core.database.DictWord
@@ -193,7 +194,7 @@ fun FlashcardActionButton(
             if (subtext.isNotEmpty()) {
                 Text(
                     text = subtext,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = if (MaterialTheme.colorScheme.isDark) Color.White.copy(alpha = 0.45f) else Color(0xFF0F172A).copy(alpha = 0.5f),
                     fontSize = 9.sp
                 )
             }
@@ -257,7 +258,7 @@ fun UniversalFlashcard(
         label = "pronounce_button_scale"
     )
     val wordTextColor by animateColorAsState(
-        targetValue = if (isPronouncing) Color(0xFF00FFD2) else Color.White,
+        targetValue = if (isPronouncing) Color(0xFF00FFD2) else (if (MaterialTheme.colorScheme.isDark) Color.White else Color(0xFF0F172A)),
         animationSpec = tween(250),
         label = "pronounce_word_color"
     )
@@ -315,7 +316,7 @@ fun UniversalFlashcard(
                         Icon(
                             Icons.Default.Star,
                             contentDescription = "Active Flashcard",
-                            tint = Color.White.copy(alpha = 0.2f),
+                            tint = MaterialTheme.colorScheme.adaptiveText.copy(alpha = 0.2f),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -343,7 +344,7 @@ fun UniversalFlashcard(
                             if (usText.isNotEmpty()) {
                                 Text(
                                     text = "US: $usText",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     textAlign = TextAlign.Center
@@ -352,7 +353,7 @@ fun UniversalFlashcard(
                             if (data.phoneticsUk.isNotEmpty()) {
                                 Text(
                                     text = "UK: ${data.phoneticsUk}",
-                                    color = Color.White.copy(alpha = 0.4f),
+                                    color = MaterialTheme.colorScheme.adaptiveSubtleText,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     textAlign = TextAlign.Center
@@ -484,7 +485,7 @@ fun UniversalFlashcard(
                                     ) {
                                         Text(
                                             text = "Definition",
-                                            color = Color.White.copy(alpha = 0.5f),
+                                            color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -505,7 +506,7 @@ fun UniversalFlashcard(
                                         text = data.primaryDefinition,
                                         spokenText = spokenText,
                                         range = spokenTextRange,
-                                        baseColor = Color.White,
+                                        baseColor = MaterialTheme.colorScheme.adaptiveText,
                                         highlightColor = Color(0xFF00FFD2),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
@@ -531,7 +532,7 @@ fun UniversalFlashcard(
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         text = "Examples",
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -546,7 +547,7 @@ fun UniversalFlashcard(
                                                     text = ex,
                                                     spokenText = spokenText,
                                                     range = spokenTextRange,
-                                                    baseColor = Color.White.copy(alpha = 0.8f),
+                                                    baseColor = MaterialTheme.colorScheme.adaptiveText.copy(alpha = 0.85f),
                                                     highlightColor = Color(0xFF00FFD2),
                                                     fontStyle = FontStyle.Italic,
                                                     fontSize = 13.sp,
@@ -657,8 +658,8 @@ fun UniversalFlashcard(
                                 onClick = { showTranslation = !showTranslation },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (showTranslation) Color(0x3300FFD2) else Color(0x12FFFFFF),
-                                    contentColor = if (showTranslation) Color(0xFF00FFD2) else Color.White
+                                    containerColor = if (showTranslation) Color(0x3300FFD2) else (if (MaterialTheme.colorScheme.isDark) Color(0x12FFFFFF) else Color(0x0C000000)),
+                                    contentColor = if (showTranslation) Color(0xFF00FFD2) else MaterialTheme.colorScheme.adaptiveText
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
@@ -675,7 +676,7 @@ fun UniversalFlashcard(
                                 onClick = { onMoreDetailsClick() },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0x12FFFFFF),
+                                    containerColor = if (MaterialTheme.colorScheme.isDark) Color(0x12FFFFFF) else Color(0x0C000000),
                                     contentColor = Color(0xFF00C2FF)
                                 ),
                                 shape = RoundedCornerShape(10.dp),

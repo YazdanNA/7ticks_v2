@@ -10,6 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 // Premium Cosmic Dark Color Scheme (SevenTicks Default)
@@ -65,3 +66,25 @@ fun MyApplicationTheme(
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
+
+// Adaptive Theme Extension Properties for pristine Light / Dark support
+val androidx.compose.material3.ColorScheme.isDark: Boolean
+  @Composable
+  get() = this.background.luminance() < 0.5f
+
+val androidx.compose.material3.ColorScheme.adaptiveText: Color
+  @Composable
+  get() = if (this.isDark) Color.White else Color(0xFF0F172A)
+
+val androidx.compose.material3.ColorScheme.adaptiveSecondaryText: Color
+  @Composable
+  get() = if (this.isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569)
+
+val androidx.compose.material3.ColorScheme.adaptiveSubtleText: Color
+  @Composable
+  get() = if (this.isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B)
+
+val androidx.compose.material3.ColorScheme.adaptiveGlassBackground: Color
+  @Composable
+  get() = if (this.isDark) Color(0x1F7A88FF) else Color(0x0A4F46E5)
+
