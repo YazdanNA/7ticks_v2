@@ -34,6 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.example.core.localization.localize
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -692,19 +695,21 @@ fun CreateEditBoxScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Top Header Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Text(
+                    text = (if (isEditing) "Edit Vocab Box" else "Create Custom Box").localize(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
-            Text(
-                text = if (isEditing) "Edit Vocab Box" else "Create Custom Box",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -896,35 +901,37 @@ fun BoxDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Navigation Header
-            Row(
-                modifier = with(sharedTransitionScope) {
-                    Modifier
-                        .sharedElement(
-                            rememberSharedContentState(key = "box_card_${boxId}"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                        .fillMaxWidth()
-                },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(boxColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = getBoxIcon(boxIcon), contentDescription = null, tint = boxColor, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(boxName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text("${words.size} terms inside", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    modifier = with(sharedTransitionScope) {
+                        Modifier
+                            .sharedElement(
+                                rememberSharedContentState(key = "box_card_${boxId}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                            .fillMaxWidth()
+                    },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(boxColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = getBoxIcon(boxIcon), contentDescription = null, tint = boxColor, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(boxName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(("${words.size} terms inside").localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        }
                     }
                 }
             }
@@ -1202,19 +1209,21 @@ fun AddWordScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Navigation Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Text(
+                    text = (if (isEditing) "Edit Word Details" else "Add New Word").localize(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
-            Text(
-                text = if (isEditing) "Edit Word Details" else "Add New Word",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
         }
 
         // --- Live Search Autofill (only in creation mode) ---
@@ -1499,19 +1508,21 @@ fun BoxWordDetailScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Navigation Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Text(
+                    text = "Word Portfolio".localize(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
-            Text(
-                text = "Word Portfolio",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
         }
 
         if (item == null) {
@@ -1785,29 +1796,31 @@ fun BoxStudyScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = boxName,
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = boxName,
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* Help */ }) {
+                            Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* Help */ }) {
-                        Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
                 )
-            )
+            }
         },
         containerColor = Color.Transparent,
         modifier = Modifier
@@ -2071,19 +2084,21 @@ fun ImportBackupScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Text(
+                    text = "Import Box JSON".localize(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
-            Text(
-                text = "Import Box JSON",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {

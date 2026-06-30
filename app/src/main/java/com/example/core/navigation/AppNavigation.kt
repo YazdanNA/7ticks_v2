@@ -35,6 +35,7 @@ import com.example.features.smartlearn.presentation.SmartLearnScreen
 import com.example.features.splash.presentation.SplashScreen
 import com.example.core.ui.components.AnimatedBackground
 import com.example.core.ui.components.clearFocusOnTap
+import com.example.core.localization.localize
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -342,15 +343,21 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                     userScrollEnabled = isBottomBarVisibleBySubScreen,
                     beyondViewportPageCount = 4
                 ) { pageIndex ->
-                    when (pageIndex) {
-                        0 -> SmartLearnScreen(navController = navController)
-                        1 -> BoxesScreen(
-                            navController = navController,
-                            onShowBottomBar = { isBottomBarVisibleBySubScreen = it }
-                        )
-                        2 -> DictionaryScreen()
-                        3 -> AnalysisScreen()
-                        4 -> ProfileScreen(navController = navController)
+                    val currentLang = com.example.ui.theme.LocalAppLanguage.current
+                    val isRtl = currentLang == "fa"
+                    CompositionLocalProvider(
+                        androidx.compose.ui.platform.LocalLayoutDirection provides (if (isRtl) androidx.compose.ui.unit.LayoutDirection.Rtl else androidx.compose.ui.unit.LayoutDirection.Ltr)
+                    ) {
+                        when (pageIndex) {
+                            0 -> SmartLearnScreen(navController = navController)
+                            1 -> BoxesScreen(
+                                navController = navController,
+                                onShowBottomBar = { isBottomBarVisibleBySubScreen = it }
+                            )
+                            2 -> DictionaryScreen()
+                            3 -> AnalysisScreen()
+                            4 -> ProfileScreen(navController = navController)
+                        }
                     }
                 }
             }
@@ -445,7 +452,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Dictionary",
+                                text = "Dictionary".localize(),
                                 color = if (isDictionaryActive) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
@@ -507,7 +514,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             )
                             
                             Text(
-                                text = "Exit SevenTicks?",
+                                text = "Exit SevenTicks?".localize(),
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -515,7 +522,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             )
                             
                             Text(
-                                text = "Are you sure you want to exit the application?",
+                                text = "Are you sure you want to exit the application?".localize(),
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
@@ -535,7 +542,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     ),
                                     shape = RoundedCornerShape(14.dp)
                                 ) {
-                                    Text("No", fontWeight = FontWeight.Bold)
+                                    Text("No".localize(), fontWeight = FontWeight.Bold)
                                 }
                                 
                                 // Exit Button
@@ -550,7 +557,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     ),
                                     shape = RoundedCornerShape(14.dp)
                                 ) {
-                                    Text("Yes", fontWeight = FontWeight.Bold)
+                                    Text("Yes".localize(), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -588,7 +595,7 @@ fun RowScope.BottomNavItem(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = title,
+            text = title.localize(),
             color = if (active) activeColor else inactiveColor,
             fontSize = 10.sp,
             fontWeight = if (active) FontWeight.Bold else FontWeight.Normal

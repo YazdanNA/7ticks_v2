@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.features.tiki.renderer.EmotionRenderer
+import com.example.ui.theme.LocalAppLanguage
+import com.example.core.localization.Translations
 import kotlinx.coroutines.delay
 
 private fun splitMessageIntoChunks(message: String, maxChars: Int = 60): List<String> {
@@ -60,16 +62,18 @@ fun TickyCard(
     pauseMs: Long = 3000
 ) {
     val globalState by com.example.features.tiki.api.TikiController.getInstance().state.collectAsState()
+    val currentLang = LocalAppLanguage.current
+    val isRtl = currentLang == "fa"
 
     val resolvedTikiState = tikiState ?: globalState.tikiStateKey
     val baseMessage = message ?: if (messages == null || messages.isEmpty()) globalState.dialogue else null
 
     // Resolve which messages to display, and split long ones to keep speech bubble max 2 lines
-    val resolvedMessages = remember(baseMessage, messages) {
+    val resolvedMessages = remember(baseMessage, messages, currentLang) {
         val rawList = when {
-            messages != null && messages.isNotEmpty() -> messages
-            baseMessage != null && baseMessage.isNotEmpty() -> listOf(baseMessage)
-            else -> listOf("Welcome! Let's level up your vocabulary today!")
+            messages != null && messages.isNotEmpty() -> messages.map { Translations.translate(it, currentLang) }
+            baseMessage != null && baseMessage.isNotEmpty() -> listOf(Translations.translate(baseMessage, currentLang))
+            else -> listOf(Translations.translate("Welcome! Let's level up your vocabulary today!", currentLang))
         }
         rawList.flatMap { splitMessageIntoChunks(it, 60) }
     }
@@ -134,13 +138,21 @@ fun TickyCard(
     // Enforce 135dp for 4x larger visual appearance
     val resolvedSizeDp = if (sizeDp < 135) 135 else sizeDp
 
+    // Layout mirroring configs
+    val rowPaddingStart = if (isRtl) 12.dp else 114.dp
+    val rowPaddingEnd = if (isRtl) 114.dp else 12.dp
+    val tikiAlignment = if (isRtl) Alignment.CenterEnd else Alignment.CenterStart
+    val tikiOffsetX = if (isRtl) 4.dp else (-4).dp
+    val speechBubbleAlignment = if (isRtl) Alignment.CenterEnd else Alignment.CenterStart
+    val textAlignment = if (isRtl) androidx.compose.ui.text.style.TextAlign.Right else androidx.compose.ui.text.style.TextAlign.Left
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(110.dp), // STRICT FIXED HEIGHT FOR COMPANION CARD
         contentAlignment = Alignment.CenterStart
     ) {
-        // 1. Glass Card background & layout (containing the speech bubble, padded on the left to leave space for Tiki)
+        // 1. Glass Card background & layout (containing the speech bubble, padded dynamically to leave space for Tiki)
         SharedGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -152,7 +164,7 @@ fun TickyCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight()
-                    .padding(start = 114.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                    .padding(start = rowPaddingStart, end = rowPaddingEnd, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
@@ -168,7 +180,7 @@ fun TickyCard(
                             .background(Color(0x0AFFFFFF))
                             .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(16.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.CenterStart
+                        contentAlignment = speechBubbleAlignment
                     ) {
                         Text(
                             text = displayedText,
@@ -177,6 +189,7 @@ fun TickyCard(
                             fontWeight = FontWeight.Bold,
                             lineHeight = 17.sp,
                             maxLines = 2,
+                            textAlign = textAlignment,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -185,11 +198,12 @@ fun TickyCard(
             }
         }
 
-        // 2. Large Tiki drawn on top of the card as a stack, sticking out of boundaries
+        // 2. Large Tiki drawn on top of the card as a stack, sticking out of boundaries dynamically positioned
         Box(
             modifier = Modifier
                 .requiredSize(resolvedSizeDp.dp)
-                .offset(x = (-4).dp, y = (-20).dp) // letting Tiki stick out of the card organically
+                .align(tikiAlignment)
+                .offset(x = tikiOffsetX, y = (-20).dp) // letting Tiki stick out of the card organically
                 .scale(breatheScale),
             contentAlignment = Alignment.Center
         ) {

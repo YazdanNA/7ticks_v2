@@ -11,6 +11,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.example.core.localization.localize
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
@@ -985,29 +990,31 @@ fun LearningSessionScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = if (isBoxSession) boxName else "Smart Learn Session",
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = (if (isBoxSession) boxName else "Smart Learn Session").localize(),
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* Display tips context */ }) {
+                            Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* Display tips context */ }) {
-                        Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
                 )
-            )
+            }
         },
         containerColor = Color.Transparent,
         modifier = Modifier
@@ -1024,13 +1031,14 @@ fun LearningSessionScreen(
         ) {
             // 1. Session Header Progress Bar
             Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Level ${userProgress?.level ?: 1} | +${engine?.xpEarned ?: xpEarnedInSession} XP",
+                        text = ("Level ${userProgress?.level ?: 1} | +${engine?.xpEarned ?: xpEarnedInSession} XP").localize(),
                         color = Color(0xFFFFD600),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -1038,7 +1046,7 @@ fun LearningSessionScreen(
                     val total = if (isBoxSession) boxCards.size else loadedCards.size
                     val completedCount = engine?.completedCardsCount ?: 0
                     Text(
-                        text = "Card ${completedCount + 1} of $total",
+                        text = ("Card ${completedCount + 1} of $total").localize(),
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
@@ -1057,6 +1065,7 @@ fun LearningSessionScreen(
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp))
                 )
+                }
 
                 if (!isBoxSession) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -1128,21 +1137,23 @@ fun LearningSessionScreen(
                 }
             }
 
-            com.example.core.ui.components.flashcard.FlashcardScreen(
-                wordDetails = wordDetails,
-                isFlipped = isFlipped,
-                onFlip = {
-                    onCardFlip()
-                    isFlipped = !isFlipped
-                },
-                onRatingClick = { handleRating(it) },
-                circleStates = circleStatesToShow,
-                tikiMessage = engine?.tikiReactionMessage ?: tikiReactionMessage,
-                tikiState = engine?.tikiState ?: "st-happy",
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                com.example.core.ui.components.flashcard.FlashcardScreen(
+                    wordDetails = wordDetails,
+                    isFlipped = isFlipped,
+                    onFlip = {
+                        onCardFlip()
+                        isFlipped = !isFlipped
+                    },
+                    onRatingClick = { handleRating(it) },
+                    circleStates = circleStatesToShow,
+                    tikiMessage = engine?.tikiReactionMessage ?: tikiReactionMessage,
+                    tikiState = engine?.tikiState ?: "st-happy",
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+            }
         }
     }
 
