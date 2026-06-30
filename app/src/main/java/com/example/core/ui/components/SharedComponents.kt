@@ -37,6 +37,7 @@ import com.example.core.components.TikiPlaceholder
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -809,6 +810,7 @@ fun SharedFlashcard(
     }
 }
 
+
 /**
  * SECTION 3. ANIMATED BACKGROUND SYSTEM
  * Battery-friendly, luxurious multi-layered moving stars and dynamic glow lines background.
@@ -843,11 +845,17 @@ fun AnimatedBackground(
         label = "part_glow"
     )
 
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val bgColor = if (isDark) Color(0xFF060713) else Color(0xFFF8FAFC)
+    val auroraColor1 = if (isDark) Color(0x1F00C2FF) else Color(0x120284C7)
+    val auroraColor2 = if (isDark) Color(0x149D00FF) else Color(0x0F6366F1)
+    val starColor = if (isDark) Color(0xFF00FFD2) else Color(0xFF6366F1)
+
     // Solid dark-space space background + soft canvas drawing
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF060713))
+            .background(bgColor)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
@@ -856,7 +864,7 @@ fun AnimatedBackground(
             // Layer 1: Slow rotating aurora lights
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0x1F00C2FF), Color.Transparent),
+                    colors = listOf(auroraColor1, Color.Transparent),
                     radius = width * 0.8f
                 ),
                 center = Offset(
@@ -867,7 +875,7 @@ fun AnimatedBackground(
 
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0x149D00FF), Color.Transparent),
+                    colors = listOf(auroraColor2, Color.Transparent),
                     radius = width * 0.9f
                 ),
                 center = Offset(
@@ -894,7 +902,7 @@ fun AnimatedBackground(
                 
                 // Draw elegant glowing star points
                 drawCircle(
-                    color = Color(0xFF00FFD2).copy(alpha = opacity),
+                    color = starColor.copy(alpha = opacity),
                     radius = sizeVal,
                     center = Offset(
                         x = pos.x + (bgShift * 0.2f * if (i % 2 == 0) 1 else -1),

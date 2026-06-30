@@ -32,6 +32,7 @@ import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.feedback.FeedbackManager
 import com.example.ui.theme.LocalAppLanguage
+import com.example.core.ui.components.AnimatedBackground
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -91,7 +92,8 @@ fun SettingsScreen(navController: NavController) {
 
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    Scaffold(
+    AnimatedBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent,
         topBar = {
@@ -784,6 +786,7 @@ fun SettingsScreen(navController: NavController) {
             }
         }
     }
+}
 
     // Modal Dialog: Privacy Policy
     if (showPrivacyDialog) {

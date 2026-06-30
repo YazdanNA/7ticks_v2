@@ -94,26 +94,19 @@ class PreferencesManager(private val context: Context) {
         set(value) = setValue(KEY_LAST_BACKUP_TIME, value)
 
     // Flow representations for reactive updates in Jetpack Compose
-    val appLanguageFlow: Flow<String>
-        get() = context.dataStore.data.map { it[KEY_APP_LANGUAGE] ?: "en" }
+    val appLanguageFlow: Flow<String> = context.dataStore.data.map { it[KEY_APP_LANGUAGE] ?: "en" }
 
-    val themeModeFlow: Flow<String>
-        get() = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "system" }
+    val themeModeFlow: Flow<String> = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "system" }
 
-    val fontSizeFlow: Flow<String>
-        get() = context.dataStore.data.map { it[KEY_FONT_SIZE] ?: "default" }
+    val fontSizeFlow: Flow<String> = context.dataStore.data.map { it[KEY_FONT_SIZE] ?: "default" }
 
-    val soundEnabledFlow: Flow<Boolean>
-        get() = context.dataStore.data.map { it[KEY_SOUND_ENABLED] ?: true }
+    val soundEnabledFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_SOUND_ENABLED] ?: true }
 
-    val hapticEnabledFlow: Flow<Boolean>
-        get() = context.dataStore.data.map { it[KEY_HAPTIC_ENABLED] ?: true }
+    val hapticEnabledFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_HAPTIC_ENABLED] ?: true }
 
-    val cloudBackupAutoFlow: Flow<Boolean>
-        get() = context.dataStore.data.map { it[KEY_CLOUD_BACKUP_AUTO] ?: true }
+    val cloudBackupAutoFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_CLOUD_BACKUP_AUTO] ?: true }
 
-    val lastBackupTimeFlow: Flow<String>
-        get() = context.dataStore.data.map { it[KEY_LAST_BACKUP_TIME] ?: "Never" }
+    val lastBackupTimeFlow: Flow<String> = context.dataStore.data.map { it[KEY_LAST_BACKUP_TIME] ?: "Never" }
 
     companion object {
         private val KEY_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")

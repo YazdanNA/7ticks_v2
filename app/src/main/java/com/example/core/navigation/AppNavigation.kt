@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -567,6 +568,10 @@ fun RowScope.BottomNavItem(
     active: Boolean,
     onClick: () -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val activeColor = if (isDark) Color(0xFF00FFD2) else Color(0xFF6366F1)
+    val inactiveColor = if (isDark) Color.White.copy(alpha = 0.45f) else Color(0xFF0F172A).copy(alpha = 0.45f)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -578,13 +583,13 @@ fun RowScope.BottomNavItem(
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = if (active) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.4f),
+            tint = if (active) activeColor else inactiveColor,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = title,
-            color = if (active) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.4f),
+            color = if (active) activeColor else inactiveColor,
             fontSize = 10.sp,
             fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
         )
