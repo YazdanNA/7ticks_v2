@@ -35,6 +35,7 @@ import androidx.navigation.NavController
 import com.example.SevenTicksApplication
 import com.example.core.navigation.Screen
 import com.example.core.ui.components.*
+import com.example.ui.theme.isDark
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
@@ -183,6 +184,10 @@ fun SmartLearnScreen(navController: NavController) {
     val animXp by animateIntAsState(targetValue = xp, animationSpec = tween(1500, easing = EaseOutQuad), label = "anim_xp")
 
     Box(modifier = Modifier.fillMaxSize()) {
+        val isDark = MaterialTheme.colorScheme.isDark
+        val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+        val subtextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -198,13 +203,13 @@ fun SmartLearnScreen(navController: NavController) {
                 Column {
                     Text(
                         text = "Hi, $userName! 👋",
-                        color = Color.White,
+                        color = textColor,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black
                     )
                     Text(
                         text = "Today's Target: ${userProgress?.dailyGoal ?: prefs.dailyGoal}",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = subtextColor,
                         fontSize = 12.sp
                     )
                 }
@@ -212,8 +217,8 @@ fun SmartLearnScreen(navController: NavController) {
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color(0x0CFFFFFF))
-                        .border(1.dp, Color(0x1AFFFFFF), CircleShape),
+                        .background(if (isDark) Color(0x0CFFFFFF) else Color(0x0C0F172A))
+                        .border(1.dp, if (isDark) Color(0x1AFFFFFF) else Color(0x1A0F172A), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -285,20 +290,20 @@ fun SmartLearnScreen(navController: NavController) {
                             Column {
                                 Text(
                                     text = "$targetLg Workspace",
-                                    color = Color.White,
+                                    color = textColor,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "$masteredWords of $totalWords mastered",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = subtextColor,
                                     fontSize = 12.sp
                                 )
                             }
                         }
                         Text(
                             text = "$progressPct%",
-                            color = Color(0xFF00FFD2),
+                            color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -318,7 +323,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Text(
                                 text = "Reviews",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 11.sp
                             )
                         }
@@ -332,7 +337,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Text(
                                 text = "Learning",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 11.sp
                             )
                         }
@@ -346,7 +351,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Text(
                                 text = "New Words",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 11.sp
                             )
                         }
@@ -360,7 +365,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Text(
                                 text = "Mastered",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 11.sp
                             )
                         }
@@ -370,7 +375,7 @@ fun SmartLearnScreen(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(Color(0x12FFFFFF))
+                            .background(if (isDark) Color(0x12FFFFFF) else Color(0x1F0F172A))
                     )
 
                     // Continue Learning CTA (large, beautiful, pulsating, inside the same card!)
@@ -390,21 +395,21 @@ fun SmartLearnScreen(navController: NavController) {
                             .fillMaxWidth()
                             .scale(buttonScale)
                             .shadow(
-                                elevation = if (isFinishedForToday) 4.dp else 16.dp,
+                                elevation = if (isFinishedForToday) 0.dp else 12.dp,
                                 shape = RoundedCornerShape(20.dp),
                                 clip = false,
-                                ambientColor = if (isFinishedForToday) Color.Transparent else Color(0xFF00C2FF).copy(alpha = glowGlow * 0.4f),
-                                spotColor = if (isFinishedForToday) Color.Transparent else Color(0xFF9D00FF).copy(alpha = glowGlow * 0.5f)
+                                ambientColor = if (isFinishedForToday) Color.Transparent else (if (isDark) Color(0xFF00C2FF) else Color(0xFF6366F1)).copy(alpha = glowGlow * 0.4f),
+                                spotColor = if (isFinishedForToday) Color.Transparent else (if (isDark) Color(0xFF9D00FF) else Color(0xFF4F46E5)).copy(alpha = glowGlow * 0.5f)
                             )
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 if (isFinishedForToday) {
                                     Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFF2C2D35), Color(0xFF25262B))
+                                        colors = if (isDark) listOf(Color(0xFF2C2D35), Color(0xFF25262B)) else listOf(Color(0xFFE2E8F0), Color(0xFFCBD5E1))
                                     )
                                 } else {
                                     Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
+                                        colors = if (isDark) listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)) else listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
                                     )
                                 }
                             )
@@ -431,13 +436,17 @@ fun SmartLearnScreen(navController: NavController) {
                             Icon(
                                 imageVector = if (isFinishedForToday) Icons.Default.CheckCircle else if (isSessionActive) Icons.Default.Refresh else Icons.Default.PlayArrow,
                                 contentDescription = null,
-                                tint = if (isFinishedForToday) Color(0xFF00E676) else Color.White,
+                                tint = if (isFinishedForToday) {
+                                    if (isDark) Color(0xFF00E676) else Color(0xFF15803D)
+                                } else Color.White,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = if (isFinishedForToday) "YOU'RE DONE FOR TODAY" else if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION",
-                                color = if (isFinishedForToday) Color(0xFF00E676) else Color.White,
+                                color = if (isFinishedForToday) {
+                                    if (isDark) Color(0xFF00E676) else Color(0xFF15803D)
+                                } else Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 1.sp
@@ -475,7 +484,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Active Challenge",
-                                    color = Color.White,
+                                    color = textColor,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -489,7 +498,7 @@ fun SmartLearnScreen(navController: NavController) {
                             ) {
                                 Text(
                                     text = challenge.title,
-                                    color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
+                                    color = if (challenge.completed) Color(0xFF00E676) else (if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7)),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -498,7 +507,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                         Text(
                             text = challenge.description,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                             fontSize = 12.sp,
                             lineHeight = 16.sp
                         )
@@ -511,7 +520,7 @@ fun SmartLearnScreen(navController: NavController) {
                             LinearProgressIndicator(
                                 progress = { progress },
                                 color = if (challenge.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                trackColor = Color(0x1AFFFFFF),
+                                trackColor = if (isDark) Color(0x1AFFFFFF) else Color(0x1F0F172A),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(6.dp)
@@ -519,7 +528,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Text(
                                 text = "${challenge.current}/${challenge.target}",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -527,7 +536,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                         Text(
                             text = "Tap to expand Quests portal",
-                            color = Color(0xFF00C2FF).copy(alpha = 0.7f),
+                            color = if (isDark) Color(0xFF00C2FF).copy(alpha = 0.7f) else Color(0xFF0284C7).copy(alpha = 0.85f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.align(Alignment.End)
@@ -550,10 +559,14 @@ fun SmartLearnScreen(navController: NavController) {
         )
 
         if (expansionFraction > 0f) {
+            val isDark = MaterialTheme.colorScheme.isDark
+            val overlayColor = (if (isDark) Color(0xFF060713) else Color(0xFF0F172A)).copy(alpha = expansionFraction * (if (isDark) 0.96f else 0.4f))
+            val portalCardColor = (if (isDark) Color(0xFF0F1026) else Color.White).copy(alpha = 0.9f + 0.1f * expansionFraction)
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF060713).copy(alpha = expansionFraction * 0.96f))
+                    .background(overlayColor)
                     .clickable(enabled = expansionFraction == 1f) {
                         showChallengePortal = false
                     }
@@ -569,7 +582,7 @@ fun SmartLearnScreen(navController: NavController) {
                         .scale(scale)
                         .graphicsLayer { this.alpha = alpha },
                     cornerRadius = (24 * (1f - expansionFraction) + 28 * expansionFraction).dp,
-                    backgroundColor = Color(0xFF0F1026).copy(alpha = 0.9f + 0.1f * expansionFraction)
+                    backgroundColor = portalCardColor
                 ) {
                     Column(
                         modifier = Modifier
@@ -593,7 +606,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Active Challenges",
-                                    color = Color.White,
+                                    color = if (isDark) Color.White else Color(0xFF0F172A),
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Black
                                 )
@@ -605,13 +618,13 @@ fun SmartLearnScreen(navController: NavController) {
                                     showChallengePortal = false
                                 },
                                 modifier = Modifier
-                                    .background(Color(0x12FFFFFF), CircleShape)
-                                    .border(1.dp, Color(0x1AFFFFFF), CircleShape)
+                                    .background(if (isDark) Color(0x12FFFFFF) else Color(0x0C0F172A), CircleShape)
+                                    .border(1.dp, if (isDark) Color(0x1AFFFFFF) else Color(0x1A0F172A), CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close Portal",
-                                    tint = Color.White
+                                    tint = if (isDark) Color.White else Color(0xFF0F172A)
                                 )
                             }
                         }
@@ -636,7 +649,7 @@ fun SmartLearnScreen(navController: NavController) {
                                     SharedGlassCard(
                                         modifier = Modifier.fillMaxWidth(),
                                         cornerRadius = 16.dp,
-                                        backgroundColor = if (item.completed) Color(0x1A00E676) else Color(0x0CFFFFFF)
+                                        backgroundColor = if (item.completed) Color(0x1A00E676) else (if (isDark) Color(0x0CFFFFFF) else Color(0x0C0F172A))
                                     ) {
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Row(
@@ -654,7 +667,7 @@ fun SmartLearnScreen(navController: NavController) {
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
                                                         text = item.title,
-                                                        color = Color.White,
+                                                        color = if (isDark) Color.White else Color(0xFF0F172A),
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -662,7 +675,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                                                 Text(
                                                     text = if (isDailyItem) "+150 XP" else "+250 XP",
-                                                    color = if (item.completed) Color(0xFF00E676) else Color(0xFF00FFD2),
+                                                    color = if (item.completed) Color(0xFF00E676) else (if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7)),
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Black
                                                 )
@@ -670,7 +683,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                                             Text(
                                                 text = item.description,
-                                                color = Color.White.copy(alpha = 0.6f),
+                                                color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569),
                                                 fontSize = 11.sp
                                             )
 
@@ -682,7 +695,7 @@ fun SmartLearnScreen(navController: NavController) {
                                                 LinearProgressIndicator(
                                                     progress = { itemProgress },
                                                     color = if (item.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                                    trackColor = Color(0x0CFFFFFF),
+                                                    trackColor = if (isDark) Color(0x0CFFFFFF) else Color(0x1A0F172A),
                                                     modifier = Modifier
                                                         .weight(1f)
                                                         .height(4.dp)
@@ -690,7 +703,7 @@ fun SmartLearnScreen(navController: NavController) {
                                                 )
                                                 Text(
                                                     text = "${item.current}/${item.target}",
-                                                    color = Color.White.copy(alpha = 0.5f),
+                                                    color = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF64748B),
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -710,13 +723,13 @@ fun SmartLearnScreen(navController: NavController) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = Color(0xFF00FFD2),
+                                tint = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7),
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Quests synchronize in real-time with the central FSRS engine",
-                                color = Color.White.copy(alpha = 0.4f),
+                                color = if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B),
                                 fontSize = 10.sp
                             )
                         }
@@ -746,10 +759,14 @@ fun SmartLearnScreen(navController: NavController) {
                 feedbackManager.vibrateHeavy()
             }
 
+            val isDark = MaterialTheme.colorScheme.isDark
+            val overlayBgColor = if (isDark) Color(0xE0060713) else Color(0xC00F172A)
+            val celebrationCardColor = if (isDark) Color(0xFB0F1026) else Color.White
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xE0060713))
+                    .background(overlayBgColor)
                     .clickable(enabled = true) {
                         // Dismiss on click background
                         showStreakCelebration = false
@@ -772,7 +789,7 @@ fun SmartLearnScreen(navController: NavController) {
                         .padding(16.dp)
                         .clickable(enabled = false) {}, // prevent click-through
                     cornerRadius = 28.dp,
-                    backgroundColor = Color(0xFB0F1026)
+                    backgroundColor = celebrationCardColor
                 ) {
                     Column(
                         modifier = Modifier
@@ -853,7 +870,7 @@ fun SmartLearnScreen(navController: NavController) {
                         ) {
                             Text(
                                 text = "$animatedStreakCount",
-                                color = Color.White,
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
                                 fontWeight = FontWeight.Black,
                                 fontSize = 48.sp,
                                 modifier = Modifier.scale(if (animatedStreakCount == streak) 1.15f else 1.0f)
@@ -861,7 +878,7 @@ fun SmartLearnScreen(navController: NavController) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Days",
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -869,7 +886,7 @@ fun SmartLearnScreen(navController: NavController) {
 
                         Text(
                             text = "استریک روزانه شما فعال است! از تداوم زنجیره یادگیری خود محافظت کنید.",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF1E293B),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp,
@@ -888,7 +905,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = day,
-                                        color = Color.White.copy(alpha = 0.4f),
+                                        color = if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -901,12 +918,15 @@ fun SmartLearnScreen(navController: NavController) {
                                                 if (active) Brush.radialGradient(
                                                     colors = listOf(Color(0xFFFF9100), Color(0xFFFF3D00))
                                                 ) else Brush.radialGradient(
-                                                    colors = listOf(Color(0x12FFFFFF), Color(0x06FFFFFF))
+                                                    colors = listOf(
+                                                        if (isDark) Color(0x12FFFFFF) else Color(0x0C0F172A),
+                                                        if (isDark) Color(0x06FFFFFF) else Color(0x030F172A)
+                                                    )
                                                 )
                                             )
                                             .border(
                                                 1.dp,
-                                                if (active) Color(0xFFFFEA00).copy(alpha = 0.6f) else Color(0x12FFFFFF),
+                                                if (active) Color(0xFFFFEA00).copy(alpha = 0.6f) else (if (isDark) Color(0x12FFFFFF) else Color(0x120F172A)),
                                                 CircleShape
                                             ),
                                         contentAlignment = Alignment.Center
@@ -914,7 +934,7 @@ fun SmartLearnScreen(navController: NavController) {
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = null,
-                                            tint = if (active) Color.White else Color.White.copy(alpha = 0.15f),
+                                            tint = if (active) Color.White else (if (isDark) Color.White.copy(alpha = 0.15f) else Color(0x1F0F172A)),
                                             modifier = Modifier.size(12.dp)
                                         )
                                     }
@@ -929,7 +949,7 @@ fun SmartLearnScreen(navController: NavController) {
                             horizontalArrangement = Arrangement.Center,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0x1F2C2D35))
+                                .background(if (isDark) Color(0x1F2C2D35) else Color(0x0C0F172A))
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(

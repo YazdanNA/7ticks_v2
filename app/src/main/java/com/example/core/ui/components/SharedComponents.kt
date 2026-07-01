@@ -69,90 +69,17 @@ fun SharedGlassCard(
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val isDark = MaterialTheme.colorScheme.isDark
-    val resolvedBgColor = backgroundColor ?: if (isDark) Color(0x1F7A88FF) else Color(0x0A4F46E5)
-    val resolvedGlowColor = glowColor ?: if (isDark) Color(0x3DFFFFFF) else Color(0x1F0F172A)
-
-    // Bouncy press animation
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.97f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "glass_card_scale"
+    com.example.core.components.GlassCard(
+        modifier = modifier,
+        cornerRadius = cornerRadius,
+        borderWidth = borderWidth,
+        onClick = onClick,
+        glowColor = glowColor,
+        backgroundColor = backgroundColor,
+        depth = depth,
+        contentPadding = 20.dp,
+        content = content
     )
-
-    // Base transparency gradient
-    val cardBrush = Brush.verticalGradient(
-        colors = listOf(
-            resolvedBgColor.copy(alpha = (0.16f * depth).coerceAtMost(0.45f)),
-            resolvedBgColor.copy(alpha = (0.04f * depth).coerceAtMost(0.18f))
-        )
-    )
-
-    // High quality border glow brush
-    val borderBrush = Brush.linearGradient(
-        colors = listOf(
-            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.25f),
-            resolvedGlowColor.copy(alpha = 0.12f),
-            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.04f)
-        ),
-        start = Offset(0f, 0f),
-        end = Offset(200f, 400f)
-    )
-
-    Box(
-        modifier = modifier
-            .scale(scale)
-            .shadow(
-                elevation = (4 * depth).dp,
-                shape = RoundedCornerShape(cornerRadius),
-                clip = false,
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0xFF0F172A).copy(alpha = 0.1f),
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.15f)
-            )
-            .clip(RoundedCornerShape(cornerRadius))
-            .background(cardBrush)
-            .border(
-                width = borderWidth,
-                brush = borderBrush,
-                shape = RoundedCornerShape(cornerRadius)
-            )
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interactionSource,
-                        indication = LocalIndication.current
-                    ) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onClick()
-                    }
-                } else {
-                    Modifier
-                }
-            )
-    ) {
-        Box(
-            modifier = Modifier
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf((if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.05f), Color.Transparent),
-                            center = Offset(size.width / 3f, 0f),
-                            radius = size.width / 1.5f
-                        )
-                    )
-                }
-                .padding(20.dp)
-        ) {
-            content()
-        }
-    }
 }
 
 /**

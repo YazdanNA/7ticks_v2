@@ -371,6 +371,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                     .align(Alignment.BottomCenter)
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
+                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -379,7 +380,11 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                         .border(
                             width = 1.dp,
                             brush = Brush.linearGradient(
-                                colors = listOf(Color(0x3DFFFFFF), Color(0x127A88FF))
+                                colors = if (isDark) {
+                                    listOf(Color(0x3DFFFFFF), Color(0x127A88FF))
+                                } else {
+                                    listOf(Color(0x1F0F172A), Color(0x0D6366F1))
+                                }
                             ),
                             shape = RoundedCornerShape(24.dp)
                         )
@@ -427,18 +432,34 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     .clip(CircleShape)
                                     .background(
                                         if (isDictionaryActive) {
-                                            Brush.horizontalGradient(
-                                                colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
-                                            )
+                                            if (isDark) {
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF))
+                                                )
+                                            } else {
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
+                                                )
+                                            }
                                         } else {
-                                            Brush.horizontalGradient(
-                                                colors = listOf(Color(0x22FFFFFF), Color(0x0DFFFFFF))
-                                            )
+                                            if (isDark) {
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0x22FFFFFF), Color(0x0DFFFFFF))
+                                                )
+                                            } else {
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0x0C0F172A), Color(0x1F0F172A))
+                                                )
+                                            }
                                         }
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = if (isDictionaryActive) Color.White else Color(0x33FFFFFF),
+                                        color = if (isDictionaryActive) {
+                                            if (isDark) Color.White else Color(0xFF6366F1)
+                                        } else {
+                                            if (isDark) Color(0x33FFFFFF) else Color(0x1F0F172A)
+                                        },
                                         shape = CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -446,14 +467,22 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Dictionary Toggle",
-                                    tint = if (isDictionaryActive) Color.White else Color(0xFF00FFD2),
+                                    tint = if (isDictionaryActive) {
+                                        Color.White
+                                    } else {
+                                        if (isDark) Color(0xFF00FFD2) else Color(0xFF0F172A).copy(alpha = 0.6f)
+                                    },
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Dictionary".localize(),
-                                color = if (isDictionaryActive) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.5f),
+                                color = if (isDictionaryActive) {
+                                    if (isDark) Color(0xFF00FFD2) else Color(0xFF6366F1)
+                                } else {
+                                    if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569)
+                                },
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -484,6 +513,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
 
             // Custom premium glassmorphic exit confirmation dialog card
             if (showExitDialog) {
+                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -499,7 +529,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             .fillMaxWidth(0.85f)
                             .padding(16.dp),
                         cornerRadius = 24.dp,
-                        backgroundColor = Color(0xFF0F1026).copy(alpha = 0.95f)
+                        backgroundColor = if (isDark) Color(0xFF0F1026).copy(alpha = 0.95f) else Color(0xFFFFFFFF).copy(alpha = 0.95f)
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -515,7 +545,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             
                             Text(
                                 text = "Exit SevenTicks?".localize(),
-                                color = Color.White,
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
@@ -523,7 +553,7 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                             
                             Text(
                                 text = "Are you sure you want to exit the application?".localize(),
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
                             )
@@ -537,8 +567,8 @@ fun MainScreen(navController: androidx.navigation.NavController) {
                                     onClick = { showExitDialog = false },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0x1AFFFFFF),
-                                        contentColor = Color.White
+                                        containerColor = if (isDark) Color(0x1AFFFFFF) else Color(0x0C0F172A),
+                                        contentColor = if (isDark) Color.White else Color(0xFF0F172A)
                                     ),
                                     shape = RoundedCornerShape(14.dp)
                                 ) {
@@ -605,6 +635,7 @@ fun RowScope.BottomNavItem(
 
 @Composable
 private fun BoxScope.FrostedGlassBackground() {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Box(
         modifier = Modifier
             .matchParentSize()
@@ -624,10 +655,11 @@ private fun BoxScope.FrostedGlassBackground() {
                     }
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0x1A7A88FF)
-                            )
+                            colors = if (isDark) {
+                                listOf(Color.Transparent, Color(0x1A7A88FF))
+                            } else {
+                                listOf(Color.Transparent, Color(0x126366F1))
+                            }
                         )
                     )
             )
@@ -644,11 +676,11 @@ private fun BoxScope.FrostedGlassBackground() {
                     }
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0x0EFFFFFF),
-                                Color.Transparent
-                            )
+                            colors = if (isDark) {
+                                listOf(Color.Transparent, Color(0x0EFFFFFF), Color.Transparent)
+                            } else {
+                                listOf(Color.Transparent, Color(0x0E000000), Color.Transparent)
+                            }
                         )
                     )
             )
@@ -665,10 +697,11 @@ private fun BoxScope.FrostedGlassBackground() {
                     }
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0x0CFFFFFF),
-                                Color.Transparent
-                            )
+                            colors = if (isDark) {
+                                listOf(Color(0x0CFFFFFF), Color.Transparent)
+                            } else {
+                                listOf(Color(0x0A000000), Color.Transparent)
+                            }
                         )
                     )
             )
@@ -679,25 +712,33 @@ private fun BoxScope.FrostedGlassBackground() {
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0x14FFFFFF),
-                                Color(0x1F7A88FF)
-                            )
+                            colors = if (isDark) {
+                                listOf(Color(0x14FFFFFF), Color(0x1F7A88FF))
+                            } else {
+                                listOf(Color(0xEEFFFFFF), Color(0xF2F1F5F9))
+                            }
                         )
                     )
             )
         }
 
-        // Static Overlay: Vertical Darkening gradient to optimize icon contrast/readability
+        // Static Overlay: Vertical shading gradient to optimize icon contrast/readability
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0x0D060713), // 5% opacity of midnight dark background at the top
-                            Color(0x26060713)  // 15% opacity of midnight dark background at the bottom
-                        )
+                        colors = if (isDark) {
+                            listOf(
+                                Color(0x0D060713), // 5% opacity of midnight dark background at the top
+                                Color(0x26060713)  // 15% opacity of midnight dark background at the bottom
+                            )
+                        } else {
+                            listOf(
+                                Color(0x0AFFFFFF),
+                                Color(0x1AFFFFFF)
+                            )
+                        }
                     )
                 )
         )
@@ -709,7 +750,7 @@ private fun BoxScope.FrostedGlassBackground() {
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x17FFFFFF), // Elegant 9% white edge highlight
+                            if (isDark) Color(0x17FFFFFF) else Color(0x0F0F172A),
                             Color.Transparent
                         ),
                         endY = 40f

@@ -33,6 +33,7 @@ import com.example.SevenTicksApplication
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
+import com.example.ui.theme.isDark
 import com.example.core.database.BoxWordEntity
 import com.example.core.database.CustomBoxEntity
 import com.example.core.database.FavoriteWordEntity
@@ -106,6 +107,10 @@ fun DictionaryScreen() {
         }
     }
 
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val subtextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569)
+
     // Main scroll container (FIXED Header)
     Column(
         modifier = Modifier
@@ -123,26 +128,26 @@ fun DictionaryScreen() {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(Color(0x1F00FFD2)),
+                    .background(if (isDark) Color(0x1F00FFD2) else Color(0x1F0284C7)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Book,
                     contentDescription = null,
-                    tint = Color(0xFF00FFD2),
+                    tint = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7),
                     modifier = Modifier.size(22.dp)
                 )
             }
             Column {
                 Text(
                     text = "Lexicon Explorer",
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "Search thousands of curated academic terms",
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = subtextColor,
                     fontSize = 11.sp
                 )
             }
@@ -153,14 +158,14 @@ fun DictionaryScreen() {
             value = query,
             onValueChange = { query = it },
             placeholder = "Search Words",
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF00C2FF)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7)) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { 
                         query = "" 
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = textColor)
                     }
                 }
             },
@@ -186,17 +191,17 @@ fun DictionaryScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.History, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.History, contentDescription = null, tint = subtextColor, modifier = Modifier.size(16.dp))
                         Text(
                             text = "Recent Searches",
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
                         text = "Clear All",
-                        color = Color(0xFF00C2FF),
+                        color = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -218,8 +223,8 @@ fun DictionaryScreen() {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0x11FFFFFF))
-                                .border(1.dp, Color(0x0EFFFFFF), RoundedCornerShape(12.dp))
+                                .background(if (isDark) Color(0x11FFFFFF) else Color(0x0C0F172A))
+                                .border(1.dp, if (isDark) Color(0x0EFFFFFF) else Color(0x1A0F172A), RoundedCornerShape(12.dp))
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     query = search.query
@@ -232,13 +237,13 @@ fun DictionaryScreen() {
                             ) {
                                 Text(
                                     text = search.query,
-                                    color = Color.White.copy(alpha = 0.85f),
+                                    color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF1E293B),
                                     fontSize = 12.sp
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Delete",
-                                    tint = Color.White.copy(alpha = 0.4f),
+                                    tint = if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B),
                                     modifier = Modifier
                                         .size(12.dp)
                                         .clickable {
@@ -262,7 +267,7 @@ fun DictionaryScreen() {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(18.dp))
                 Text(
                     text = "My Starred Words",
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -277,13 +282,13 @@ fun DictionaryScreen() {
                     ) {
                         Text(
                             text = "No Starred Words Yet",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Any dictionary word you star will appear here for fast, offline access.",
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = subtextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
                         )
@@ -317,7 +322,7 @@ fun DictionaryScreen() {
                                 Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(16.dp))
                                 Text(
                                     text = favorite.word,
-                                    color = Color.White,
+                                    color = textColor,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -328,7 +333,7 @@ fun DictionaryScreen() {
                                     boxRepo.removeFavoriteWord(favorite.word)
                                 }
                             }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Unstar", tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Delete, contentDescription = "Unstar", tint = if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B), modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -346,7 +351,7 @@ fun DictionaryScreen() {
             // --- SEARCH RESULTS PANEL ---
             if (isSearching) {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF00C2FF))
+                    CircularProgressIndicator(color = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7))
                 }
             } else if (searchResults.isEmpty()) {
                 Column(
@@ -370,7 +375,7 @@ fun DictionaryScreen() {
                 ) {
                     Text(
                         text = "Matching Vocabulary (${searchResults.size})",
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = subtextColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -417,7 +422,7 @@ fun DictionaryScreen() {
                             ) {
                                 Text(
                                     text = result.word,
-                                    color = Color(0xFF00FFD2),
+                                    color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0F766E),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -428,12 +433,12 @@ fun DictionaryScreen() {
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0x229D00FF))
+                                            .background(if (isDark) Color(0x229D00FF) else Color(0x1F9D00FF))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = result.level,
-                                            color = Color(0xFFE040FB),
+                                            color = if (isDark) Color(0xFFE040FB) else Color(0xFF7C3AED),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -441,12 +446,12 @@ fun DictionaryScreen() {
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0x1F00C2FF))
+                                            .background(if (isDark) Color(0x1F00C2FF) else Color(0x1F0284C7))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = result.type,
-                                            color = Color(0xFF00C2FF),
+                                            color = if (isDark) Color(0xFF00C2FF) else Color(0xFF0369A1),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -456,7 +461,7 @@ fun DictionaryScreen() {
                             if (result.shortMeaning.isNotEmpty()) {
                                 Text(
                                     text = result.shortMeaning,
-                                    color = Color.White.copy(alpha = 0.75f),
+                                    color = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF1E293B),
                                     fontSize = 12.sp,
                                     maxLines = 2
                                 )
@@ -464,7 +469,7 @@ fun DictionaryScreen() {
                             if (result.topic.isNotEmpty() && result.topic != "General") {
                                 Text(
                                     text = "Category: ${result.topic}",
-                                    color = Color.White.copy(alpha = 0.4f),
+                                    color = subtextColor,
                                     fontSize = 10.sp
                                 )
                             }
@@ -480,13 +485,25 @@ fun DictionaryScreen() {
     // --- WORD DETAILS PREMIUM DIALOG SHEET ---
     if (showDetailsModal && selectedWord != null) {
         val word = selectedWord!!
+        val isDark = MaterialTheme.colorScheme.isDark
+        val dialogBg = if (isDark) Color(0xFF0C0D21) else Color.White
+        val dialogBorder = if (isDark) Color(0x33FFFFFF) else Color(0x1F0F172A)
+        val dialogTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+        val dialogSubtleTextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569)
+        val dialogStrongTextColor = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF1E293B)
+        val dialogMoreSubtleTextColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569)
+        val dialogFaintTextColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
+        val dividerColor = if (isDark) Color(0x1FFFFFFF) else Color(0x1F0F172A)
+        val exampleBg = if (isDark) Color(0x0EFFFFFF) else Color(0x0C0F172A)
+        val dropdownBg = if (isDark) Color(0xFF0F1026) else Color.White
+        val dropdownBorder = if (isDark) Color(0x22FFFFFF) else Color(0x1A0F172A)
         
         AlertDialog(
             onDismissRequest = { showDetailsModal = false },
-            containerColor = Color(0xFF0C0D21),
+            containerColor = dialogBg,
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(28.dp))
+                .border(1.dp, dialogBorder, RoundedCornerShape(28.dp))
                 .clip(RoundedCornerShape(28.dp)),
             title = {
                 Row(
@@ -497,7 +514,7 @@ fun DictionaryScreen() {
                     Column {
                         Text(
                             text = word.word,
-                            color = Color.White,
+                            color = dialogTextColor,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -510,7 +527,7 @@ fun DictionaryScreen() {
                             )
                             Text(
                                 text = "•",
-                                color = Color.White.copy(alpha = 0.3f),
+                                color = dialogSubtleTextColor,
                                 fontSize = 12.sp
                             )
                             Text(
@@ -538,11 +555,11 @@ fun DictionaryScreen() {
                             Icon(
                                 imageVector = if (isWordFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (isWordFavorite) Color(0xFFFF4081) else Color.White.copy(alpha = 0.6f)
+                                tint = if (isWordFavorite) Color(0xFFFF4081) else dialogMoreSubtleTextColor
                             )
                         }
                         IconButton(onClick = { showDetailsModal = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.6f))
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = dialogMoreSubtleTextColor)
                         }
                     }
                 }
@@ -577,12 +594,12 @@ fun DictionaryScreen() {
                         }
                     }
 
-                    HorizontalDivider(color = Color(0x1FFFFFFF))
+                    HorizontalDivider(color = dividerColor)
 
                     // Persian / Meanings
                     if (word.meanings.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Translations & Meanings", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Translations & Meanings", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.meanings.forEach { m ->
                                 Text(
                                     text = m,
@@ -593,38 +610,38 @@ fun DictionaryScreen() {
                                 )
                             }
                         }
-                        HorizontalDivider(color = Color(0x1FFFFFFF))
+                        HorizontalDivider(color = dividerColor)
                     }
 
                     // Definitions
                     if (word.definitions.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(text = "Definitions", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Definitions", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.definitions.forEach { d ->
                                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(text = "•", color = Color(0xFF00C2FF), fontWeight = FontWeight.Bold)
-                                    Text(text = d, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, lineHeight = 18.sp)
+                                    Text(text = d, color = dialogStrongTextColor, fontSize = 13.sp, lineHeight = 18.sp)
                                 }
                             }
                         }
-                        HorizontalDivider(color = Color(0x1FFFFFFF))
+                        HorizontalDivider(color = dividerColor)
                     }
 
                     // Examples
                     if (word.examples.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(text = "Sentence Examples", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Sentence Examples", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.examples.forEach { ex ->
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x0EFFFFFF))
+                                        .background(exampleBg)
                                         .padding(8.dp)
                                 ) {
                                     Text(
                                         text = "\"$ex\"",
-                                        color = Color.White.copy(alpha = 0.75f),
+                                        color = dialogFaintTextColor,
                                         fontStyle = FontStyle.Italic,
                                         fontSize = 12.sp,
                                         lineHeight = 16.sp
@@ -632,7 +649,7 @@ fun DictionaryScreen() {
                                 }
                             }
                         }
-                        HorizontalDivider(color = Color(0x1FFFFFFF))
+                        HorizontalDivider(color = dividerColor)
                     }
 
                     // Synonyms & Antonyms
@@ -640,7 +657,7 @@ fun DictionaryScreen() {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (word.synonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(text = "Synonyms", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = "Synonyms", color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(
                                         text = word.synonyms.joinToString(", "),
                                         color = Color(0xFF00E676),
@@ -650,7 +667,7 @@ fun DictionaryScreen() {
                             }
                             if (word.antonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(text = "Antonyms", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = "Antonyms", color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(
                                         text = word.antonyms.joinToString(", "),
                                         color = Color(0xFFFF7043),
@@ -659,13 +676,13 @@ fun DictionaryScreen() {
                                 }
                             }
                         }
-                        HorizontalDivider(color = Color(0x1FFFFFFF))
+                        HorizontalDivider(color = dividerColor)
                     }
 
                     // Word Family
                     if (word.wordFamily.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Word Family", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Word Family", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 text = word.wordFamily.joinToString(" ➔ "),
                                 color = Color(0xFFE040FB),
@@ -690,12 +707,12 @@ fun DictionaryScreen() {
                             expanded = showAddToBoxDropdown,
                             onDismissRequest = { showAddToBoxDropdown = false },
                             modifier = Modifier
-                                .background(Color(0xFF0F1026))
-                                .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(8.dp))
+                                .background(dropdownBg)
+                                .border(1.dp, dropdownBorder, RoundedCornerShape(8.dp))
                         ) {
                             if (customBoxes.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text("No boxes created yet", color = Color.White.copy(alpha = 0.5f)) },
+                                    text = { Text("No boxes created yet", color = dialogSubtleTextColor) },
                                     onClick = { showAddToBoxDropdown = false }
                                 )
                             } else {
@@ -704,7 +721,7 @@ fun DictionaryScreen() {
                                         text = { 
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(Icons.Default.Folder, contentDescription = null, tint = Color(android.graphics.Color.parseColor(box.colorHex)), modifier = Modifier.size(16.dp))
-                                                Text(box.name, color = Color.White)
+                                                Text(box.name, color = dialogTextColor)
                                             }
                                         },
                                         onClick = {

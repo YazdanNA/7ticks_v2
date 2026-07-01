@@ -47,6 +47,7 @@ import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
 import com.example.core.ui.components.UniversalFlashcard
+import com.example.ui.theme.isDark
 import com.example.core.ui.components.toFlashcardData
 import com.example.core.ui.components.flashcard.FlashCardState
 import com.example.core.learning.*
@@ -305,13 +306,26 @@ fun LearningSessionScreen(
         label = "gradient_shift"
     )
 
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val subtextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569)
+
     val animatedBgBrush = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFF060713),
-            Color(0xFF090D26).copy(alpha = 0.9f + (bgShift / 1000f)),
-            Color(0xFF1D0A30).copy(alpha = 0.85f - (bgShift / 1000f)),
-            Color(0xFF060713)
-        ),
+        colors = if (MaterialTheme.colorScheme.isDark) {
+            listOf(
+                Color(0xFF060713),
+                Color(0xFF090D26).copy(alpha = 0.9f + (bgShift / 1000f)),
+                Color(0xFF1D0A30).copy(alpha = 0.85f - (bgShift / 1000f)),
+                Color(0xFF060713)
+            )
+        } else {
+            listOf(
+                Color(0xFFF1F5F9),
+                Color(0xFFE2E8F0).copy(alpha = 0.9f + (bgShift / 1000f)),
+                Color(0xFFEFF6FF).copy(alpha = 0.85f - (bgShift / 1000f)),
+                Color(0xFFF1F5F9)
+            )
+        },
         start = Offset(0f, 0f),
         end = Offset(1000f + bgShift * 3f, 1500f - bgShift * 2f)
     )
@@ -363,7 +377,7 @@ fun LearningSessionScreen(
                         } else {
                             "No active session found."
                         },
-                        color = Color.White,
+                        color = textColor,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -514,7 +528,7 @@ fun LearningSessionScreen(
 
                             Text(
                                 text = if (isLevelUp) "🌟 LEVEL UP! 🌟" else "🏅 REWARD EARNED! 🏅",
-                                color = if (isLevelUp) Color(0xFFFFD600) else Color(0xFF00FFD2),
+                                color = if (isLevelUp) Color(0xFFFFD600) else (if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7)),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center
@@ -522,7 +536,7 @@ fun LearningSessionScreen(
 
                             Text(
                                 text = reward.title,
-                                color = Color.White,
+                                color = textColor,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
@@ -532,7 +546,7 @@ fun LearningSessionScreen(
                             Text(
                                 text = if (isLevelUp) "سطح جدید با موفقیت باز شد! به تمرینات روزانه خود ادامه دهید تا زنجیره یادگیری خود را پرثمرتر کنید."
                                 else "تبریک می‌گوییم! پاداش تلاش‌ها و دستاوردهای یادگیری خود را دریافت کنید.",
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF334155),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 18.sp,
@@ -555,7 +569,7 @@ fun LearningSessionScreen(
                             ) {
                                 Text(
                                     text = "+${reward.rewardXp} XP Boost",
-                                    color = Color(0xFF00FFD2),
+                                    color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0F766E),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Black
                                 )
@@ -629,20 +643,20 @@ fun LearningSessionScreen(
                         )
                         Text(
                             text = "Session Complete! 🎉",
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Black,
                             textAlign = TextAlign.Center
                         )
                         Text(
                             text = "You've successfully processed all assigned words for this adaptive smart session.",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )
 
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color.White.copy(alpha = 0.1f) else Color(0x1F0F172A)))
 
                         // Detailed stats row (including Streak & Accuracy!)
                         Row(
@@ -658,20 +672,20 @@ fun LearningSessionScreen(
                                 )
                                 Text(
                                     text = "XP Earned",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = subtextColor,
                                     fontSize = 11.sp
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "${loadedCards.size}",
-                                    color = Color(0xFF00FFD2),
+                                    color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black
                                 )
                                 Text(
                                     text = "Reviewed",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = subtextColor,
                                     fontSize = 11.sp
                                 )
                             }
@@ -684,7 +698,7 @@ fun LearningSessionScreen(
                                 )
                                 Text(
                                     text = "Accuracy",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = subtextColor,
                                     fontSize = 11.sp
                                 )
                             }
@@ -697,13 +711,13 @@ fun LearningSessionScreen(
                                 )
                                 Text(
                                     text = "Streak",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = subtextColor,
                                     fontSize = 11.sp
                                 )
                             }
                         }
 
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color.White.copy(alpha = 0.1f) else Color(0x1F0F172A)))
 
                         // Level progress bar
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -714,13 +728,13 @@ fun LearningSessionScreen(
                             ) {
                                 Text(
                                     text = "Level $levelNum Progress",
-                                    color = Color.White,
+                                    color = textColor,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "$levelXpToDisplay / $targetXpNeeded XP",
-                                    color = Color(0xFF00FFD2),
+                                    color = if (MaterialTheme.colorScheme.isDark) Color(0xFF00FFD2) else MaterialTheme.colorScheme.primary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -728,7 +742,7 @@ fun LearningSessionScreen(
                             LinearProgressIndicator(
                                 progress = { currentAnimatingLevelProgress },
                                 color = Color(0xFF9D00FF),
-                                trackColor = Color(0x1AFFFFFF),
+                                trackColor = if (MaterialTheme.colorScheme.isDark) Color(0x1AFFFFFF) else Color(0x1A0F172A),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
@@ -995,19 +1009,19 @@ fun LearningSessionScreen(
                     title = {
                         Text(
                             text = (if (isBoxSession) boxName else "Smart Learn Session").localize(),
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back", tint = textColor)
                         }
                     },
                     actions = {
                         IconButton(onClick = { /* Display tips context */ }) {
-                            Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
+                            Icon(Icons.Default.Info, contentDescription = "Help", tint = textColor)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -1047,7 +1061,7 @@ fun LearningSessionScreen(
                     val completedCount = engine?.completedCardsCount ?: 0
                     Text(
                         text = ("Card ${completedCount + 1} of $total").localize(),
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = subtextColor,
                         fontSize = 12.sp
                     )
                 }
@@ -1058,8 +1072,8 @@ fun LearningSessionScreen(
                         val completedCount = engine?.completedCardsCount ?: 0
                         if (total > 0) completedCount.toFloat() / total.toFloat() else 0f
                     },
-                    color = Color(0xFF00FFD2),
-                    trackColor = Color(0x1AFFFFFF),
+                    color = if (MaterialTheme.colorScheme.isDark) Color(0xFF00FFD2) else MaterialTheme.colorScheme.primary,
+                    trackColor = if (MaterialTheme.colorScheme.isDark) Color(0x1AFFFFFF) else Color(0x1A0F172A),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -1084,22 +1098,22 @@ fun LearningSessionScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E5FF)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "New: $newCount", color = subtextColor, fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFFEA00)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "Learn: $learnCount", color = subtextColor, fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFFF9100)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "Relearn: $relearnCount", color = subtextColor, fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF00E676)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "Due: $dueCount", color = subtextColor, fontSize = 11.sp)
                         }
                     }
 
@@ -1118,7 +1132,7 @@ fun LearningSessionScreen(
                                     ""
                                 }
                             },
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = subtextColor,
                             fontSize = 11.sp,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1202,6 +1216,7 @@ fun ActionButton(
             .padding(horizontal = 4.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+        val isDark = MaterialTheme.colorScheme.isDark
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = text,
@@ -1211,7 +1226,7 @@ fun ActionButton(
             )
             Text(
                 text = subtext,
-                color = Color.White.copy(alpha = 0.45f),
+                color = if (isDark) Color.White.copy(alpha = 0.45f) else Color(0xFF64748B),
                 fontSize = 10.sp
             )
         }

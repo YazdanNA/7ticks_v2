@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.features.tiki.renderer.EmotionRenderer
 import com.example.ui.theme.LocalAppLanguage
+import com.example.ui.theme.isDark
 import com.example.core.localization.Translations
 import kotlinx.coroutines.delay
 
@@ -153,6 +154,11 @@ fun TickyCard(
         contentAlignment = Alignment.CenterStart
     ) {
         // 1. Glass Card background & layout (containing the speech bubble, padded dynamically to leave space for Tiki)
+        val isDark = MaterialTheme.colorScheme.isDark
+        val bubbleBg = if (isDark) Color(0x0AFFFFFF) else Color(0x0A0F172A)
+        val bubbleBorder = if (isDark) Color(0x10FFFFFF) else Color(0x150F172A)
+        val speechColor = if (isDark) Color(0xFF00FFD2) else MaterialTheme.colorScheme.primary
+
         SharedGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,14 +183,14 @@ fun TickyCard(
                             .fillMaxWidth()
                             .height(64.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0x0AFFFFFF))
-                            .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(16.dp))
+                            .background(bubbleBg)
+                            .border(1.dp, bubbleBorder, RoundedCornerShape(16.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         contentAlignment = speechBubbleAlignment
                     ) {
                         Text(
                             text = displayedText,
-                            color = Color(0xFF00FFD2),
+                            color = speechColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             lineHeight = 17.sp,
