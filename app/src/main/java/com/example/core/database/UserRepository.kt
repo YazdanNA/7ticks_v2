@@ -558,12 +558,15 @@ class UserRepository @Inject constructor(
         val allLogs = userDao.getReviewHistoryOnce()
         val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
 
+        val allWordIds = allCards.map { it.wordId }.distinct()
+        val wordDetailsMap = vocabDbManager.getWordsByIds(allWordIds)
+
         levels.map { levelStr ->
             val totalInLevel = vocabDbManager.getWordCountByLevels(listOf(levelStr)).coerceAtLeast(1)
 
             // Filter cards belonging to this CEFR level
             val levelCards = allCards.filter { card ->
-                val cachedLevel = vocabDbManager.getWordById(card.wordId)?.level ?: "A1"
+                val cachedLevel = wordDetailsMap[card.wordId]?.level ?: "A1"
                 cachedLevel.equals(levelStr, ignoreCase = true)
             }
 
@@ -644,8 +647,11 @@ class UserRepository @Inject constructor(
         val allCards = userDao.getAllCardsOnce()
         val allLogs = userDao.getReviewHistoryOnce()
         
+        val allWordIds = allCards.map { it.wordId }.distinct()
+        val wordDetailsMap = vocabDbManager.getWordsByIds(allWordIds)
+
         val levelCards = allCards.filter { card ->
-            val cachedLevel = vocabDbManager.getWordById(card.wordId)?.level ?: "A1"
+            val cachedLevel = wordDetailsMap[card.wordId]?.level ?: "A1"
             cachedLevel.equals(currentLevelStr, ignoreCase = true)
         }
 

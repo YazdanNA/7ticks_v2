@@ -403,6 +403,53 @@ open class VocabularyDatabaseManager @Inject constructor(private val context: Co
         return result
     }
 
+    open fun getWordsByIds(ids: List<Int>): Map<Int, DictWord> {
+        if (isTestMode) {
+            val idSet = ids.toSet()
+            return testWords.filter { idSet.contains(it.id) }.associateBy { it.id }
+        }
+        if (!isDatabaseDownloaded() || ids.isEmpty()) return emptyMap()
+        val results = mutableMapOf<Int, DictWord>()
+        var db: SQLiteDatabase? = null
+        try {
+            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            val tableName = getFirstUserTable(db) ?: return emptyMap()
+            val columns = getColumns(db, tableName)
+
+            val idCol = columns.find { it.equals("id", ignoreCase = true) || it.equals("key", ignoreCase = true) } ?: columns.firstOrNull() ?: ""
+            if (idCol.isEmpty()) return emptyMap()
+
+            ids.chunked(900).forEach { chunk ->
+                val placeholders = chunk.joinToString(",") { "?" }
+                val selection = "$idCol IN ($placeholders)"
+                val selectionArgs = chunk.map { it.toString() }.toTypedArray()
+
+                val cursor = db.query(
+                    tableName,
+                    null,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    null
+                )
+
+                if (cursor.moveToFirst()) {
+                    do {
+                        val word = mapCursorToDictWord(cursor, columns)
+                        results[word.id] = word
+                    } while (cursor.moveToNext())
+                }
+                cursor.close()
+            }
+        } catch (e: Exception) {
+            Log.e("VocabDbManager", "Error getting words by ids", e)
+        } finally {
+            db?.close()
+        }
+        return results
+    }
+
     open fun getWordByString(word: String): DictWord? {
         if (isTestMode) {
             return testWords.find { it.word.equals(word, ignoreCase = true) }
