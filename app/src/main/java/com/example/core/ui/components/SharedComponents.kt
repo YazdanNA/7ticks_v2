@@ -333,14 +333,7 @@ fun SharedTextField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(containerColor, RoundedCornerShape(20.dp))
-                .shadow(
-                    elevation = if (isFocused) 8.dp else 0.dp,
-                    shape = RoundedCornerShape(20.dp),
-                    clip = false,
-                    ambientColor = Color(0xFF00C2FF).copy(alpha = 0.15f),
-                    spotColor = Color(0xFF9D00FF).copy(alpha = 0.25f)
-                ),
+                .background(containerColor, RoundedCornerShape(20.dp)),
             interactionSource = interactionSource,
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
