@@ -111,17 +111,197 @@ object Translations {
         "Yes" to "بله",
         "No" to "خیر",
 
-        // Tiki Mascots Default Dialogue
-        "Hi there! I am Tiki, your vocabulary mentor." to "سلام! من تیکی هستم، مربی واژگان شما.",
-        "Welcome! Let's level up your vocabulary today!" to "خوش آمدید! بیایید امروز سطح واژگان شما را ارتقا دهیم!",
-
         // Challenges Screen
         "Active Challenges" to "چالش‌های فعال",
         "Active Challenge" to "چالش فعال",
         "Earn Extra XP Points" to "کسب امتیاز تجربه (XP) اضافی",
         "No active challenges found" to "هیچ چالش فعالی یافت نشد",
         "Tap to view all challenges" to "برای مشاهده همه چالش‌ها ضربه بزنید",
-        "Quests synchronize in real-time with the central FSRS engine" to "ماموریت‌ها به صورت آنی با موتور مرکزی FSRS همگام‌سازی می‌شوند"
+        "Quests synchronize in real-time with the central FSRS engine" to "ماموریت‌ها به صورت آنی با موتور مرکزی FSRS همگام‌سازی می‌شوند",
+
+        // Onboarding Wizard Texts
+        "Hi there! I am Tiki, your vocabulary mentor. Welcome to 7Ticks, a scientifically proven spaced repetition system!" to "سلام! من تیکی هستم، مربی واژگان شما. به سون‌تیکز خوش آمدید، یک سیستم تکرار فاصله‌دار که از نظر علمی اثبات شده است!",
+        "Let's get to know you! What is your name?" to "بیا بیشتر با هم آشنا بشیم! نام شما چیست؟",
+        "Choose an avatar that fits your style! It will represent your cognitive profile." to "یک آواتار متناسب با سلیقه خود انتخاب کنید! این آواتار نمایه شناختی شما را نشان خواهد داد.",
+        "Select your native language so I can customize translations and learning aids." to "زبان مادری خود را انتخاب کنید تا بتوانم ترجمه‌ها و ابزارهای کمکی یادگیری را سفارشی‌سازی کنم.",
+        "Select the target language you want to master!" to "زبان هدفی که می‌خواهید بر آن مسلط شوید را انتخاب کنید!",
+        "How much time would you like to dedicate to learning daily? Let's build a strong habit." to "روزانه چقدر زمان می‌خواهید به یادگیری اختصاص دهید؟ بیایید یک عادت قوی بسازیم.",
+        "Set a daily reminder time so we don't break your learning streak!" to "یک زمان یادآوری روزانه تنظیم کنید تا توالی یادگیری شما قطع نشود!",
+        "Let's run a short adaptive assessment to determine your starting vocabulary level!" to "بیایید یک ارزیابی تطبیقی کوتاه برای تعیین سطح واژگان شروع شما انجام دهیم!",
+        "Excellent job! I have fully mapped your starting neural vocabulary profile." to "کار شما عالی بود! من نمایه واژگان عصبی اولیه شما را به طور کامل نقشه‌برداری کردم.",
+        "I'm assessing your skill with every answer. Focus up, you've got this!" to "من با هر پاسخ مهارت شما را ارزیابی می‌کنم. تمرکز کنید، شما می‌توانید!",
+        "Woohoo! Your local environment setup is perfect. Let's begin our mastery journey!" to "هورا! راه‌اندازی محیط محلی شما عالی است. بیایید سفر تسلط خود را شروع کنیم!",
+        "Oh no, there was an error in initializing the database. Let's retry." to "اوه نه، خطایی در راه‌اندازی پایگاه داده رخ داد. بیایید دوباره تلاش کنیم.",
+        "Setting up SevenTicks... Downloading your dynamic language database now." to "در حال راه‌اندازی سون‌تیکز... در حال دانلود پایگاه داده پویای زبان شما.",
+        
+        "Welcome" to "خوش‌آمدگویی",
+        "Your Name" to "نام شما",
+        "Select Avatar" to "انتخاب آواتار",
+        "Native Language" to "زبان مادری",
+        "Target Language" to "زبان هدف",
+        "Daily Commitment" to "تعهد روزانه",
+        "Reminder Notification" to "اعلان یادآوری",
+        "Placement Assessment" to "سنجش تعیین سطح",
+        "Finalizing Setup" to "نهایی‌سازی راه‌اندازی",
+        "Getting everything ready..." to "در حال آماده‌سازی همه‌چیز...",
+        "Preparing search indices..." to "در حال آماده‌سازی شاخص‌های جستجو...",
+        "Initializing profile indices..." to "در حال آماده‌سازی شاخص‌های پروفایل...",
+        "Finishing details..." to "در حال اتمام جزئیات...",
+        "Please select your native language" to "لطفاً زبان مادری خود را انتخاب کنید",
+        "Please select your target language" to "لطفاً زبان هدف خود را انتخاب کنید",
+        "Enter your name" to "نام خود را وارد کنید",
+        "Let's Begin" to "شروع کنیم",
+        "Select Time" to "انتخاب زمان",
+        "Daily Notification" to "اعلان روزانه",
+        "Choose Notification Time" to "زمان اعلان را انتخاب کنید",
+        "Adaptive Placement Test" to "آزمون تعیین سطح تطبیقی",
+        "Completed" to "تکمیل شد",
+        "Start Mastery" to "شروع تسلط",
+
+        // Smart Learn Screen Items
+        "Today's Target:" to "هدف امروز:",
+        "Start Daily Session" to "شروع جلسه روزانه",
+        "Quick Practice" to "تمرین سریع",
+        "Custom Box Session" to "جلسه جعبه سفارشی",
+        "Configure" to "پیکربندی",
+        "Search all vocabulary..." to "جستجو در تمام واژگان...",
+        "Search results for" to "نتایج جستجو برای",
+        "No words found matching" to "هیچ کلمه‌ای یافت نشد برای",
+
+        // Dictionary Screen Items
+        "Explore word structures, synonyms, and levels! Star terms to find them quickly." to "ساختار کلمات، مترادف‌ها و سطوح را کاوش کنید! اصطلاحات را ستاره‌دار کنید تا سریع‌تر آن‌ها را بیابید.",
+        "in my database. Let's try typing another term or check the spelling!" to "در پایگاه داده‌ام. بیایید اصطلاح دیگری را تایپ کرده یا املاء آن را بررسی کنید!",
+        "Synonyms" to "مترادف‌ها",
+        "Antonyms" to "متضادها",
+        "Examples" to "مثال‌ها",
+        "Definition" to "تعریف",
+        "Translations" to "ترجمه‌ها",
+        "Word Family" to "هم‌خانواده کلمات",
+        "Collocations" to "ترکیب‌های کلمات",
+        "Phrases" to "عبارت‌ها",
+        "Notes" to "یادداشت‌ها",
+        "Part of Speech" to "نقش کلمه",
+        "Pronounce" to "تلفظ",
+
+        // Boxes Screen Items
+        "You don't have any archived boxes yet." to "شما هنوز هیچ جعبه آرشیو شده‌ای ندارید.",
+        "Let's create your first custom vocabulary collection! Tap 'Create Box' above." to "بیایید اولین مجموعه واژگان سفارشی خود را بسازیم! روی 'ایجاد جعبه' در بالا ضربه بزنید.",
+        "No words inside this box matched your search. Tap '+' to create/auto-fill new terms!" to "هیچ کلمه‌ای در این جعبه با جستجوی شما مطابقت نداشت. روی '+' برای ایجاد یا تکمیل خودکار کلمات جدید ضربه بزنید!",
+        "Superb job! You finished reviewing words inside " to "کار عالی! شما مرور کلمات درون این جعبه را به پایان رساندید ",
+        "! Your memory is now highly calibrated!" to "! حافظه شما اکنون بسیار کالیبره شده است!",
+        "Create Box" to "ایجاد جعبه",
+        "Import Box" to "وارد کردن جعبه",
+        "Custom Boxes" to "جعبه‌های سفارشی",
+        "Active Vocabulary Boxes" to "جعبه‌های واژگان فعال",
+        "Auto-Fill from Dictionary Source" to "تکمیل خودکار از منبع واژه‌نامه",
+        "Accent Color" to "رنگ برجسته",
+        "Select Accent Color" to "رنگ برجسته را انتخاب کنید",
+        "Box Name" to "نام جعبه",
+        "Enter box name..." to "نام جعبه را وارد کنید...",
+        "Box Description" to "توضیحات جعبه",
+        "Enter box description..." to "توضیحات جعبه را وارد کنید...",
+        "Select Box Icon" to "آیکون جعبه را انتخاب کنید",
+        "Auto-Fill Word" to "تکمیل خودکار کلمه",
+        "Enter English word to auto-fill..." to "کلمه انگلیسی را جهت تکمیل خودکار وارد کنید...",
+        "Word Schema Fields" to "فیلدهای ساختار کلمه",
+        "Paste the copied vocabulary box backup JSON text here. We will recreate the box and restore all elements." to "متن پشتیبان JSON کپی شده جعبه واژگان را در اینجا قرار دهید. ما جعبه را دوباره ایجاد کرده و تمام عناصر را بازیابی خواهیم کرد.",
+        "Smart Learn Session" to "جلسه یادگیری هوشمند",
+
+        // Analysis Screen Items
+        "Establish a daily review routine to discover your optimal learning hours." to "یک روال مرور روزانه ایجاد کنید تا ساعت‌های یادگیری بهینه خود را کشف کنید.",
+        "Memory retention dropped slightly recently. Prioritize scheduled reviews before introducing more brand-new words." to "ماندگاری حافظه اخیراً کمی کاهش یافته است. قبل از معرفی کلمات جدید، مرورهای زمان‌بندی‌شده را در اولویت قرار دهید.",
+        "Retention is highly stable. Daily consistency will further secure these words in long-term memory." to "ماندگاری کلمات بسیار پایدار است. استمرار روزانه این کلمات را در حافظه بلندمدت تثبیت می‌کند.",
+        "XP boost! Complete daily challenges and maintain a high correct answer ratio to level up player stats." to "امتیاز افزایشی (XP)! چالش‌های روزانه را تکمیل کنید و نسبت پاسخ‌های درست را بالا نگه دارید تا سطح خود را ارتقا دهید.",
+        "Your performance is best with shorter, concentrated sessions of 10 to 15 cards to avoid brain fatigue." to "عملکرد شما با جلسات کوتاه‌تر و متمرکز ۱۰ تا ۱۵ کارتی برای جلوگیری از خستگی مغز، در بهترین حالت خود خواهد بود.",
+        "Study consistently to generate personalized learning intelligence insights." to "برای تولید تحلیل‌های هوشمند شخصی‌سازی شده، به طور مستمر مطالعه کنید.",
+        "You study most efficiently in the morning." to "شما صبح‌ها بیشترین بازدهی یادگیری را دارید.",
+        "You study most efficiently in the evening." to "شما عصرها بیشترین بازدهی یادگیری را دارید.",
+        "of your reviews are completed during those hours." to "از مرورهای شما در این ساعات تکمیل می‌شود.",
+
+        // Profile Screen Items
+        "Let's master some words today to unlock your first spaced repetition milestone!" to "بیا امروز روی چند کلمه مسلط بشیم تا اولین نقطه عطف تکرار فاصله‌دار خودمون رو باز کنیم!",
+        "You are making stellar progress, " to "پیشرفت فوق‌العاده‌ای داری، ",
+        "! You have already unlocked " to "! تو از قبل ",
+        " achievements." to " دستاورد باز کردی.",
+
+        // Smart Learn Screen Items
+        "Welcome back, " to "خوش برگشتی، ",
+        "! 👋 Ready for another cognitive boost?" to "! 👋 آماده یک تقویت شناختی دیگر هستی؟",
+        "You have an active spacing session waiting!" to "تو یک جلسه تکرار فعال منتظر داری!",
+        "Your neural pathways are highly receptive right now!" to "مسیرهای عصبی تو در حال حاضر بسیار پذیرا هستند!",
+        "Daily quests are active! Let's conquer some academic words!" to "ماموریت‌های روزانه فعال هستند! بیا چند کلمه دانشگاهی را تسخیر کنیم!",
+
+        // Study Session & Flashcards Reactions
+        "Tiki is celebrating your cognitive growth! Let's do a happy island dance! 🌴💃" to "تیکی در حال جشن گرفتن رشد شناختی شماست! بیایید رقص شاد جزیره‌ای انجام دهیم! 🌴💃",
+        "Tiki is proud of your persistence! Double high-five! 🐾✋" to "تیکی به پشتکار شما افتخار می‌کند! بزن قدش دو دستی! 🐾✋",
+        "Tiki is amazed by your dedication! That is a rare badge! 🏆✨" to "تیکی از فداکاری شما شگفت‌زده شده است! این یک نشان نادر است! 🏆✨",
+        "Your burning passion is inspiring! Tiki says keep the flame alive! 🔥🦖" to "اشتیاق سوزان شما الهام‌بخش است! تیکی می‌گوید شعله را زنده نگه دارید! 🔥🦖",
+        "Tiki is cheering for you! Keep up the incredible work!" to "تیکی در حال تشویق شماست! به کار فوق‌العاده خود ادامه دهید!",
+        "Tiki is watching! Recall correctly to impress me!" to "تیکی در حال تماشا است! برای تحت تاثیر قرار دادن من، به درستی یادآوری کنید!",
+
+        // Dialogues from dialogues_en.json
+        "A new word. Please do not feed the vocabulary." to "یک کلمه جدید. لطفا به این واژه غذا ندهید!",
+        "First contact with an extremely introverted word." to "اولین برخورد با یک کلمه به شدت درون‌گرا.",
+        "A fresh term appears. Approach with mild curiosity." to "یک اصطلاح تازه ظاهر شد. با کنجکاوی ملایم نزدیک شوید.",
+        "Introducing a word that dislikes bright lights." to "معرفی کلمه‌ای که از نورهای روشن بیزار است.",
+        "First meeting. It is polite to look interested." to "اولین ملاقات. باادبانه است که علاقه‌مند به نظر برسید.",
+        "An unfamiliar word. It seems friendly enough." to "یک کلمه ناآشنا. به اندازه کافی دوستانه به نظر می‌رسد.",
+        "A new linguistic specimen has wandered in." to "یک نمونه زبان‌شناختی جدید وارد شده است.",
+        "Meet a word that refuses to be ignored." to "ملاقات با کلمه‌ای که از نادیده گرفته شدن امتناع می‌کند.",
+        "First contact. The word is sizing you up." to "اولین برخورد. کلمه دارد شما را برانداز می‌کند.",
+        "An unexpected guest in our review deck today." to "یک مهمان غیرمنتظره در دسته مرور امروز ما.",
+        "A quiet introduction to a very private noun." to "یک معرفی آرام برای یک اسم بسیار خصوصی.",
+        "This word has arrived without an invitation." to "این کلمه بدون دعوت وارد شده است.",
+        "A new concept. Handle with light curiosity." to "یک مفهوم جدید. با کنجکاوی ملایم با آن برخورد کنید.",
+        "First contact. This term is surprisingly quiet." to "اولین برخورد. این اصطلاح به طرز شگفت‌آوری آرام است.",
+        "An unusual word. It is still adjusting." to "یک کلمه غیرمعمول. هنوز در حال سازگاری است.",
+        "Greeting a word that recently arrived here." to "خوش‌آمدگویی به کلمه‌ای که به تازگی به اینجا رسیده است.",
+        "First encounter. No sudden movements, please." to "اولین ملاقات. لطفاً حرکت ناگهانی انجام ندهید!",
+        "A fresh term has quietly joined us." to "یک اصطلاح جدید بی‌سروصدا به ما پیوسته است.",
+        "Meet a word with a very specific attitude." to "ملاقات با کلمه‌ای با یک نگرش بسیار خاص.",
+        "First contact. This node seems slightly confused." to "اولین برخورد. این بخش کمی گیج به نظر می‌رسد.",
+        "A new verb. It is highly experimental." to "یک فعل جدید. بسیار آزمایشی است.",
+        "First meeting. The word seems slightly defensive." to "اولین ملاقات. کلمه کمی دفاعی به نظر می‌رسد.",
+        "A rare word has entered your hemisphere." to "یک کلمه نادر وارد نیمکره مغزی شما شده است.",
+        "An unfamiliar term. Let's keep our distance." to "یک اصطلاح ناآشنا. بیایید فاصله‌مان را حفظ کنیم.",
+        "A new vocabulary node. Mildly intriguing indeed." to "یک گره واژگانی جدید. در واقع تا حدی جذاب است.",
+        "First contact. The letters are still settling." to "اولین برخورد. حروف هنوز در حال نشستن هستند.",
+        "An unexpected word joins today's quiet circle." to "یک کلمه غیرمعومت به حلقه آرام امروز می‌پیوندد.",
+        "Introducing a term that prefers quiet corners." to "معرفی اصطلاحی که گوشه‌های دنج و ساکت را ترجیح می‌دهد.",
+        "A fresh node. It smells like paper." to "یک گره تازه. بوی کاغذ می‌دهد!",
+        "First meeting with a rather curious adjective." to "اولین ملاقات با یک صفت نسبتاً کنجکاو.",
+        "A new word. Try not to startle it." to "یک کلمه جدید. سعی کنید آن را نترسانید!",
+        "First contact. The spelling is highly intentional." to "اولین برخورد. املای کلمه کاملاً هدفمند است.",
+        "An interesting term. Let us observe quietly." to "یک اصطلاح جالب. بیایید بی‌سروصدا مشاهده کنیم.",
+        "First meeting. The word nods back silently." to "اولین ملاقات. کلمه بی‌صدا سر تکان می‌دهد.",
+        "A new arrival. It seems quite stable." to "یک تازه وارد. کاملاً پایدار به نظر می‌رسد.",
+        "Trying this word again. Third time is charm." to "تلاش دوباره برای این کلمه. تا سه نشه بازی نشه!",
+        "Another attempt. The word feels very familiar." to "یک تلاش دیگر. کلمه بسیار آشنا به نظر می‌رسد.",
+        "We meet again. Did you miss me?" to "دوباره همدیگر را ملاقات کردیم. دلت برایم تنگ شده بود؟",
+        "Back so soon? This word has gravity." to "به این زودی برگشتی؟ این کلمه نیروی جاذبه دارد!",
+        "A repeat attempt. Let's try a smile." to "یک تلاش مجدد. بیایید یک لبخند را امتحان کنیم.",
+        "Revisiting this term. It has missed you." to "بازبینی این اصطلاح. دلش برای شما تنگ شده بود!",
+        "Attempt number two. Let us keep it simple." to "تلاش شماره دو. بیایید ساده نگهش داریم.",
+        "Back here again. The word looks different." to "دوباره برگشتیم اینجا. کلمه متفاوت به نظر می‌رسد.",
+        "Another try. The letters haven't changed." to "یک تلاش دیگر. حروف تغییر نکرده‌اند.",
+        "Meeting this word again. A quiet reunion." to "ملاقات دوباره با این کلمه. یک تجدید دیدار آرام.",
+        "Re-attempting. Let's pretend it's the first time." to "تلاش دوباره. بیایید وانمود کنیم بار اول است!",
+        "This word again. It has a persistent nature." to "دوباره این کلمه. ماهیت بسیار سمجی دارد!",
+        "Another encounter. The letters are staying put." to "ملاقاتی دیگر. حروف در جای خود باقی مانده‌اند.",
+        "Back for seconds. The vocabulary is rich." to "برگشتیم برای بار دوم. دایره واژگان غنی است!",
+        "A repeat try. Let's negotiate with memory." to "یک تلاش مجدد. بیایید با حافظه مذاکره کنیم!",
+        "Once more. The meaning remains the same." to "یک بار دیگر. معنی کلمه همان است که بود.",
+        "Re-examining. The definition is still holding on." to "امتحان مجدد. تعریف هنوز پابرجاست.",
+        "Back to this card. A persistent little node." to "بازگشت به این کارت. یک گره کوچک سمج!",
+        "A second glance. The word stands its ground." to "نگاهی دوباره. کلمه سر حرفش ایستاده است.",
+        "Another round. Memory is playing gentle games." to "یک دور دیگر. حافظه دارد بازی‌های ظریفی می‌کند.",
+        "Revisiting. The word is waiting patiently here." to "بازبینی مجدد. کلمه صبورانه اینجا منتظر است.",
+        "Back here. Let's try a softer touch." to "برگشتیم اینجا. بیایید با ملایمت بیشتری برخورد کنیم.",
+        "A repeat attempt. No pressure, just letters." to "یک تلاش مجدد. فشاری نیست، فقط چند تا حرفه!",
+        "Once again. The term greets you quietly." to "یک بار دیگر. این اصطلاح بی‌سروصدا به شما سلام می‌گوید.",
+        "Re-attempting this. Let's keep our focus." to "تلاش مجدد برای این کلمه. بیایید تمرکزمان را حفظ کنیم.",
+        "Another try. The definition is still stable." to "یک تلاش دیگر. تعریف هنوز ثابت است.",
+        "Back to this concept. A familiar path." to "بازگشت به این مفهوم. یک مسیر آشنا."
     )
 
     fun translate(text: String, lang: String): String {
@@ -133,8 +313,12 @@ object Translations {
 
         // 2. Partial template translation
         var result = text
-        faMap.forEach { (eng, fa) ->
+        
+        // Sort keys by length descending to match longer strings/templates first
+        val sortedKeys = faMap.keys.sortedByDescending { it.length }
+        for (eng in sortedKeys) {
             if (eng.length > 3) { // Only replace significant phrases
+                val fa = faMap[eng] ?: continue
                 result = result.replace(eng, fa, ignoreCase = true)
             }
         }
@@ -164,3 +348,4 @@ fun String.localize(): String {
     val lang = LocalAppLanguage.current
     return Translations.translate(this, lang)
 }
+

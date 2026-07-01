@@ -185,6 +185,60 @@ class TikiEngine private constructor() {
             )
         }
 
+        // Ultimate Fallback: if language is "fa" and still no dialog matched, fallback to English ("en")
+        if (resolvedMetadata == null && langCode == "fa") {
+            resolvedMetadata = contentEngine.resolveDialogue(
+                category = categoryToResolve,
+                language = "en",
+                emotion = initialEmotion.name,
+                relationshipLevel = relationshipLevel,
+                currentStreak = memorySnapshot.currentStreak,
+                sessionProgress = progress,
+                thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+                currentTimeMillis = currentTime
+            )
+            if (resolvedMetadata == null) {
+                resolvedMetadata = contentEngine.resolveDialogue(
+                    category = categoryToResolve,
+                    language = "en",
+                    emotion = null,
+                    relationshipLevel = relationshipLevel,
+                    currentStreak = memorySnapshot.currentStreak,
+                    sessionProgress = progress,
+                    thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+                    currentTimeMillis = currentTime
+                )
+            }
+            if (resolvedMetadata == null) {
+                val funnyCats = getMappedFunnyCategories(categoryToResolve)
+                for (funnyCat in funnyCats) {
+                    resolvedMetadata = contentEngine.resolveDialogue(
+                        category = funnyCat,
+                        language = "en",
+                        emotion = null,
+                        relationshipLevel = relationshipLevel,
+                        currentStreak = memorySnapshot.currentStreak,
+                        sessionProgress = progress,
+                        thinkingState = if (contextEvent is ContextEvent.ThinkingFinished) "THINKING_LONG" else null,
+                        currentTimeMillis = currentTime
+                    )
+                    if (resolvedMetadata != null) break
+                }
+            }
+            if (resolvedMetadata == null && categoryToResolve != "Idle") {
+                resolvedMetadata = contentEngine.resolveDialogue(
+                    category = "Idle",
+                    language = "en",
+                    emotion = null,
+                    relationshipLevel = relationshipLevel,
+                    currentStreak = memorySnapshot.currentStreak,
+                    sessionProgress = progress,
+                    thinkingState = null,
+                    currentTimeMillis = currentTime
+                )
+            }
+        }
+
         // Extract the final emotion from the selected dialogue's metadata if found
         val targetEmotion = if (behaviorResult != null) {
             behaviorResult.emotion
