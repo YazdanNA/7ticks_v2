@@ -286,7 +286,7 @@ fun SharedTextField(
         targetValue = if (isError) {
             Color(0xFFFF1744)
         } else if (isFocused) {
-            Color(0xFF00C2FF)
+            if (isDark) Color(0xFF00C2FF) else Color(0xFF6366F1)
         } else {
             if (isDark) Color(0x22FFFFFF) else Color(0x1F0F172A)
         },
@@ -298,7 +298,7 @@ fun SharedTextField(
         targetValue = if (isError) {
             Color(0xFFFF1744)
         } else if (isFocused) {
-            Color(0xFF00FFD2)
+            if (isDark) Color(0xFF00FFD2) else Color(0xFF6366F1)
         } else {
             if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.5f)
         },
@@ -317,7 +317,7 @@ fun SharedTextField(
         val containerColor = if (isError) {
             Color(0x1AFF1744)
         } else if (isFocused) {
-            Color(0x1A00C2FF)
+            if (isDark) Color(0x1A00C2FF) else Color(0x0C6366F1)
         } else {
             if (isDark) Color(0x0CFFFFFF) else Color(0x080F172A)
         }
