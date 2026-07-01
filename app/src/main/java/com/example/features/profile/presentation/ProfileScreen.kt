@@ -681,6 +681,14 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                                 .clickable {
                                     coroutineScope.launch {
                                         repo.updateNativeLanguage(option)
+                                        prefs.nativeLanguage = option
+                                        val langCode = when (option) {
+                                            "Persian" -> "fa"
+                                            "German" -> "de"
+                                            "French" -> "fr"
+                                            else -> "en"
+                                        }
+                                        // prefs.appLanguage = langCode
                                         showNativeLangDialog = false
                                         // Update Tiki immediately to reflect new language
                                         com.example.features.tiki.api.TikiController.getInstance().triggerPipeline(
@@ -726,6 +734,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                                 .clickable {
                                     coroutineScope.launch {
                                         repo.updateTargetLanguage(option)
+                                        prefs.targetLanguage = option
                                         showTargetLangDialog = false
                                     }
                                 }
@@ -767,6 +776,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                                 .clickable {
                                     coroutineScope.launch {
                                         repo.updateDailyGoal(option)
+                                        prefs.dailyGoal = option
                                         showDailyGoalDialog = false
                                     }
                                 }

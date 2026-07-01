@@ -363,13 +363,13 @@ fun BoxesDashboardScreen(
             // Dashboard Title (FIXED)
             Column {
                 Text(
-                    text = "My Vocab Boxes",
+                    text = "My Vocab Boxes".localize(),
                     color = MaterialTheme.colorScheme.adaptiveText,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Personal study collections",
+                    text = "Personal study collections".localize(),
                     color = MaterialTheme.colorScheme.adaptiveSecondaryText,
                     fontSize = 12.sp
                 )
@@ -537,7 +537,7 @@ fun BoxesDashboardScreen(
                             .border(1.dp, if (MaterialTheme.colorScheme.isDark) Color(0x22FFFFFF) else Color(0x1F000000), RoundedCornerShape(8.dp))
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Edit / Rename", color = MaterialTheme.colorScheme.adaptiveText) },
+                            text = { Text("Edit / Rename".localize(), color = MaterialTheme.colorScheme.adaptiveText) },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
@@ -545,7 +545,7 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (box.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.adaptiveText) },
+                            text = { Text((if (box.isArchived) "Unarchive" else "Archive").localize(), color = MaterialTheme.colorScheme.adaptiveText) },
                             leadingIcon = { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
@@ -556,7 +556,7 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Duplicate", color = MaterialTheme.colorScheme.adaptiveText) },
+                            text = { Text("Duplicate".localize(), color = MaterialTheme.colorScheme.adaptiveText) },
                             leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
@@ -567,7 +567,7 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Export JSON Backup", color = MaterialTheme.colorScheme.adaptiveText) },
+                            text = { Text("Export JSON Backup".localize(), color = MaterialTheme.colorScheme.adaptiveText) },
                             leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.adaptiveSecondaryText) },
                             onClick = {
                                 showMenu = false
@@ -611,7 +611,7 @@ fun BoxesDashboardScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete Permanently", color = Color(0xFFFF5252)) },
+                            text = { Text("Delete Permanently".localize(), color = Color(0xFFFF5252)) },
                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFFF5252)) },
                             onClick = {
                                 showMenu = false

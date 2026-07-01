@@ -203,13 +203,13 @@ fun SmartLearnScreen(navController: NavController) {
             ) {
                 Column {
                     Text(
-                        text = "Hi, $userName! 👋",
+                        text = "Hi, $userName! 👋".localize(),
                         color = textColor,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black
                     )
                     Text(
-                        text = "Today's Target: ${userProgress?.dailyGoal ?: prefs.dailyGoal}",
+                        text = "Today's Target: ${userProgress?.dailyGoal ?: prefs.dailyGoal}".localize(),
                         color = subtextColor,
                         fontSize = 12.sp
                     )
@@ -290,13 +290,13 @@ fun SmartLearnScreen(navController: NavController) {
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "$targetLg Workspace",
+                                    text = "$targetLg Workspace".localize(),
                                     color = textColor,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "$masteredWords of $totalWords mastered",
+                                    text = "$masteredWords of $totalWords mastered".localize(),
                                     color = subtextColor,
                                     fontSize = 12.sp
                                 )
@@ -323,7 +323,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "Reviews",
+                                text = "Reviews".localize(),
                                 color = subtextColor,
                                 fontSize = 11.sp
                             )
@@ -337,7 +337,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "Learning",
+                                text = "Learning".localize(),
                                 color = subtextColor,
                                 fontSize = 11.sp
                             )
@@ -351,7 +351,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "New Words",
+                                text = "New Words".localize(),
                                 color = subtextColor,
                                 fontSize = 11.sp
                             )
@@ -365,7 +365,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "Mastered",
+                                text = "Mastered".localize(),
                                 color = subtextColor,
                                 fontSize = 11.sp
                             )
@@ -444,7 +444,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = if (isFinishedForToday) "YOU'RE DONE FOR TODAY" else if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION",
+                                text = (if (isFinishedForToday) "YOU'RE DONE FOR TODAY" else if (isSessionActive) "CONTINUE LEARNING" else "START STUDY SESSION").localize(),
                                 color = if (isFinishedForToday) {
                                     if (isDark) Color(0xFF00E676) else Color(0xFF15803D)
                                 } else Color.White,
@@ -484,7 +484,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Active Challenge",
+                                    text = "Active Challenge".localize(),
                                     color = textColor,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
@@ -498,7 +498,7 @@ fun SmartLearnScreen(navController: NavController) {
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = challenge.title,
+                                    text = challenge.title.localize(),
                                     color = if (challenge.completed) Color(0xFF00E676) else (if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7)),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -507,7 +507,7 @@ fun SmartLearnScreen(navController: NavController) {
                         }
 
                         Text(
-                            text = challenge.description,
+                            text = challenge.description.localize(),
                             color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                             fontSize = 12.sp,
                             lineHeight = 16.sp

@@ -13,6 +13,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class PreferencesManager(private val context: Context) {
 
+    private val defaultSystemLanguage: String
+        get() = if (java.util.Locale.getDefault().language == "fa") "fa" else "en"
+
     private fun <T> getValue(key: Preferences.Key<T>, defaultValue: T): T = runBlocking {
         try {
             context.dataStore.data.first()[key] ?: defaultValue
@@ -66,7 +69,7 @@ class PreferencesManager(private val context: Context) {
 
     // New settings fields for Settings screen
     var appLanguage: String
-        get() = getValue(KEY_APP_LANGUAGE, "en")
+        get() = getValue(KEY_APP_LANGUAGE, defaultSystemLanguage)
         set(value) = setValue(KEY_APP_LANGUAGE, value)
 
     var themeMode: String
@@ -94,7 +97,7 @@ class PreferencesManager(private val context: Context) {
         set(value) = setValue(KEY_LAST_BACKUP_TIME, value)
 
     // Flow representations for reactive updates in Jetpack Compose
-    val appLanguageFlow: Flow<String> = context.dataStore.data.map { it[KEY_APP_LANGUAGE] ?: "en" }
+    val appLanguageFlow: Flow<String> = context.dataStore.data.map { it[KEY_APP_LANGUAGE] ?: defaultSystemLanguage }
 
     val themeModeFlow: Flow<String> = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "system" }
 

@@ -761,7 +761,16 @@ fun OnboardingWizardScreen(navController: NavController) {
                                     when (step) {
                                         1 -> prefs.userName = userName
                                         2 -> prefs.avatar = selectedAvatar
-                                        3 -> prefs.nativeLanguage = nativeLanguage
+                                        3 -> {
+                                            prefs.nativeLanguage = nativeLanguage
+                                            val langCode = when (nativeLanguage) {
+                                                "Persian" -> "fa"
+                                                "German" -> "de"
+                                                "French" -> "fr"
+                                                else -> "en"
+                                            }
+                                            // prefs.appLanguage = langCode
+                                        }
                                         4 -> prefs.targetLanguage = targetLanguage
                                         5 -> prefs.dailyGoal = dailyGoal
                                         6 -> prefs.reminderTime = if (reminderEnabled) reminderTime else "Disabled"
