@@ -134,13 +134,6 @@ fun GlassCard(
     Box(
         modifier = modifier
             .scale(scale)
-            .shadow(
-                elevation = (4 * depth).dp,
-                shape = shape,
-                clip = false,
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0xFF0F172A).copy(alpha = 0.1f),
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.15f)
-            )
             .clip(shape)
             .background(brush = glassBgBrush, shape = shape)
             .border(width = borderWidth, brush = glassBorderBrush, shape = shape)
