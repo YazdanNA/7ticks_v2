@@ -32,10 +32,16 @@ import com.example.core.ui.components.TickyCard
 import com.example.core.components.AvatarManager
 import com.example.ui.theme.*
 import com.example.core.ui.components.SharedTextField
+import com.example.core.localization.localize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: androidx.navigation.NavController) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showSettings by remember { mutableStateOf(false) }
@@ -149,7 +155,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape)
-                                .background(Color(0xFF0F1026)),
+                                .background(if (isDark) Color(0xFF0F1026) else Color.White),
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
@@ -165,7 +171,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                                 .size(24.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF00C2FF))
-                                .border(1.dp, Color.White, CircleShape)
+                                .border(1.dp, if (isDark) Color.White else Color.Black, CircleShape)
                                 .align(Alignment.BottomEnd),
                             contentAlignment = Alignment.Center
                         ) {
@@ -219,7 +225,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         ) {
                             Text(
                                 text = userName,
-                                color = Color.White,
+                                color = textColor,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -237,7 +243,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
 
                     Text(
                         text = "Level $level • $targetLg Master • $streak-Day Streak",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = subtextColor,
                         fontSize = 13.sp
                     )
 
@@ -250,7 +256,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Select an Avatar",
+                                text = "Select an Avatar".localize(),
                                 color = Color(0xFF00FFD2),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -273,12 +279,12 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                                                 if (isSelected) {
                                                     Brush.horizontalGradient(colors = listOf(Color(0xFF00C2FF), Color(0xFF9D00FF)))
                                                 } else {
-                                                    Brush.horizontalGradient(colors = listOf(Color(0x1AFFFFFF), Color(0x1AFFFFFF)))
+                                                    Brush.horizontalGradient(colors = listOf(if (isDark) Color(0x1AFFFFFF) else Color(0x0C000000), if (isDark) Color(0x1AFFFFFF) else Color(0x0C000000)))
                                                 }
                                             )
                                             .border(
                                                 width = if (isSelected) 2.dp else 1.dp,
-                                                color = if (isSelected) Color.White else Color(0x1AFFFFFF),
+                                                color = if (isSelected) (if (isDark) Color.White else Color.Black) else (if (isDark) Color(0x1AFFFFFF) else Color(0x1F000000)),
                                                 shape = CircleShape
                                             )
                                             .clickable {
@@ -318,12 +324,12 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Streak Status", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text("Streak Status".localize(), color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF00FFD2), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("$spells Freeze Spells", color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(("$spells Freeze Spells").localize(), color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -332,25 +338,27 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$streak Days", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                            Text("Current Streak", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text(("$streak Days").localize(), color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("Current Streak".localize(), color = subtextColor, fontSize = 11.sp)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$longestStreak Days", color = Color(0xFF00FFD2), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                            Text("Longest Streak", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text(("$longestStreak Days").localize(), color = Color(0xFF00FFD2), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("Longest Streak".localize(), color = subtextColor, fontSize = 11.sp)
                         }
                     }
 
+                    val streakSuccessMsg = "✨ Streak successfully restored to your longest record! ✨".localize()
+                    val streakFailMsg = "❌ No Streak Restore Spells available!".localize()
                     if (streak < longestStreak) {
                         PremiumGlassButton(
-                            text = "Cast Streak Restore Spell (-1 Spell)",
+                            text = "Cast Streak Restore Spell (-1 Spell)".localize(),
                             onClick = {
                                 coroutineScope.launch {
                                     val success = repo.restoreStreak()
                                     if (success) {
-                                        snackbarHostState.showSnackbar("✨ Streak successfully restored to your longest record! ✨")
+                                        snackbarHostState.showSnackbar(streakSuccessMsg)
                                     } else {
-                                        snackbarHostState.showSnackbar("❌ No Streak Restore Spells available!")
+                                        snackbarHostState.showSnackbar(streakFailMsg)
                                     }
                                 }
                             },
@@ -358,8 +366,8 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         )
                     } else {
                         Text(
-                            text = "🔥 Streak is fully secure and healthy! Keep learning to extend your record.",
-                            color = Color.White.copy(alpha = 0.6f),
+                            text = "🔥 Streak is fully secure and healthy! Keep learning to extend your record.".localize(),
+                            color = subtextColor,
                             fontSize = 11.sp,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
@@ -376,8 +384,8 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Experience Progress",
-                            color = Color.White,
+                            text = "Experience Progress".localize(),
+                            color = textColor,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -392,7 +400,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                     LinearProgressIndicator(
                         progress = { progressPercentage },
                         color = Color(0xFF9D00FF),
-                        trackColor = Color(0x1AFFFFFF),
+                        trackColor = if (isDark) Color(0x1AFFFFFF) else Color(0x0C000000),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
@@ -400,8 +408,8 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                     )
                     
                     Text(
-                        text = "${xpNeeded - xp} XP required to level up to Level ${level + 1}. Keep it up!",
-                        color = Color.White.copy(alpha = 0.5f),
+                        text = ("${xpNeeded - xp} XP required to level up to Level ${level + 1}. Keep it up!").localize(),
+                        color = subtextColor,
                         fontSize = 11.sp
                     )
                 }
@@ -413,7 +421,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Cognitive Statistics", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Cognitive Statistics".localize(), color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -421,15 +429,15 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${allCards.size}", color = Color(0xFF00C2FF), fontSize = 20.sp, fontWeight = FontWeight.Black)
-                            Text("Total Cards", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text("Total Cards".localize(), color = subtextColor, fontSize = 11.sp)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${allCards.count { it.boxIndex >= 7 }}", color = Color(0xFF00E676), fontSize = 20.sp, fontWeight = FontWeight.Black)
-                            Text("Mastered", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text("Mastered".localize(), color = subtextColor, fontSize = 11.sp)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${allCards.count { it.boxIndex in 1..6 }}", color = Color(0xFFFFD600), fontSize = 20.sp, fontWeight = FontWeight.Black)
-                            Text("In Learning", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text("In Learning".localize(), color = subtextColor, fontSize = 11.sp)
                         }
                     }
 
@@ -459,8 +467,8 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         }
                     }
                     Text(
-                        text = "Distribution across Leitner Box 1 (Left/Red) to Box 7 (Right/Green).",
-                        color = Color.White.copy(alpha = 0.4f),
+                        text = "Distribution across Leitner Box 1 (Left/Red) to Box 7 (Right/Green).".localize(),
+                        color = subtleTextColor,
                         fontSize = 10.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
@@ -470,8 +478,8 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             // 4. Achievements List
             val unlockedCount = achievementsList.count { it.unlocked }
             Text(
-                text = "Achievements ($unlockedCount/${achievementsList.size.coerceAtLeast(3)})",
-                color = Color.White,
+                text = ("Achievements ($unlockedCount/${achievementsList.size.coerceAtLeast(3)})").localize(),
+                color = textColor,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -496,7 +504,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(
-                                    if (achievement.unlocked) tintColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f),
+                                    if (achievement.unlocked) tintColor.copy(alpha = 0.15f) else (if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)),
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -504,7 +512,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             Icon(
                                 imageVector = iconVec,
                                 contentDescription = null,
-                                tint = if (achievement.unlocked) tintColor else Color.White.copy(alpha = 0.3f),
+                                tint = if (achievement.unlocked) tintColor else subtleTextColor,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -512,13 +520,13 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Column {
                             Text(
                                 text = achievement.name,
-                                color = if (achievement.unlocked) Color.White else Color.White.copy(alpha = 0.4f),
+                                color = if (achievement.unlocked) textColor else subtleTextColor,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = achievement.description,
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = subtextColor,
                                 fontSize = 12.sp
                             )
                         }
@@ -529,9 +537,9 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             // 5. Tiki Mascot Box
             TickyCard(
                 message = if (unlockedCount > 0) {
-                    "You are making stellar progress, $userName! You have already unlocked $unlockedCount achievements."
+                    ("You are making stellar progress, $userName! You have already unlocked $unlockedCount achievements.").localize()
                 } else {
-                    "Let's master some words today to unlock your first spaced repetition milestone!"
+                    "Let's master some words today to unlock your first spaced repetition milestone!".localize()
                 },
                 sizeDp = 60,
                 modifier = Modifier.fillMaxWidth()
@@ -541,15 +549,14 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
         }
     }
 
-    // 6. Settings Interactive Dialog Modal (Mirroring Reference Menus)
+    // 6. Settings Interactive Dialog Modal (Mirroring Reference MenMenus)
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { showSettings = false },
-            containerColor = Color(0xFF0F1026),
             title = {
                 Text(
-                    text = "Settings",
-                    color = Color.White,
+                    text = "Settings".localize(),
+                    color = textColor,
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -571,7 +578,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF00C2FF))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Native Lang", color = Color.White, fontSize = 14.sp)
+                            Text("Native Lang".localize(), color = textColor, fontSize = 14.sp)
                         }
                         Text("${userProgress?.nativeLanguage ?: prefs.nativeLanguage} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -589,7 +596,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.ThumbUp, contentDescription = null, tint = Color(0xFF9D00FF))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Target Lang", color = Color.White, fontSize = 14.sp)
+                            Text("Target Lang".localize(), color = textColor, fontSize = 14.sp)
                         }
                         Text("${userProgress?.targetLanguage ?: prefs.targetLanguage} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -603,7 +610,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD600))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Dark Mode", color = Color.White, fontSize = 14.sp)
+                            Text("Dark Mode".localize(), color = textColor, fontSize = 14.sp)
                         }
                         Switch(
                             checked = isDarkMode,
@@ -628,7 +635,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFFFF1744))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Daily Goal", color = Color.White, fontSize = 14.sp)
+                            Text("Daily Goal".localize(), color = textColor, fontSize = 14.sp)
                         }
                         Text("${userProgress?.dailyGoal ?: prefs.dailyGoal} >", color = Color(0xFF00FFD2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -640,17 +647,17 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = subtextColor)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("About 7Ticks", color = Color.White, fontSize = 14.sp)
+                            Text("About 7Ticks".localize(), color = textColor, fontSize = 14.sp)
                         }
-                        Text("v1.0.0", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                        Text("v1.0.0", color = subtleTextColor, fontSize = 13.sp)
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showSettings = false }) {
-                    Text("Close", color = Color(0xFF00FFD2), fontWeight = FontWeight.Bold)
+                    Text("Close".localize(), color = Color(0xFF00FFD2), fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -661,8 +668,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
         val options = listOf("Persian", "English", "German", "French")
         AlertDialog(
             onDismissRequest = { showNativeLangDialog = false },
-            containerColor = Color(0xFF141539),
-            title = { Text("Select Native Language", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Select Native Language".localize(), color = textColor, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.forEach { option ->
@@ -686,7 +692,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(option, color = Color.White, fontSize = 15.sp)
+                            Text(option, color = textColor, fontSize = 15.sp)
                             if (isSelected) {
                                 Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
                             }
@@ -696,7 +702,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             },
             confirmButton = {
                 TextButton(onClick = { showNativeLangDialog = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel".localize(), color = subtextColor)
                 }
             }
         )
@@ -707,8 +713,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
         val options = listOf("English", "German", "French", "Spanish", "Japanese")
         AlertDialog(
             onDismissRequest = { showTargetLangDialog = false },
-            containerColor = Color(0xFF141539),
-            title = { Text("Select Target Language", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Select Target Language".localize(), color = textColor, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.forEach { option ->
@@ -728,7 +733,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(option, color = Color.White, fontSize = 15.sp)
+                            Text(option, color = textColor, fontSize = 15.sp)
                             if (isSelected) {
                                 Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
                             }
@@ -738,7 +743,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             },
             confirmButton = {
                 TextButton(onClick = { showTargetLangDialog = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel".localize(), color = subtextColor)
                 }
             }
         )
@@ -749,8 +754,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
         val options = listOf("5 words / day", "10 words / day", "15 words / day", "20 words / day", "30 words / day", "45 words / day")
         AlertDialog(
             onDismissRequest = { showDailyGoalDialog = false },
-            containerColor = Color(0xFF141539),
-            title = { Text("Select Daily Goal", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Select Daily Goal".localize(), color = textColor, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.forEach { option ->
@@ -770,7 +774,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(option, color = Color.White, fontSize = 15.sp)
+                            Text(option, color = textColor, fontSize = 15.sp)
                             if (isSelected) {
                                 Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF00FFD2))
                             }
@@ -780,7 +784,7 @@ fun ProfileScreen(navController: androidx.navigation.NavController) {
             },
             confirmButton = {
                 TextButton(onClick = { showDailyGoalDialog = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel".localize(), color = subtextColor)
                 }
             }
         )

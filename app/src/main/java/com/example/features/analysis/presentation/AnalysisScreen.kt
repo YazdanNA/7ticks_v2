@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.SevenTicksApplication
+import com.example.core.localization.localize
+import com.example.ui.theme.*
 import com.example.core.components.GlassCard
 import com.example.core.components.PremiumGlassButton
 import com.example.core.ui.components.TickyCard
@@ -50,6 +52,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
 @Composable
 fun AnalysisScreen() {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
@@ -99,14 +106,14 @@ fun AnalysisScreen() {
         ) {
             Column {
                 Text(
-                    text = "Learning Intelligence",
-                    color = Color.White,
+                    text = "Learning Intelligence".localize(),
+                    color = textColor,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "FSRS & Cognitive Mastery Insights",
-                    color = Color.White.copy(alpha = 0.5f),
+                    text = "FSRS & Cognitive Mastery Insights".localize(),
+                    color = subtextColor,
                     fontSize = 12.sp
                 )
             }
@@ -115,15 +122,15 @@ fun AnalysisScreen() {
                 contentDescription = "Analysis Icon",
                 tint = Color(0xFF00FFD2),
                 modifier = Modifier.size(28.dp)
-            )
+              )
         }
 
         // Glass Tab Selection
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0x0EFFFFFF), RoundedCornerShape(12.dp))
-                .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                .background(if (isDark) Color(0x0EFFFFFF) else Color(0x0E000000), RoundedCornerShape(12.dp))
+                .border(1.dp, if (isDark) Color(0x14FFFFFF) else Color(0x14000000), RoundedCornerShape(12.dp))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
@@ -133,7 +140,7 @@ fun AnalysisScreen() {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isActive) Color(0x22FFFFFF) else Color.Transparent)
+                        .background(if (isActive) (if (isDark) Color(0x22FFFFFF) else Color(0x1A000000)) else Color.Transparent)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -145,8 +152,8 @@ fun AnalysisScreen() {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = label,
-                        color = if (isActive) Color.White else Color.White.copy(alpha = 0.5f),
+                        text = label.localize(),
+                        color = if (isActive) textColor else subtextColor,
                         fontSize = 11.sp,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
                     )
@@ -223,6 +230,11 @@ fun TabOverview(
     masteryList: List<CefrLevelMastery>,
     qualityScore: LearningQualityScore?
 ) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     val totalWordsLearned = allCards.count { it.reps > 0 }
     val totalReviews = reviewHistory.size
     val currentLevel = userProgress?.level ?: 1
@@ -241,8 +253,8 @@ fun TabOverview(
         
         // 1. Overview Grid Header (7 Stats Cards)
         Text(
-            text = "Learning Overview",
-            color = Color.White,
+            text = "Learning Overview".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
@@ -273,8 +285,8 @@ fun TabOverview(
                             Icon(item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(14.dp))
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(item.value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text(item.title, color = Color.White.copy(alpha = 0.5f), fontSize = 9.sp, textAlign = TextAlign.Center)
+                        Text(item.value.localize(), color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text(item.title.localize(), color = subtextColor, fontSize = 9.sp, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -307,8 +319,8 @@ fun TabOverview(
                             Icon(item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(14.dp))
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(item.value, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        Text(item.title, color = Color.White.copy(alpha = 0.5f), fontSize = 9.sp, textAlign = TextAlign.Center)
+                        Text(item.value.localize(), color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(item.title.localize(), color = subtextColor, fontSize = 9.sp, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -316,8 +328,8 @@ fun TabOverview(
 
         // 2. Goal Tracking Section
         Text(
-            text = "Adaptive Goal Tracking",
-            color = Color.White,
+            text = "Adaptive Goal Tracking".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -370,7 +382,7 @@ fun TabOverview(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(goal.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(goal.title.localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 "${goal.current} / ${goal.target} (${(goal.progress * 100).toInt().coerceIn(0, 100)}%)",
                                 color = goal.color,
@@ -385,7 +397,7 @@ fun TabOverview(
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
                             color = goal.color,
-                            trackColor = Color.White.copy(alpha = 0.08f)
+                            trackColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
                         )
                     }
                 }
@@ -394,8 +406,8 @@ fun TabOverview(
 
         // 3. CEFR Level Progress
         Text(
-            text = "CEFR Level Progression",
-            color = Color.White,
+            text = "CEFR Level Progression".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -425,28 +437,28 @@ fun TabOverview(
                                         .size(36.dp)
                                         .background(
                                             if (isUnlocked) Color(0xFF00FFD2).copy(alpha = 0.15f)
-                                            else Color.White.copy(alpha = 0.05f),
+                                            else (if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)),
                                             CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = mastery.level,
-                                        color = if (isUnlocked) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.4f),
+                                        color = if (isUnlocked) Color(0xFF00FFD2) else subtleTextColor,
                                         fontWeight = FontWeight.Black,
                                         fontSize = 14.sp
                                     )
                                 }
                                 Column {
                                     Text(
-                                        text = "CEFR Level ${mastery.level}",
-                                        color = Color.White,
+                                        text = ("CEFR Level ${mastery.level}").localize(),
+                                        color = textColor,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Learned: ${mastery.wordsLearned} / Mastered: ${mastery.wordsRetained}",
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        text = ("Learned: ${mastery.wordsLearned} / Mastered: ${mastery.wordsRetained}").localize(),
+                                        color = subtextColor,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -464,7 +476,7 @@ fun TabOverview(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "$progressPercent% Mastery",
+                                        text = ("$progressPercent% Mastery").localize(),
                                         color = Color(0xFF00E676),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold
@@ -473,12 +485,12 @@ fun TabOverview(
                                     Icon(
                                         Icons.Default.Lock,
                                         contentDescription = "Locked",
-                                        tint = Color.White.copy(alpha = 0.3f),
+                                        tint = subtleTextColor,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "Locked",
-                                        color = Color.White.copy(alpha = 0.4f),
+                                        text = "Locked".localize(),
+                                        color = subtleTextColor,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -493,7 +505,7 @@ fun TabOverview(
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
                                 color = Color(0xFF00FFD2),
-                                trackColor = Color.White.copy(alpha = 0.08f)
+                                trackColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
                             )
                         }
                     }
@@ -503,8 +515,8 @@ fun TabOverview(
 
         // 4. Smart Insights AI Card
         Text(
-            text = "Smart Analytics Insights",
-            color = Color.White,
+            text = "Smart Analytics Insights".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -572,6 +584,11 @@ fun TabCognitive(
     qualityScore: LearningQualityScore?,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback
 ) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     val accuracyVal = qualityScore?.reviewAccuracy ?: 0.0f
     val accuracyPct = (accuracyVal * 100).toInt()
 
@@ -583,8 +600,8 @@ fun TabCognitive(
         
         // 1. Retention Overview Card
         Text(
-            text = "Cognitive Retention Analysis",
-            color = Color.White,
+            text = "Cognitive Retention Analysis".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
@@ -597,20 +614,20 @@ fun TabCognitive(
             ) {
                 Column(modifier = Modifier.weight(1.3f)) {
                     Text(
-                        text = "Memory Retention",
-                        color = Color.White,
+                        text = "Memory Retention".localize(),
+                        color = textColor,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = when {
+                        text = (when {
                             accuracyVal >= 0.90f -> "Outstanding! Your cognitive retention rate exceeds the optimal target zone."
                             accuracyVal >= 0.80f -> "Great! Spaced repetition stability calculations are secure."
                             accuracyVal >= 0.60f -> "Stable. Maintaining daily reviews will consolidate learning paths."
                             else -> "FSRS is gathering metrics. Study daily to calibrate custom intervals."
-                        },
-                        color = Color.White.copy(alpha = 0.7f),
+                        }).localize(),
+                        color = subtextColor,
                         fontSize = 12.sp
                     )
                 }
@@ -639,13 +656,13 @@ fun TabCognitive(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "$accuracyPct%",
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = "Accuracy",
-                            color = Color.White.copy(alpha = 0.5f),
+                            text = "Accuracy".localize(),
+                            color = subtextColor,
                             fontSize = 9.sp
                         )
                     }
@@ -669,8 +686,8 @@ fun TabCognitive(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(item.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text(item.desc, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                                Text(item.title.localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(item.desc.localize(), color = subtextColor, fontSize = 10.sp)
                             }
                             Text(
                                 "${(item.value * 100).toInt().coerceIn(0, 100)}%",
@@ -687,7 +704,7 @@ fun TabCognitive(
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
                             color = item.color,
-                            trackColor = Color.White.copy(alpha = 0.08f)
+                            trackColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
                         )
                     }
                 }
@@ -707,8 +724,8 @@ fun TabCognitive(
         val easyPct = if (totalRatings > 0) easyCount.toFloat() / totalRatings else 0.0f
 
         Text(
-            text = "Review Rating Analytics",
-            color = Color.White,
+            text = "Review Rating Analytics".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -728,9 +745,9 @@ fun TabCognitive(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(item.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(item.label.localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                "${item.count} reviews (${(item.percent * 100).toInt()}%)",
+                                ("${item.count} reviews (${(item.percent * 100).toInt()}%)").localize(),
                                 color = item.color,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -744,7 +761,7 @@ fun TabCognitive(
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
                             color = item.color,
-                            trackColor = Color.White.copy(alpha = 0.08f)
+                            trackColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
                         )
                     }
                 }
@@ -753,15 +770,15 @@ fun TabCognitive(
 
         // 3. Spaced Repetition Circles (Leitner Boxes distribution)
         Text(
-            text = "Leitner Seven Circles of Learning",
-            color = Color.White,
+            text = "Leitner Seven Circles of Learning".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
         )
         Text(
-            text = "Leitner Box 1 contains brand-new reviews, scaling up to Box 7 (fully mastered vocabulary). Click on a circle to review.",
-            color = Color.White.copy(alpha = 0.5f),
+            text = "Leitner Box 1 contains brand-new reviews, scaling up to Box 7 (fully mastered vocabulary). Click on a circle to review.".localize(),
+            color = subtextColor,
             fontSize = 11.sp
         )
 
@@ -812,18 +829,18 @@ fun TabCognitive(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Circle $box",
-                            color = Color.White,
+                            text = ("${"Circle".localize()} $box"),
+                            color = textColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = when(box) {
+                            text = (when(box) {
                                 1 -> "New"
                                 7 -> "Mastered"
                                 else -> "Interval $box"
-                            },
-                            color = Color.White.copy(alpha = 0.4f),
+                            }).localize(),
+                            color = subtextColor,
                             fontSize = 9.sp
                         )
                     }
@@ -833,8 +850,8 @@ fun TabCognitive(
 
         // 4. Topic Strength Analysis (Dynamic Classifying)
         Text(
-            text = "Vocabulary Topic Analysis",
-            color = Color.White,
+            text = "Vocabulary Topic Analysis".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -859,9 +876,9 @@ fun TabCognitive(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(topic.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(topic.name.localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                "Learned: ${topic.learned} / Total: ${topic.total} (${(topic.ratio * 100).toInt()}%)",
+                                ("Learned: ${topic.learned} / Total: ${topic.total} (${(topic.ratio * 100).toInt()}%)").localize(),
                                 color = Color(0xFF00FFD2),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -875,7 +892,7 @@ fun TabCognitive(
                                 .height(5.dp)
                                 .clip(RoundedCornerShape(3.dp)),
                             color = Color(0xFF9D00FF),
-                            trackColor = Color.White.copy(alpha = 0.08f)
+                            trackColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
                         )
                     }
                 }
@@ -884,8 +901,8 @@ fun TabCognitive(
 
         // 5. Weak Words Analytics (Frequently Forgotten vs Most Difficult vs Most Repeated)
         Text(
-            text = "Weak Word Analytics",
-            color = Color.White,
+            text = "Weak Word Analytics".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -914,10 +931,10 @@ fun TabCognitive(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.PriorityHigh, contentDescription = null, tint = Color(0xFFFF1744), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Frequently Forgotten Words", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Frequently Forgotten Words".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     if (forgottenWords.isEmpty()) {
-                        Text("No memory lapses registered. Excellent recall precision!", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("No memory lapses registered. Excellent recall precision!".localize(), color = subtextColor, fontSize = 11.sp)
                     } else {
                         forgottenWords.forEach { card ->
                             Row(
@@ -925,7 +942,7 @@ fun TabCognitive(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(card.word, color = Color.White, fontSize = 13.sp)
+                                Text(card.word, color = textColor, fontSize = 13.sp)
                                 Box(
                                     modifier = Modifier
                                         .background(Color(0xFFFF1744).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
@@ -945,10 +962,10 @@ fun TabCognitive(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFFFF9100), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Most Difficult Words", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Most Difficult Words".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     if (difficultWords.isEmpty()) {
-                        Text("No complex intervals yet. FSRS parameters are fully balanced.", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("No complex intervals yet. FSRS parameters are fully balanced.".localize(), color = subtextColor, fontSize = 11.sp)
                     } else {
                         difficultWords.forEach { card ->
                             Row(
@@ -956,7 +973,7 @@ fun TabCognitive(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(card.word, color = Color.White, fontSize = 13.sp)
+                                Text(card.word, color = textColor, fontSize = 13.sp)
                                 Box(
                                     modifier = Modifier
                                         .background(Color(0xFFFF9100).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
@@ -976,10 +993,10 @@ fun TabCognitive(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Repeat, contentDescription = null, tint = Color(0xFF00C2FF), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Most Repeated Words", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Most Repeated Words".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     if (repeatedWords.isEmpty()) {
-                        Text("No statistics collected. Initiate reviews to map repetition counts.", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("No statistics collected. Initiate reviews to map repetition counts.".localize(), color = subtextColor, fontSize = 11.sp)
                     } else {
                         repeatedWords.forEach { card ->
                             Row(
@@ -987,7 +1004,7 @@ fun TabCognitive(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(card.word, color = Color.White, fontSize = 13.sp)
+                                Text(card.word, color = textColor, fontSize = 13.sp)
                                 Box(
                                     modifier = Modifier
                                         .background(Color(0xFF00C2FF).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
@@ -1016,6 +1033,11 @@ fun TabActivity(
     clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback
 ) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     val totalWordsLearned = allCards.count { it.reps > 0 }
     val totalReviews = reviewHistory.size
     val currentLevel = userProgress?.level ?: 1
@@ -1092,8 +1114,8 @@ fun TabActivity(
         
         // 1. Weekly Activity Profile Line Chart
         Text(
-            text = "Weekly Activity Profile",
-            color = Color.White,
+            text = "Weekly Activity Profile".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1104,8 +1126,8 @@ fun TabActivity(
         ) {
             Column {
                 Text(
-                    text = "Words Reviewed Per Day",
-                    color = Color.White.copy(alpha = 0.5f),
+                    text = "Words Reviewed Per Day".localize(),
+                    color = subtextColor,
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1119,9 +1141,9 @@ fun TabActivity(
                     val h = size.height
 
                     // Draw grid references
-                    drawLine(Color(0x0FFFFFFF), start = androidx.compose.ui.geometry.Offset(0f, h * 0.2f), end = androidx.compose.ui.geometry.Offset(w, h * 0.2f), strokeWidth = 2f)
-                    drawLine(Color(0x0FFFFFFF), start = androidx.compose.ui.geometry.Offset(0f, h * 0.5f), end = androidx.compose.ui.geometry.Offset(w, h * 0.5f), strokeWidth = 2f)
-                    drawLine(Color(0x0FFFFFFF), start = androidx.compose.ui.geometry.Offset(0f, h * 0.8f), end = androidx.compose.ui.geometry.Offset(w, h * 0.8f), strokeWidth = 2f)
+                    drawLine(if (isDark) Color(0x0FFFFFFF) else Color(0x0F000000), start = androidx.compose.ui.geometry.Offset(0f, h * 0.2f), end = androidx.compose.ui.geometry.Offset(w, h * 0.2f), strokeWidth = 2f)
+                    drawLine(if (isDark) Color(0x0FFFFFFF) else Color(0x0F000000), start = androidx.compose.ui.geometry.Offset(0f, h * 0.5f), end = androidx.compose.ui.geometry.Offset(w, h * 0.5f), strokeWidth = 2f)
+                    drawLine(if (isDark) Color(0x0FFFFFFF) else Color(0x0F000000), start = androidx.compose.ui.geometry.Offset(0f, h * 0.8f), end = androidx.compose.ui.geometry.Offset(w, h * 0.8f), strokeWidth = 2f)
 
                     val points = mutableListOf<androidx.compose.ui.geometry.Offset>()
                     for (i in 0..6) {
@@ -1146,7 +1168,7 @@ fun TabActivity(
                     )
 
                     points.forEach { pt ->
-                        drawCircle(color = Color.White, radius = 5.dp.toPx(), center = pt)
+                        drawCircle(color = if (isDark) Color.White else Color.Black, radius = 5.dp.toPx(), center = pt)
                         drawCircle(color = Color(0xFF00FFD2), radius = 2.dp.toPx(), center = pt)
                     }
                 }
@@ -1166,8 +1188,8 @@ fun TabActivity(
                     }
                     daysOfWeek.forEach { day ->
                         Text(
-                            text = day,
-                            color = Color.White.copy(alpha = 0.5f),
+                            text = day.localize(),
+                            color = subtextColor,
                             fontSize = 11.sp,
                             modifier = Modifier.width(36.dp),
                             textAlign = TextAlign.Center
@@ -1179,15 +1201,15 @@ fun TabActivity(
 
         // 2. GitHub-Style Heatmap Calendar
         Text(
-            text = "Cognitive Study Consistency Heatmap",
-            color = Color.White,
+            text = "Cognitive Study Consistency Heatmap".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
         )
         Text(
-            text = "Mapping active cognitive reviews over the last 12 weeks. Scroll horizontally.",
-            color = Color.White.copy(alpha = 0.5f),
+            text = "Mapping active cognitive reviews over the last 12 weeks. Scroll horizontally.".localize(),
+            color = subtextColor,
             fontSize = 11.sp
         )
 
@@ -1210,7 +1232,7 @@ fun TabActivity(
                                 val reviewCount = if (cellIdx < heatmapDays) monthlyCounts[cellIdx] else 0
                                 
                                 val densityColor = when {
-                                    reviewCount == 0 -> Color(0xFFFFFFFF).copy(alpha = 0.08f)
+                                    reviewCount == 0 -> if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.08f) else Color(0xFF000000).copy(alpha = 0.08f)
                                     reviewCount <= 2 -> Color(0xFF00FFD2).copy(alpha = 0.3f)
                                     reviewCount <= 5 -> Color(0xFF00FFD2).copy(alpha = 0.6f)
                                     reviewCount <= 10 -> Color(0xFF00FFD2).copy(alpha = 0.85f)
@@ -1234,7 +1256,7 @@ fun TabActivity(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Less  ", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                    Text("Less  ".localize(), color = subtextColor, fontSize = 10.sp)
                     listOf(0.08f, 0.4f, 0.7f, 1.0f).forEach { intensity ->
                         Box(
                             modifier = Modifier
@@ -1244,15 +1266,15 @@ fun TabActivity(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                     }
-                    Text("  More", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                    Text("  More".localize(), color = subtextColor, fontSize = 10.sp)
                 }
             }
         }
 
         // 3. XP & Time Analytics Section
         Text(
-            text = "Time & XP Intelligence",
-            color = Color.White,
+            text = "Time & XP Intelligence".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -1267,19 +1289,19 @@ fun TabActivity(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(formatDuration(totalTimeSeconds), color = Color(0xFF00C2FF), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Total Study", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Total Study".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(formatDuration(dailyTimeSeconds), color = Color(0xFF9D00FF), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Today Study", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Today Study".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(formatDuration(weeklyTimeSeconds), color = Color(0xFF00FFD2), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Weekly Study", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Weekly Study".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                 }
 
-                Divider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
+                Divider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f), thickness = 1.dp)
 
                 // XP Stats Row
                 Row(
@@ -1288,17 +1310,17 @@ fun TabActivity(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("${currentXp}xp", color = Color(0xFFFF9100), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Current XP", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Current XP".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val xpNeeded = currentLevel * 500
                         Text("${xpNeeded - currentXp}xp", color = Color(0xFFFFD600), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Next Level", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Next Level".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val avgDurationMin = if (totalReviews > 0) (totalTimeSeconds / 60) / max(totalReviews / 10, 1) else 0
                         Text("${max(avgDurationMin, 3)} mins", color = Color(0xFFFF1744), fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Avg Session", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("Avg Session".localize(), color = subtextColor, fontSize = 11.sp)
                     }
                 }
             }
@@ -1306,8 +1328,8 @@ fun TabActivity(
 
         // 4. Export Control Panel
         Text(
-            text = "Export Intelligence Reports",
-            color = Color.White,
+            text = "Export Intelligence Reports".localize(),
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
@@ -1316,14 +1338,14 @@ fun TabActivity(
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Secure local copies or share structured progress diagnostics with your study partners.",
-                    color = Color.White.copy(alpha = 0.5f),
+                    text = "Secure local copies or share structured progress diagnostics with your study partners.".localize(),
+                    color = subtextColor,
                     fontSize = 11.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
                 PremiumGlassButton(
-                    text = "Generate PDF Progress Report",
+                    text = "Generate PDF Progress Report".localize(),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         generateAndSharePdf(context, allCards, reviewHistory, userProgress)
@@ -1332,7 +1354,7 @@ fun TabActivity(
                 )
 
                 PremiumGlassButton(
-                    text = "Export Vocabulary Deck (CSV)",
+                    text = "Export Vocabulary Deck (CSV)".localize(),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         generateAndShareCsv(context, allCards, clipboardManager)
@@ -1341,7 +1363,7 @@ fun TabActivity(
                 )
 
                 PremiumGlassButton(
-                    text = "Copy Markdown Progress Summary",
+                    text = "Copy Markdown Progress Summary".localize(),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         copyProgressSummary(context, allCards, reviewHistory, userProgress, clipboardManager)
@@ -1642,6 +1664,14 @@ fun TabSimulator(
     clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback
 ) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
+    val currentLang = com.example.ui.theme.LocalAppLanguage.current
+    fun String.loc(): String = com.example.core.localization.Translations.translate(this, currentLang)
+
     // Simulator control parameters state
     var numCards by remember { mutableStateOf(1000f) }
     var simDays by remember { mutableStateOf(180f) }
@@ -1680,15 +1710,15 @@ fun TabSimulator(
                         )
                     }
                     Text(
-                        text = "SmartSessionEngine Simulator",
-                        color = Color.White,
+                        text = "SmartSessionEngine Simulator".localize(),
+                        color = textColor,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    text = "This utility runs an ultra-fast in-memory simulation of the complete Leitner box and FSRS v4.5 spacing engine, strictly using the SmartSessionEngine prioritization and capacity rules. Customize the parameters below to run the simulation.",
-                    color = Color.White.copy(alpha = 0.7f),
+                    text = "This utility runs an ultra-fast in-memory simulation of the complete Leitner box and FSRS v4.5 spacing engine, strictly using the SmartSessionEngine prioritization and capacity rules. Customize the parameters below to run the simulation.".localize(),
+                    color = subtextColor,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
@@ -1702,8 +1732,8 @@ fun TabSimulator(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Simulation Settings",
-                    color = Color.White,
+                    text = "Simulation Settings".localize(),
+                    color = textColor,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1714,8 +1744,8 @@ fun TabSimulator(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Vocabulary Deck Size", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                        Text("${numCards.toInt()} words", color = Color(0xFF00C2FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Vocabulary Deck Size".localize(), color = subtextColor, fontSize = 12.sp)
+                        Text(("${numCards.toInt()} words").localize(), color = Color(0xFF00C2FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = numCards,
@@ -1725,7 +1755,7 @@ fun TabSimulator(
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF00C2FF),
                             activeTrackColor = Color(0xFF00C2FF),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.1f)
+                            inactiveTrackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
                         )
                     )
                 }
@@ -1740,8 +1770,8 @@ fun TabSimulator(
                             simDays >= 365f -> "${String.format("%.1f", simDays / 365.0)} Years (${simDays.toInt()} Days)"
                             else -> "${simDays.toInt()} Days"
                         }
-                        Text("Simulation Duration", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                        Text(durationText, color = Color(0xFF9D00FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Simulation Duration".localize(), color = subtextColor, fontSize = 12.sp)
+                        Text(durationText.localize(), color = Color(0xFF9D00FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = simDays,
@@ -1751,7 +1781,7 @@ fun TabSimulator(
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF9D00FF),
                             activeTrackColor = Color(0xFF9D00FF),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.1f)
+                            inactiveTrackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
                         )
                     )
                 }
@@ -1762,8 +1792,8 @@ fun TabSimulator(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Daily Study Session", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                        Text("${dailyStudyMinutes.toInt()} minutes/day", color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Daily Study Session".localize(), color = subtextColor, fontSize = 12.sp)
+                        Text(("${dailyStudyMinutes.toInt()} minutes/day").localize(), color = Color(0xFF00FFD2), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = dailyStudyMinutes,
@@ -1773,7 +1803,7 @@ fun TabSimulator(
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFF00FFD2),
                             activeTrackColor = Color(0xFF00FFD2),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.1f)
+                            inactiveTrackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
                         )
                     )
                 }
@@ -1784,7 +1814,7 @@ fun TabSimulator(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Student Success Rate (Recall Prob)", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                        Text("Student Success Rate (Recall Prob)".localize(), color = subtextColor, fontSize = 12.sp)
                         Text("${(userRecall * 100).toInt()}%", color = Color(0xFFFFD600), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -1794,7 +1824,7 @@ fun TabSimulator(
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFFFFD600),
                             activeTrackColor = Color(0xFFFFD600),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.1f)
+                            inactiveTrackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
                         )
                     )
                 }
@@ -1826,8 +1856,8 @@ fun TabSimulator(
         // Simulation Output Results Dashboard
         simulationResult?.let { res ->
             Text(
-                text = "Simulation Diagnostics Results",
-                color = Color.White,
+                text = "Simulation Diagnostics Results".localize(),
+                color = textColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp)
@@ -1839,8 +1869,8 @@ fun TabSimulator(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(
-                    MetricDetail("Sim Reviews", res.totalReviews.toString(), Color(0xFF00C2FF), Icons.Default.TrendingUp),
-                    MetricDetail("Matured (Box 7)", res.maturedCount.toString(), Color(0xFFE040FB), Icons.Default.WorkspacePremium)
+                    MetricDetail("Sim Reviews".localize(), res.totalReviews.toString(), Color(0xFF00C2FF), Icons.Default.TrendingUp),
+                    MetricDetail("Matured (Box 7)".localize(), res.maturedCount.toString(), Color(0xFFE040FB), Icons.Default.WorkspacePremium)
                 ).forEach { item ->
                     GlassCard(modifier = Modifier.weight(1f), cornerRadius = 14.dp) {
                         Column(
@@ -1856,8 +1886,8 @@ fun TabSimulator(
                                 Icon(item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(16.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(item.value, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                            Text(item.title, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, textAlign = TextAlign.Center)
+                            Text(item.value, color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                            Text(item.title, color = subtextColor, fontSize = 10.sp, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -1868,8 +1898,8 @@ fun TabSimulator(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(
-                    MetricDetail("Avg Daily Queue", String.format("%.1f", res.averageDailyReviews), Color(0xFF00FFD2), Icons.Default.FormatListNumbered),
-                    MetricDetail("Peak Workload", res.peakDailyReviews.toString(), Color(0xFFFF1744), Icons.Default.Warning)
+                    MetricDetail("Avg Daily Queue".localize(), String.format("%.1f", res.averageDailyReviews), Color(0xFF00FFD2), Icons.Default.FormatListNumbered),
+                    MetricDetail("Peak Workload".localize(), res.peakDailyReviews.toString(), Color(0xFFFF1744), Icons.Default.Warning)
                 ).forEach { item ->
                     GlassCard(modifier = Modifier.weight(1f), cornerRadius = 14.dp) {
                         Column(
@@ -1885,8 +1915,8 @@ fun TabSimulator(
                                 Icon(item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(16.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(item.value, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                            Text(item.title, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, textAlign = TextAlign.Center)
+                            Text(item.value, color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                            Text(item.title, color = subtextColor, fontSize = 10.sp, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -1894,8 +1924,8 @@ fun TabSimulator(
 
             // Virtual User full life activity dashboard
             Text(
-                text = "Virtual User Journey & Activity (Complete App)",
-                color = Color.White,
+                text = "Virtual User Journey & Activity (Complete App)".localize(),
+                color = textColor,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 10.dp)
@@ -1922,9 +1952,9 @@ fun TabSimulator(
                             Icon(Icons.Default.School, contentDescription = null, tint = Color(0xFFDF9CFF), modifier = Modifier.size(24.dp))
                         }
                         Column(modifier = Modifier.weight(1.5f)) {
-                            Text("Vocabulary Placement Test", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("CEFR Level: ${res.placementLevel}", color = Color(0xFFDF9CFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Score: ${res.placementCorrectAnswers}/10 adaptive questions (IRT)", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+                            Text("Vocabulary Placement Test".localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(("CEFR Level: ${res.placementLevel}").localize(), color = Color(0xFFDF9CFF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(("Score: ${res.placementCorrectAnswers}/10 adaptive questions (IRT)").localize(), color = subtextColor, fontSize = 10.sp)
                         }
                         Box(
                             modifier = Modifier
@@ -1933,7 +1963,7 @@ fun TabSimulator(
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "CEFR Placed",
+                                text = "CEFR Placed".localize(),
                                 color = Color(0xFFDF9CFF),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -1941,7 +1971,7 @@ fun TabSimulator(
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)))
 
                     // Custom Box Spaced Repetition Section
                     Row(
@@ -1959,9 +1989,9 @@ fun TabSimulator(
                             Icon(Icons.Default.Inventory, contentDescription = null, tint = Color(0xFF00C2FF), modifier = Modifier.size(24.dp))
                         }
                         Column(modifier = Modifier.weight(1.5f)) {
-                            Text("Custom Vocabulary Boxes & Spacing", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("Created: ${res.customBoxesCreated} Personal Boxes", color = Color(0xFF00C2FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Added: ${res.customBoxWordsAdded} custom words  |  Reviews: ${res.customBoxReviewsCount}", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+                            Text("Custom Vocabulary Boxes & Spacing".localize(), color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(("Created: ${res.customBoxesCreated} Personal Boxes").localize(), color = Color(0xFF00C2FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(("Added: ${res.customBoxWordsAdded} custom words  |  Reviews: ${res.customBoxReviewsCount}").localize(), color = subtextColor, fontSize = 10.sp)
                         }
                         Box(
                             modifier = Modifier
@@ -1970,7 +2000,7 @@ fun TabSimulator(
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "${String.format("%.1f", res.customBoxRetentionRate * 100)}% Recall",
+                                text = ("${String.format("%.1f", res.customBoxRetentionRate * 100)}% Recall").localize(),
                                 color = Color(0xFF00C2FF),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -1980,7 +2010,7 @@ fun TabSimulator(
 
                     // Horizontal bar for custom boxes distribution
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Custom Box Leitner Distribution Profile", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Custom Box Leitner Distribution Profile".localize(), color = subtextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         val totalCustom = res.customBoxDistribution.sum().toFloat()
                         if (totalCustom > 0f) {
                             val boxColors = listOf(
@@ -2006,7 +2036,7 @@ fun TabSimulator(
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)))
 
                     // Data segregation cert
                     Row(
@@ -2021,14 +2051,14 @@ fun TabSimulator(
                         Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF00FFD2), modifier = Modifier.size(20.dp))
                         Column {
                             Text(
-                                text = "Database Segregation Verified",
+                                text = "Database Segregation Verified".localize(),
                                 color = Color(0xFF00FFD2),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Independent SQLite tracking. Custom Box words and Smart Learn progress do not overlap or interfere under any conditions.",
-                                color = Color.White.copy(alpha = 0.8f),
+                                text = "Independent SQLite tracking. Custom Box words and Smart Learn progress do not overlap or interfere under any conditions.".localize(),
+                                color = subtextColor,
                                 fontSize = 10.sp,
                                 lineHeight = 13.sp
                             )
@@ -2049,8 +2079,8 @@ fun TabSimulator(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Algorithmic Integrity Verification",
-                            color = Color.White,
+                            text = "Algorithmic Integrity Verification".localize(),
+                            color = textColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -2061,7 +2091,7 @@ fun TabSimulator(
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (res.validationPassed) "HEALTHY" else "WARNING",
+                                text = (if (res.validationPassed) "HEALTHY" else "WARNING").localize(),
                                 color = if (res.validationPassed) Color(0xFF00FFD2) else Color(0xFFFF1744),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
@@ -2069,7 +2099,7 @@ fun TabSimulator(
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)))
 
                     res.validationMessages.forEach { msg ->
                         val isPass = msg.startsWith("PASS")
@@ -2084,8 +2114,8 @@ fun TabSimulator(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = msg.substringAfter(": "),
-                                color = Color.White.copy(alpha = 0.85f),
+                                text = msg.substringAfter(": ").localize(),
+                                color = textColor,
                                 fontSize = 11.sp
                             )
                         }
@@ -2100,8 +2130,8 @@ fun TabSimulator(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Workload Distribution Over Time (Reviews/Day)",
-                        color = Color.White,
+                        text = "Workload Distribution Over Time (Reviews/Day)".localize(),
+                        color = textColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -2117,9 +2147,9 @@ fun TabSimulator(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Day 1", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
-                        Text("Interval Spacing Smoothing Curve (FSRS + Leitner)", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        Text("Day ${res.days}", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
+                        Text("Day 1".localize(), color = subtextColor, fontSize = 10.sp)
+                        Text("Interval Spacing Smoothing Curve (FSRS + Leitner)".localize(), color = subtextColor, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        Text(("Day ${res.days}").localize(), color = subtextColor, fontSize = 10.sp)
                     }
                 }
             }
@@ -2131,8 +2161,8 @@ fun TabSimulator(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Final Box Distribution Profile",
-                        color = Color.White,
+                        text = "Final Box Distribution Profile".localize(),
+                        color = textColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -2183,7 +2213,7 @@ fun TabSimulator(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Box(modifier = Modifier.size(8.dp).background(boxColors[i], CircleShape))
-                                    Text("Box ${i + 1}: $percent% ($count)", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp)
+                                    Text(("Box ${i + 1}: $percent% ($count)").localize(), color = subtextColor, fontSize = 9.sp)
                                 }
                             }
                         }
@@ -2209,8 +2239,8 @@ fun TabSimulator(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Full Mathematical Report File",
-                        color = Color.White,
+                        text = "Full Mathematical Report File".localize(),
+                        color = textColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -2239,14 +2269,14 @@ fun TabSimulator(
                             onClick = {
                                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(res.reportText))
-                                Toast.makeText(context, "Full report markdown copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Full report markdown copied to clipboard!".loc(), Toast.LENGTH_SHORT).show()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0x1A00FFD2)),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color(0xFF00FFD2), modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy Report", color = Color(0xFF00FFD2), fontSize = 11.sp)
+                            Text("Copy Report".loc(), color = Color(0xFF00FFD2), fontSize = 11.sp)
                         }
 
                         Button(
@@ -2256,14 +2286,14 @@ fun TabSimulator(
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT, res.reportText)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Simulator Diagnostic Report"))
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Simulator Diagnostic Report".loc()))
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0x1A9D00FF)),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Share, contentDescription = "Share", tint = Color(0xFFDF9CFF), modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Share Report", color = Color(0xFFDF9CFF), fontSize = 11.sp)
+                            Text("Share Report".loc(), color = Color(0xFFDF9CFF), fontSize = 11.sp)
                         }
                     }
                 }

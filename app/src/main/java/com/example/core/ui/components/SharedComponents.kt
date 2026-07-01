@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.example.core.localization.localize
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -947,6 +949,60 @@ fun SevenTicksFAB(
         }
     }
 }
+
+/**
+ * SECTION 15. DYNAMIC BACK HEADER
+ * Centralized responsive back-navigation header component that automatically syncs
+ * with light/dark theme schemes and respects LayoutDirections.
+ */
+@Composable
+fun SharedBackHeader(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailingContent: (@Composable () -> Unit)? = null
+) {
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = textColor
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = title.localize(),
+                    color = textColor,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (trailingContent != null) {
+                trailingContent()
+            }
+        }
+    }
+}
+
 
 
 

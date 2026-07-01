@@ -688,6 +688,10 @@ fun CreateEditBoxScreen(
 
     val scrollState = rememberScrollState()
 
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -695,23 +699,11 @@ fun CreateEditBoxScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Top Header Row
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Text(
-                    text = (if (isEditing) "Edit Vocab Box" else "Create Custom Box").localize(),
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
+        // Top Header Row (Uses our global, reusable back header)
+        com.example.core.ui.components.SharedBackHeader(
+            title = if (isEditing) "Edit Vocab Box" else "Create Custom Box",
+            onBack = onBack
+        )
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -744,7 +736,7 @@ fun CreateEditBoxScreen(
                 )
 
                 // Icon Picker Section
-                Text("Select Box Icon", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("Select Box Icon".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -756,10 +748,10 @@ fun CreateEditBoxScreen(
                             modifier = Modifier
                                 .size(46.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color(0x3D00C2FF) else Color(0x06FFFFFF))
+                                .background(if (isSelected) Color(0x3D00C2FF) else if (isDark) Color(0x06FFFFFF) else Color(0x0A000000))
                                 .border(
                                     width = 1.dp,
-                                    color = if (isSelected) Color(0xFF00C2FF) else Color(0x12FFFFFF),
+                                    color = if (isSelected) Color(0xFF00C2FF) else if (isDark) Color(0x12FFFFFF) else Color(0x1F000000),
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable {
@@ -771,14 +763,14 @@ fun CreateEditBoxScreen(
                             Icon(
                                 imageVector = getBoxIcon(iconName),
                                 contentDescription = null,
-                                tint = if (isSelected) Color(0xFF00FFD2) else Color.White.copy(alpha = 0.6f)
+                                tint = if (isSelected) Color(0xFF00FFD2) else if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
                             )
                         }
                     }
                 }
 
                 // Color Picker Section
-                Text("Select Accent Color", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("Select Accent Color".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -793,7 +785,7 @@ fun CreateEditBoxScreen(
                                 .background(parsedColor)
                                 .border(
                                     width = 2.dp,
-                                    color = if (isSelected) Color.White else Color.Transparent,
+                                    color = if (isSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent,
                                     shape = CircleShape
                                 )
                                 .clickable {
@@ -915,9 +907,12 @@ fun BoxDetailScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val isDark = MaterialTheme.colorScheme.isDark
+                    val textColor = MaterialTheme.colorScheme.adaptiveText
+                    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = textColor)
                         }
                         Box(
                             modifier = Modifier
@@ -930,8 +925,8 @@ fun BoxDetailScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text(boxName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text(("${words.size} terms inside").localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                            Text(boxName, color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(("${words.size} terms inside").localize(), color = subtextColor, fontSize = 11.sp)
                         }
                     }
                 }
@@ -1202,6 +1197,11 @@ fun AddWordScreen(
 
     val scrollState = rememberScrollState()
 
+    val isDark = MaterialTheme.colorScheme.isDark
+    val textColor = MaterialTheme.colorScheme.adaptiveText
+    val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
+    val subtleTextColor = MaterialTheme.colorScheme.adaptiveSubtleText
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1209,43 +1209,31 @@ fun AddWordScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Navigation Header
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Text(
-                    text = (if (isEditing) "Edit Word Details" else "Add New Word").localize(),
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
+        // Navigation Header (reusable, theme-aware back header)
+        com.example.core.ui.components.SharedBackHeader(
+            title = if (isEditing) "Edit Word Details" else "Add New Word",
+            onBack = onBack
+        )
 
         // --- Live Search Autofill (only in creation mode) ---
         if (!isEditing) {
-            Text("Auto-Fill from Dictionary Source", color = Color(0xFF00FFD2), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("Auto-Fill from Dictionary Source".localize(), color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7), fontSize = 14.sp, fontWeight = FontWeight.Bold)
             SharedTextField(
                 value = searchWordQuery,
                 onValueChange = { searchWordQuery = it },
                 placeholder = "Type to lookup & auto-fill fields...",
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF00C2FF)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             if (isSearching) {
-                LinearProgressIndicator(color = Color(0xFF00C2FF), modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(color = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7), modifier = Modifier.fillMaxWidth())
             }
 
             AnimatedVisibility(visible = liveSearchResults.isNotEmpty()) {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Search Matches:", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Search Matches:".localize(), color = subtextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         liveSearchResults.forEach { result ->
                             Row(
                                 modifier = Modifier
@@ -1284,10 +1272,10 @@ fun AddWordScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(result.word, color = Color(0xFF00FFD2), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(result.word, color = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(result.type, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-                                    Text("•", color = Color.White.copy(alpha = 0.3f), fontSize = 10.sp)
+                                    Text(result.type, color = subtextColor, fontSize = 10.sp)
+                                    Text("•", color = subtleTextColor, fontSize = 10.sp)
                                     Text(result.level, color = Color(0xFFE040FB), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
@@ -1298,7 +1286,7 @@ fun AddWordScreen(
         }
 
         // --- Custom/Auto-filled Fields Section ---
-        Text("Word Schema Fields", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Word Schema Fields".localize(), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 // Word
@@ -1508,23 +1496,11 @@ fun BoxWordDetailScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Navigation Header
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Text(
-                    text = "Word Portfolio".localize(),
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
+        // Navigation Header (reusable, theme-aware back header)
+        com.example.core.ui.components.SharedBackHeader(
+            title = "Word Portfolio",
+            onBack = onBack
+        )
 
         if (item == null) {
             Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -1798,23 +1774,24 @@ fun BoxStudyScreen(
     Scaffold(
         topBar = {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                val textColor = MaterialTheme.colorScheme.adaptiveText
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
                             text = boxName,
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = textColor)
                         }
                     },
                     actions = {
                         IconButton(onClick = { /* Help */ }) {
-                            Icon(Icons.Default.Info, contentDescription = "Help", tint = Color.White)
+                            Icon(Icons.Default.Info, contentDescription = "Help", tint = textColor)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -2085,28 +2062,18 @@ fun ImportBackupScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Text(
-                    text = "Import Box JSON".localize(),
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
+        // Top Header Row (uses reusable back header component)
+        com.example.core.ui.components.SharedBackHeader(
+            title = "Import Box JSON",
+            onBack = onBack
+        )
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
+            val subtextColor = MaterialTheme.colorScheme.adaptiveSecondaryText
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Paste the copied vocabulary box backup JSON text here. We will recreate the box and restore all elements.",
-                    color = Color.White.copy(alpha = 0.7f),
+                    text = "Paste the copied vocabulary box backup JSON text here. We will recreate the box and restore all elements.".localize(),
+                    color = subtextColor,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
