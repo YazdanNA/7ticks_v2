@@ -160,15 +160,6 @@ fun GlassCard(
     ) {
         Box(
             modifier = Modifier
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf((if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.05f), Color.Transparent),
-                            center = Offset(size.width / 3f, 0f),
-                            radius = size.width / 1.5f
-                        )
-                    )
-                }
                 .padding(contentPadding)
         ) {
             content()
