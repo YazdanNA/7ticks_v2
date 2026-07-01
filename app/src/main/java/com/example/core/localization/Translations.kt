@@ -113,7 +113,15 @@ object Translations {
 
         // Tiki Mascots Default Dialogue
         "Hi there! I am Tiki, your vocabulary mentor." to "سلام! من تیکی هستم، مربی واژگان شما.",
-        "Welcome! Let's level up your vocabulary today!" to "خوش آمدید! بیایید امروز سطح واژگان شما را ارتقا دهیم!"
+        "Welcome! Let's level up your vocabulary today!" to "خوش آمدید! بیایید امروز سطح واژگان شما را ارتقا دهیم!",
+
+        // Challenges Screen
+        "Active Challenges" to "چالش‌های فعال",
+        "Active Challenge" to "چالش فعال",
+        "Earn Extra XP Points" to "کسب امتیاز تجربه (XP) اضافی",
+        "No active challenges found" to "هیچ چالش فعالی یافت نشد",
+        "Tap to view all challenges" to "برای مشاهده همه چالش‌ها ضربه بزنید",
+        "Quests synchronize in real-time with the central FSRS engine" to "ماموریت‌ها به صورت آنی با موتور مرکزی FSRS همگام‌سازی می‌شوند"
     )
 
     fun translate(text: String, lang: String): String {

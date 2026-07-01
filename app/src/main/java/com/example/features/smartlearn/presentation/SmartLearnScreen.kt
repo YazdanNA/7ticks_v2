@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.SevenTicksApplication
+import com.example.core.localization.localize
 import com.example.core.navigation.Screen
 import com.example.core.ui.components.*
 import com.example.ui.theme.isDark
@@ -465,7 +466,7 @@ fun SmartLearnScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showChallengePortal = true
+                        navController.navigate(Screen.Challenges.route)
                     }
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -535,7 +536,7 @@ fun SmartLearnScreen(navController: NavController) {
                         }
 
                         Text(
-                            text = "Tap to expand Quests portal",
+                            text = "Tap to view all challenges".localize(),
                             color = if (isDark) Color(0xFF00C2FF).copy(alpha = 0.7f) else Color(0xFF0284C7).copy(alpha = 0.85f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -548,195 +549,8 @@ fun SmartLearnScreen(navController: NavController) {
             }
         }
 
-        // SECTION 9: ACTIVE CHALLENGE CARD EXPANSION PORTAL (Seamless morph transition to fill the screen)
-        val expansionFraction by animateFloatAsState(
-            targetValue = if (showChallengePortal) 1f else 0f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            label = "challenge_expansion"
-        )
 
-        if (expansionFraction > 0f) {
-            val isDark = MaterialTheme.colorScheme.isDark
-            val overlayColor = (if (isDark) Color(0xFF060713) else Color(0xFF0F172A)).copy(alpha = expansionFraction * (if (isDark) 0.96f else 0.4f))
-            val portalCardColor = (if (isDark) Color(0xFF0F1026) else Color.White).copy(alpha = 0.9f + 0.1f * expansionFraction)
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(overlayColor)
-                    .clickable(enabled = expansionFraction == 1f) {
-                        showChallengePortal = false
-                    }
-            ) {
-                val scale = 0.92f + (0.08f * expansionFraction)
-                val alpha = expansionFraction
-
-                SharedGlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth(0.92f + (0.08f * expansionFraction))
-                        .fillMaxHeight(0.75f + (0.25f * expansionFraction))
-                        .align(Alignment.Center)
-                        .scale(scale)
-                        .graphicsLayer { this.alpha = alpha },
-                    cornerRadius = (24 * (1f - expansionFraction) + 28 * expansionFraction).dp,
-                    backgroundColor = portalCardColor
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Portal Header
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFD600),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Active Challenges",
-                                    color = if (isDark) Color.White else Color(0xFF0F172A),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    showChallengePortal = false
-                                },
-                                modifier = Modifier
-                                    .background(if (isDark) Color(0x12FFFFFF) else Color(0x0C0F172A), CircleShape)
-                                    .border(1.dp, if (isDark) Color(0x1AFFFFFF) else Color(0x1A0F172A), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close Portal",
-                                    tint = if (isDark) Color.White else Color(0xFF0F172A)
-                                )
-                            }
-                        }
-
-                        // Scrollable challenge list
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                        ) {
-                            val portalScrollState = rememberScrollState()
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(portalScrollState),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                challengesList.forEach { item ->
-                                    val isDailyItem = item.id.startsWith("daily")
-                                    val itemProgress = if (item.target > 0) item.current.toFloat() / item.target.toFloat() else 0f
-
-                                    SharedGlassCard(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        cornerRadius = 16.dp,
-                                        backgroundColor = if (item.completed) Color(0x1A00E676) else (if (isDark) Color(0x0CFFFFFF) else Color(0x0C0F172A))
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = if (item.completed) Icons.Default.Check else Icons.Default.Star,
-                                                        contentDescription = null,
-                                                        tint = if (item.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(
-                                                        text = item.title,
-                                                        color = if (isDark) Color.White else Color(0xFF0F172A),
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-                                                }
-
-                                                Text(
-                                                    text = if (isDailyItem) "+150 XP" else "+250 XP",
-                                                    color = if (item.completed) Color(0xFF00E676) else (if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7)),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Black
-                                                )
-                                            }
-
-                                            Text(
-                                                text = item.description,
-                                                color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569),
-                                                fontSize = 11.sp
-                                            )
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                LinearProgressIndicator(
-                                                    progress = { itemProgress },
-                                                    color = if (item.completed) Color(0xFF00E676) else Color(0xFF00C2FF),
-                                                    trackColor = if (isDark) Color(0x0CFFFFFF) else Color(0x1A0F172A),
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .height(4.dp)
-                                                        .clip(RoundedCornerShape(2.dp))
-                                                )
-                                                Text(
-                                                    text = "${item.current}/${item.target}",
-                                                    color = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF64748B),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Portal Footer Info
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = if (isDark) Color(0xFF00FFD2) else Color(0xFF0284C7),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Quests synchronize in real-time with the central FSRS engine",
-                                color = if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF64748B),
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        // SECTION 9: ACTIVE CHALLENGE CARD EXPANSION PORTAL - DEACTIVATED (Navigates to separate screen)
 
         // SECTION 9.5: STREAK CELEBRATION OVERLAY (Duolingo-style grand gamified overlay with sounds and vibrations)
         if (showStreakCelebration) {

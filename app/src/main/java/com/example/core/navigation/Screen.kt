@@ -11,6 +11,7 @@ sealed class Screen(val route: String) {
     }
     object Dictionary : Screen("dictionary")
     object Settings : Screen("settings")
+    object Challenges : Screen("challenges")
 }
 
 sealed class TabScreen(val route: String, val title: String) {

@@ -234,6 +234,9 @@ fun AppNavigation() {
         composable(Screen.Settings.route) {
             com.example.features.settings.presentation.SettingsScreen(navController = navController)
         }
+        composable(Screen.Challenges.route) {
+            com.example.features.challenges.presentation.ChallengesScreen(navController = navController)
+        }
     }
 }
 
