@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.database.WordDetails
+import com.example.core.localization.localize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +73,7 @@ fun SharedMoreDetailsDialog(
                     }
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.6f))
+                    Icon(Icons.Default.Close, contentDescription = "Close".localize(), tint = Color.White.copy(alpha = 0.6f))
                 }
             }
         },
@@ -88,7 +89,7 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.phonetics.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            text = "Pronunciation: ${wordDetails.phonetics}",
+                            text = ("Pronunciation: " + wordDetails.phonetics).localize(),
                             color = Color(0xFF00FFD2),
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace
@@ -102,7 +103,7 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.translations.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Translations & Meanings",
+                            text = "Translations & Meanings".localize(),
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -124,7 +125,7 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.definitions.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Definitions",
+                            text = "Definitions".localize(),
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -151,7 +152,7 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.examples.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Sentence Examples",
+                            text = "Sentence Examples".localize(),
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -186,7 +187,7 @@ fun SharedMoreDetailsDialog(
                         if (wordDetails.synonyms.isNotEmpty()) {
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    text = "Synonyms",
+                                    text = "Synonyms".localize(),
                                     color = Color.White.copy(alpha = 0.5f),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -201,7 +202,7 @@ fun SharedMoreDetailsDialog(
                         if (wordDetails.antonyms.isNotEmpty()) {
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    text = "Antonyms",
+                                    text = "Antonyms".localize(),
                                     color = Color.White.copy(alpha = 0.5f),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -221,7 +222,7 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.wordFamily.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Word Family",
+                            text = "Word Family".localize(),
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -239,19 +240,19 @@ fun SharedMoreDetailsDialog(
                 if (wordDetails.collocations.isNotEmpty() || wordDetails.phrases.isNotEmpty() || wordDetails.notes.isNotEmpty()) {
                     if (wordDetails.collocations.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Collocations", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Collocations".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(text = wordDetails.collocations.joinToString(", "), color = Color(0xFF00FFD2), fontSize = 12.sp)
                         }
                     }
                     if (wordDetails.phrases.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Phrases", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Phrases".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(text = wordDetails.phrases.joinToString(", "), color = Color(0xFFFFD600), fontSize = 12.sp)
                         }
                     }
                     if (wordDetails.notes.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Notes", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Notes".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(text = wordDetails.notes.joinToString("\n"), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                         }
                     }
