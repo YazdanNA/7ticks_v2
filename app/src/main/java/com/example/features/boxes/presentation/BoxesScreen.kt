@@ -1892,22 +1892,22 @@ fun BoxStudyScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00E5FF)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "New: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "${"New".localize()}: $newCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFFFEA00)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Learn: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "${"Learn".localize()}: $learnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFFF9100)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Relearn: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "${"Relearn".localize()}: $relearnCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF00E676)))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Due: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Text(text = "${"Due".localize()}: $dueCount", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                         }
                     }
 

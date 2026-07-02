@@ -420,7 +420,12 @@ object Translations {
         "YOU'RE DONE FOR TODAY" to "کار شما برای امروز تمام شد!",
         "CONTINUE LEARNING" to "ادامه یادگیری",
         "START STUDY SESSION" to "شروع جلسه یادگیری",
-        "Active Challenge" to "چالش فعال"
+        "Active Challenge" to "چالش فعال",
+        "Relearn" to "یادگیری مجدد",
+        "Learn" to "یادگیری",
+        "STREAK BURNING! 🔥" to "استریک داغ! 🔥",
+        "Days" to "روز",
+        "KEEP BURNING! 🔥" to "ادامه با قدرت! 🔥"
     )
 
     fun translate(text: String, lang: String): String {
@@ -456,6 +461,28 @@ object Translations {
                 .replace(" due cards", " کارت سررسید شده")
                 .replace("Due Cards: ", "کارت‌های سررسید شده: ")
                 .replace("New Words: ", "کلمات جدید: ")
+                .replace("CEFR Level ", "سطح CEFR ")
+                .replace("CEFR Level: ", "سطح CEFR: ")
+                .replace("Learned: ", "یاد گرفته شده: ")
+                .replace(" / Mastered: ", " / مسلط شده: ")
+                .replace("Streak Freeze Spells: ", "طلسم‌های محافظ استریک: ")
+                .replace(" reviews (", " مرور (")
+                .replace("Interval ", "فاصله ")
+                .replace(" / Total: ", " / کل: ")
+                .replace(" words", " کلمه")
+                .replace(" Years (", " سال (")
+                .replace(" Days)", " روز)")
+                .replace(" Days", " روز")
+                .replace(" minutes/day", " دقیقه/روز")
+                .replace("Score: ", "امتیاز: ")
+                .replace(" adaptive questions (IRT)", " سوال تطبیقی (IRT)")
+                .replace("Created: ", "ایجاد شده: ")
+                .replace(" Personal Boxes", " جعبه شخصی")
+                .replace("Added: ", "اضافه شده: ")
+                .replace(" custom words", " کلمه سفارشی")
+                .replace("Reviews: ", "مرورها: ")
+                .replace("% Recall", "% یادآوری")
+                .replace("Day ", "روز ")
         }
 
         return result

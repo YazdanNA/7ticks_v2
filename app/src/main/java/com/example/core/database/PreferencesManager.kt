@@ -14,7 +14,11 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class PreferencesManager(private val context: Context) {
 
     private val defaultSystemLanguage: String
-        get() = if (java.util.Locale.getDefault().language == "fa") "fa" else "en"
+        get() {
+            val systemLanguage = java.util.Locale.getDefault().language
+            val supportedLanguages = listOf("fa", "de", "fr", "en")
+            return if (systemLanguage in supportedLanguages) systemLanguage else "en"
+        }
 
     private fun <T> getValue(key: Preferences.Key<T>, defaultValue: T): T = runBlocking {
         try {

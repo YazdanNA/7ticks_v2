@@ -613,7 +613,7 @@ fun SmartLearnScreen(navController: NavController) {
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
                         Text(
-                            text = "STREAK BURNING! 🔥",
+                            text = "STREAK BURNING! 🔥".localize(),
                             color = Color(0xFFFF5722),
                             fontWeight = FontWeight.Black,
                             fontSize = 22.sp,
@@ -691,7 +691,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Days",
+                                text = "Days".localize(),
                                 color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF475569),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
@@ -774,7 +774,7 @@ fun SmartLearnScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Streak Freeze Spells: $spells",
+                                text = ("Streak Freeze Spells: $spells").localize(),
                                 color = Color(0xFF00C2FF),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -796,7 +796,7 @@ fun SmartLearnScreen(navController: NavController) {
                                 .height(48.dp)
                         ) {
                             Text(
-                                text = "KEEP BURNING! 🔥",
+                                text = "KEEP BURNING! 🔥".localize(),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
