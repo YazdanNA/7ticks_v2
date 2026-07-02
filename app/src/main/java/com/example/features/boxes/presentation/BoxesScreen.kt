@@ -940,11 +940,11 @@ fun BoxDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Leitner Box Progress", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Leitner Box Progress".localize(), color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("$masteredCount Mastered", color = Color(0xFF00E676), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(("$masteredCount Mastered").localize(), color = Color(0xFF00E676), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             Text("•", color = Color.White.copy(alpha = 0.3f))
-                            Text("${words.size - masteredCount} Learning", color = Color(0xFF00C2FF), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(("${words.size - masteredCount} Learning").localize(), color = Color(0xFF00C2FF), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                         LinearProgressIndicator(
                             progress = { if (words.isNotEmpty()) masteredCount.toFloat() / words.size.toFloat() else 0f },
@@ -1557,7 +1557,7 @@ fun BoxWordDetailScreen(
                     // Persian translations / meanings
                     if (word.meanings.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Translations / Persian meanings", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Translations / Persian meanings".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.meanings.split("\n").filter { it.isNotEmpty() }.forEach { m ->
                                 Text(m, color = Color(0xFFFFD600), fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.fillMaxWidth())
                             }
@@ -1568,7 +1568,7 @@ fun BoxWordDetailScreen(
                     // English definitions
                     if (word.definitions.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Definitions", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Definitions".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.definitions.split("\n").filter { it.isNotEmpty() }.forEach { def ->
                                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text("•", color = Color(0xFF00C2FF), fontWeight = FontWeight.Bold)
@@ -1582,7 +1582,7 @@ fun BoxWordDetailScreen(
                     // Sentence Examples
                     if (word.examples.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Sentence Examples", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Sentence Examples".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.examples.split("\n").filter { it.isNotEmpty() }.forEach { ex ->
                                 Box(
                                     modifier = Modifier
@@ -1609,13 +1609,13 @@ fun BoxWordDetailScreen(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (word.synonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("Synonyms", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("Synonyms".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(word.synonyms, color = Color(0xFF00E676), fontSize = 13.sp)
                                 }
                             }
                             if (word.antonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("Antonyms", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("Antonyms".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(word.antonyms, color = Color(0xFFFF7043), fontSize = 13.sp)
                                 }
                             }
@@ -1626,7 +1626,7 @@ fun BoxWordDetailScreen(
                     // Word Family
                     if (word.wordFamily.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Word Family", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Word Family".localize(), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(word.wordFamily, color = Color(0xFFE040FB), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -2031,11 +2031,11 @@ fun BoxStudyScreen(
             onDismissRequest = { showLeveledUpDialog = false },
             confirmButton = {
                 TextButton(onClick = { showLeveledUpDialog = false }) {
-                    Text("Awesome!", color = Color(0xFF00FFD2))
+                    Text("Awesome!".localize(), color = Color(0xFF00FFD2))
                 }
             },
-            title = { Text("Level Up! 🌟", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text("Congratulations! You've leveled up to Level ${level + 1}!", color = Color.White.copy(alpha = 0.8f)) },
+            title = { Text("Level Up! 🌟".localize(), color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text(("Congratulations! You've leveled up to Level ${level + 1}!").localize(), color = Color.White.copy(alpha = 0.8f)) },
             containerColor = Color(0xFF0F1026)
         )
     }

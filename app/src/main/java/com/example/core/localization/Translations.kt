@@ -425,7 +425,27 @@ object Translations {
         "Learn" to "یادگیری",
         "STREAK BURNING! 🔥" to "استریک داغ! 🔥",
         "Days" to "روز",
-        "KEEP BURNING! 🔥" to "ادامه با قدرت! 🔥"
+        "KEEP BURNING! 🔥" to "ادامه با قدرت! 🔥",
+        "Lexicon Explorer" to "کاوشگر واژگان",
+        "Search thousands of curated academic terms" to "جستجوی هزاران واژه علمی برگزیده",
+        "Search Words" to "جستجوی واژگان",
+        "Recent Searches" to "جستجوهای اخیر",
+        "Clear All" to "پاک کردن همه",
+        "My Starred Words" to "کلمات ستاره‌دار من",
+        "No Starred Words Yet" to "هنوز کلمه ستاره‌داری ندارید",
+        "Any dictionary word you star will appear here for fast, offline access." to "هر کلمه‌ای را که در واژه‌نامه ستاره‌دار کنید برای دسترسی سریع و آفلاین در اینجا ظاهر می‌شود.",
+        "Leitner Box Progress" to "پیشرفت جعبه لایتنر",
+        "Translations / Persian meanings" to "ترجمه‌ها / معانی فارسی",
+        "Translations & Meanings" to "ترجمه‌ها و معانی",
+        "Definitions" to "تعاریف",
+        "Sentence Examples" to "مثال‌های جمله‌ای",
+        "Synonyms" to "مترادف‌ها",
+        "Antonyms" to "متضادها",
+        "Word Family" to "هم‌خانواده کلمات",
+        "Add to Vocabulary Box" to "افزودن به جعبه واژگان",
+        "No boxes created yet" to "هنوز جعبه‌ای ایجاد نشده است",
+        "Awesome!" to "عالی!",
+        "Level Up! 🌟" to "ارتقای سطح! 🌟"
     )
 
     fun translate(text: String, lang: String): String {
@@ -483,6 +503,13 @@ object Translations {
                 .replace("Reviews: ", "مرورها: ")
                 .replace("% Recall", "% یادآوری")
                 .replace("Day ", "روز ")
+                .replace("Category: ", "دسته‌بندی: ")
+                .replace("Leitner Box Progress", "پیشرفت جعبه لایتنر")
+                .replace("Leitner ", "لایتنر ")
+                .replace("Mastered", "مسلط شده")
+                .replace("Learning", "در حال یادگیری")
+                .replace("Freeze Spells", "طلسم محافظ")
+                .replace("Congratulations! You've leveled up to Level ", "تبریک! شما به سطح ")
         }
 
         return result

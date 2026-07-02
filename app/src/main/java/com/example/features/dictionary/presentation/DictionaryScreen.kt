@@ -41,6 +41,7 @@ import com.example.core.database.RecentSearchEntity
 import com.example.core.database.SearchResult
 import com.example.core.database.WordDetails
 import com.example.core.ui.components.SharedTextField
+import com.example.core.localization.localize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -140,13 +141,13 @@ fun DictionaryScreen() {
             }
             Column {
                 Text(
-                    text = "Lexicon Explorer",
+                    text = "Lexicon Explorer".localize(),
                     color = textColor,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Search thousands of curated academic terms",
+                    text = "Search thousands of curated academic terms".localize(),
                     color = subtextColor,
                     fontSize = 11.sp
                 )
@@ -157,7 +158,7 @@ fun DictionaryScreen() {
         SharedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = "Search Words",
+            placeholder = "Search Words".localize(),
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7)) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -193,14 +194,14 @@ fun DictionaryScreen() {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Default.History, contentDescription = null, tint = subtextColor, modifier = Modifier.size(16.dp))
                         Text(
-                            text = "Recent Searches",
+                            text = "Recent Searches".localize(),
                             color = textColor,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
-                        text = "Clear All",
+                        text = "Clear All".localize(),
                         color = if (isDark) Color(0xFF00C2FF) else Color(0xFF0284C7),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -266,7 +267,7 @@ fun DictionaryScreen() {
             ) {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(18.dp))
                 Text(
-                    text = "My Starred Words",
+                    text = "My Starred Words".localize(),
                     color = textColor,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -281,13 +282,13 @@ fun DictionaryScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "No Starred Words Yet",
+                            text = "No Starred Words Yet".localize(),
                             color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF334155),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Any dictionary word you star will appear here for fast, offline access.",
+                            text = "Any dictionary word you star will appear here for fast, offline access.".localize(),
                             color = subtextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
@@ -342,7 +343,7 @@ fun DictionaryScreen() {
 
             // Tiki Mascot Placement
             TickyCard(
-                message = "Explore word structures, synonyms, and levels! Star terms to find them quickly.",
+                message = "Explore word structures, synonyms, and levels! Star terms to find them quickly.".localize(),
                 sizeDp = 50,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -362,7 +363,7 @@ fun DictionaryScreen() {
                     verticalArrangement = Arrangement.Center
                 ) {
                     TickyCard(
-                        message = "I couldn't find \"$query\" in my database. Let's try typing another term or check the spelling!",
+                        message = "I couldn't find \"$query\" in my database. Let's try typing another term or check the spelling!".localize(),
                         sizeDp = 80,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -374,7 +375,7 @@ fun DictionaryScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Matching Vocabulary (${searchResults.size})",
+                        text = "${"Matching Vocabulary".localize()} (${searchResults.size})",
                         color = subtextColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -468,7 +469,7 @@ fun DictionaryScreen() {
                             }
                             if (result.topic.isNotEmpty() && result.topic != "General") {
                                 Text(
-                                    text = "Category: ${result.topic}",
+                                    text = ("Category: ${result.topic}").localize(),
                                     color = subtextColor,
                                     fontSize = 10.sp
                                 )
@@ -599,7 +600,7 @@ fun DictionaryScreen() {
                     // Persian / Meanings
                     if (word.meanings.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Translations & Meanings", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Translations & Meanings".localize(), color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.meanings.forEach { m ->
                                 Text(
                                     text = m,
@@ -616,7 +617,7 @@ fun DictionaryScreen() {
                     // Definitions
                     if (word.definitions.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(text = "Definitions", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Definitions".localize(), color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.definitions.forEach { d ->
                                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(text = "•", color = Color(0xFF00C2FF), fontWeight = FontWeight.Bold)
@@ -630,7 +631,7 @@ fun DictionaryScreen() {
                     // Examples
                     if (word.examples.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(text = "Sentence Examples", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Sentence Examples".localize(), color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             word.examples.forEach { ex ->
                                 Box(
                                     modifier = Modifier
@@ -657,7 +658,7 @@ fun DictionaryScreen() {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (word.synonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(text = "Synonyms", color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = "Synonyms".localize(), color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(
                                         text = word.synonyms.joinToString(", "),
                                         color = Color(0xFF00E676),
@@ -667,7 +668,7 @@ fun DictionaryScreen() {
                             }
                             if (word.antonyms.isNotEmpty()) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(text = "Antonyms", color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = "Antonyms".localize(), color = dialogSubtleTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Text(
                                         text = word.antonyms.joinToString(", "),
                                         color = Color(0xFFFF7043),
@@ -682,7 +683,7 @@ fun DictionaryScreen() {
                     // Word Family
                     if (word.wordFamily.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Word Family", color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Word Family".localize(), color = dialogSubtleTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 text = word.wordFamily.joinToString(" ➔ "),
                                 color = Color(0xFFE040FB),
@@ -697,7 +698,7 @@ fun DictionaryScreen() {
                     // --- DIRECT ACTION: ADD TO CUSTOM BOX ---
                     Box(modifier = Modifier.fillMaxWidth()) {
                         PremiumGlassButton(
-                            text = "Add to Vocabulary Box",
+                            text = "Add to Vocabulary Box".localize(),
                             onClick = { showAddToBoxDropdown = true },
                             icon = { Icon(Icons.Default.Add, contentDescription = null, tint = Color.White) },
                             modifier = Modifier.fillMaxWidth()
@@ -712,7 +713,7 @@ fun DictionaryScreen() {
                         ) {
                             if (customBoxes.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text("No boxes created yet", color = dialogSubtleTextColor) },
+                                    text = { Text("No boxes created yet".localize(), color = dialogSubtleTextColor) },
                                     onClick = { showAddToBoxDropdown = false }
                                 )
                             } else {
